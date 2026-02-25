@@ -212,56 +212,39 @@ function mkBtn(){
   return b;
 }
 
-// Desktop injection - into navbar6_menu-right
+// DESKTOP: inject into navbar6_menu-right (confirmed class from Designer)
 var _injected=false;
-function inject(){
+function injectDesktop(){
   if(_injected)return;
   var el=document.querySelector('.navbar6_menu-right');
-  if(el&&!el.querySelector('.wo-btn')){el.appendChild(mkBtn());_injected=true;return;}
-  var link=document.querySelector('.navbar6_link');
-  if(link&&link.parentNode&&!link.parentNode.querySelector('.wo-btn')){link.parentNode.appendChild(mkBtn());_injected=true;}
+  if(el&&!el.querySelector('.wo-btn')){
+    el.appendChild(mkBtn());
+    _injected=true;
+  }
 }
 
-// Mobile injection - watch for .w-nav-overlay height change (Webflow mobile drawer)
-var _mobDone=false;
-function tryMobile(){
-  if(_mobDone)return;
-  var ov=document.querySelector('.w-nav-overlay');
-  if(!ov)return;
-  var h=parseInt(ov.style.height)||0;
-  if(h<10)return;
-  if(ov.querySelector('.wo-mob-wrap'))return;
-  _mobDone=true;
+// MOBILE: inject into navbar6_menu (the NavbarMenu element - confirmed from Designer)
+// This is always in the DOM. We append a button at the bottom so it appears
+// at the bottom of the mobile drawer whenever it opens. No timing issues.
+var _mobInjected=false;
+function injectMobile(){
+  if(_mobInjected)return;
+  var menu=document.querySelector('.navbar6_menu');
+  if(!menu||menu.querySelector('.wo-mob-wrap'))return;
+  _mobInjected=true;
   var w=document.createElement('div');
   w.className='wo-mob-wrap';
-  w.style.cssText='display:flex;justify-content:center;padding:16px 16px 8px;width:100%;box-sizing:border-box;';
+  w.style.cssText='display:flex;justify-content:center;padding:20px 16px 16px;width:100%;box-sizing:border-box;border-top:1px solid rgba(255,255,255,0.08);margin-top:8px;';
   w.appendChild(mkBtn());
-  ov.insertBefore(w,ov.firstChild);
+  menu.appendChild(w);
   if(S.team)updateBtns();
 }
 
-// Also try injecting into .w-nav-menu which is what's visible inside overlay
-function tryNavMenu(){
-  if(_mobDone)return;
-  var menu=document.querySelector('.w-nav-overlay .w-nav-menu');
-  if(!menu)return;
-  if(menu.querySelector('.wo-mob-wrap'))return;
-  var style=window.getComputedStyle(menu);
-  if(style.display==='none')return;
-  _mobDone=true;
-  var w=document.createElement('div');
-  w.className='wo-mob-wrap';
-  w.style.cssText='display:flex;justify-content:center;padding:16px 16px 8px;width:100%;box-sizing:border-box;';
-  w.appendChild(mkBtn());
-  menu.insertBefore(w,menu.firstChild);
-  if(S.team)updateBtns();
-}
+function tryInject(){injectDesktop();injectMobile();}
 
-new MutationObserver(function(){
-  if(!_mobDone){tryMobile();tryNavMenu();}
-  if(!_injected)inject();
-}).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['style','class']});
+new MutationObserver(function(){tryInject();}).observe(document.body,{childList:true,subtree:true});
 
+// Restore saved team on page load
 function restore(){
   var sv=WO.load&&WO.load();
   if(!sv||!sv.k)return;
@@ -269,15 +252,21 @@ function restore(){
   var src=map[sv.lg]?window[map[sv.lg]]:null;
   var teams=(src&&src.teams)||[];
   var t=teams.find(function(x){return x.k===sv.k;});
-  if(t){t._lg=sv.lg;S.team=t;S.cw=sv.cw||'home';S.lg=sv.lg;WO.applyTheme&&WO.applyTheme(t,S.cw);updateBtns();}
+  if(t){
+    t._lg=sv.lg;S.team=t;S.cw=sv.cw||'home';S.lg=sv.lg;
+    WO.applyTheme&&WO.applyTheme(t,S.cw);
+    updateBtns();
+  }
 }
 
 function boot(){
-  inject();restore();
-  setTimeout(function(){if(!_injected)inject();},800);
-  setTimeout(function(){if(!_injected)inject();},2500);
+  tryInject();
+  restore();
+  setTimeout(tryInject,500);
+  setTimeout(tryInject,1500);
+  setTimeout(tryInject,3000);
 }
+
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);
 else boot();
 }());
-
