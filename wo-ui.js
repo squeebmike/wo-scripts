@@ -1,4 +1,4 @@
-// WO UI v3 — full sitewide theming via CSS variables
+// WO UI v4 — sitewide theming, beats #navbarID header CSS
 (function(){
 if(window.__WO_UI__)return;
 window.__WO_UI__=true;
@@ -8,7 +8,7 @@ var TABS=['mlb','nfl','nba','nhl','pokemon','mtg'];
 var LBL={mlb:'MLB',nfl:'NFL',nba:'NBA',nhl:'NHL',pokemon:'Pokemon',mtg:'MTG'};
 var LS_KEY='wo-team-v1';
 
-// ─── SAVE / LOAD ────────────────────────────────────────────────────────────
+// ─── SAVE / LOAD ─────────────────────────────────────────────────────────────
 WO.save=function(t,cw,lg){
   try{localStorage.setItem(LS_KEY,JSON.stringify({k:t.k,n:t.n,hp:t.hp,ap:t.ap,ht:t.ht,at:t.at,cw:cw,lg:lg}));}catch(e){}
 };
@@ -16,7 +16,7 @@ WO.load=function(){
   try{var d=localStorage.getItem(LS_KEY);return d?JSON.parse(d):null;}catch(e){return null;}
 };
 
-// ─── COLOR UTILITIES ────────────────────────────────────────────────────────
+// ─── COLOR UTILITIES ─────────────────────────────────────────────────────────
 function lum(hex){
   try{
     var c=hex.replace('#','');
@@ -28,21 +28,12 @@ function lum(hex){
     return 0.2126*r+0.7152*g+0.0722*b;
   }catch(e){return 0.1;}
 }
-function textOn(hex){return lum(hex)>0.25?'#111111':'#ffffff';}
-function hex(h){
-  // normalize hsla / rgba to hex-safe string for CSS
-  return h;
-}
-function alpha(h,a){
-  // returns hex with alpha as rgba
-  var c=h.replace('#','');
-  if(c.length===3)c=c[0]+c[0]+c[1]+c[1]+c[2]+c[2];
-  if(c.length!==6)return h;
-  var r=parseInt(c.substr(0,2),16),g=parseInt(c.substr(2,2),16),b=parseInt(c.substr(4,2),16);
-  return'rgba('+r+','+g+','+b+','+a+')';
-}
+function textOn(col){return lum(col)>0.25?'#111111':'#ffffff';}
 
-// ─── APPLY THEME ────────────────────────────────────────────────────────────
+// ─── APPLY THEME ─────────────────────────────────────────────────────────────
+// NOTE: Uses #navbarID (ID selector) to beat the page-level
+// "#navbarID { background: #001A72 }" rule from header custom code.
+// Also uses !important on scroll state variants.
 WO.applyTheme=function(t,cw){
   var home=cw!=='away';
   var primary=t[home?'hp':'ap']||'#002244';
@@ -50,8 +41,14 @@ WO.applyTheme=function(t,cw){
   var onPrimary=textOn(primary);
   var onAccent=textOn(accent);
 
-  // Try to normalize any hsla values — they work fine in CSS vars as-is
+  // Build rgba version of primary for the glass/scrolled state
+  var pc=primary.replace('#','');
+  if(pc.length===3)pc=pc[0]+pc[0]+pc[1]+pc[1]+pc[2]+pc[2];
+  var pr=parseInt(pc.substr(0,2),16),pg=parseInt(pc.substr(2,2),16),pb=parseInt(pc.substr(4,2),16);
+  var primaryGlass='rgba('+pr+','+pg+','+pb+',0.20)';
+
   var css=[
+    // CSS variables for elements that already use var(--team-accent)
     ':root{',
     '  --team-primary:'+primary+';',
     '  --team-accent:'+accent+';',
@@ -59,61 +56,59 @@ WO.applyTheme=function(t,cw){
     '  --team-on-accent:'+onAccent+';',
     '}',
 
-    // ── NAVBAR ──
-    // Background
-    '.navbar6_component{background-color:'+primary+' !important;}',
+    // ── NAVBAR (ID selector beats class selector) ──
+    // Solid state at top — overrides "#navbarID { background: #001A72 }"
+    '#navbarID{background:'+primary+' !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important;}',
+    // Scrolled/glass state — overrides "#navbarID.scrolled { background: rgba(0,26,114,0.20) }"
+    '#navbarID.scrolled{background:'+primaryGlass+' !important;backdrop-filter:blur(8px) !important;-webkit-backdrop-filter:blur(8px) !important;}',
     // Nav links
-    '.navbar6_link{color:'+onPrimary+' !important;}',
-    '.navbar6_link:hover{color:'+accent+' !important;}',
-    // Dropdown text
-    '.navbar6_dropdown-link{color:'+primary+' !important;}',
-    // Logo (make sure it stays visible — invert if needed)
+    '#navbarID .navbar6_link{color:'+onPrimary+' !important;}',
+    '#navbarID .navbar6_link:hover{color:'+accent+' !important;}',
     // Hamburger lines
-    '.menu-icon_line-top,.menu-icon_line-middle,.menu-icon_line-middle-inner,.menu-icon_line-bottom{background-color:'+onPrimary+' !important;}',
+    '#navbarID .menu-icon_line-top,#navbarID .menu-icon_line-middle,#navbarID .menu-icon_line-middle-inner,#navbarID .menu-icon_line-bottom{background-color:'+onPrimary+' !important;}',
+    // Dropdown text (white bg dropdowns — keep readable)
+    '#navbarID .navbar6_dropdown-link{color:'+primary+' !important;}',
+    '#navbarID .navbar6_dropdown-link:hover{color:'+accent+' !important;}',
 
-    // ── BUTTONS ──
-    // .btn--primary already uses var(--team-accent) in Webflow — this makes it live
-    '.btn--primary{background-color:'+accent+' !important;border-color:'+accent+' !important;color:'+onAccent+' !important;}',
-    '.btn--secondary{border-color:'+accent+' !important;color:'+accent+' !important;}',
-    // Generic site "Button" class
-    '.Button{background-color:'+accent+' !important;border-color:'+accent+' !important;color:'+onAccent+' !important;}',
-    // Add to cart / action buttons
-    '.Add-to-Cart,.Add-to-Cart-Button,.add-to-cart{background-color:'+accent+' !important;border-color:'+accent+' !important;color:'+onAccent+' !important;}',
-    // Checkout button
-    '.Checkout-Button,.Checkout-Button-2{background-color:'+accent+' !important;}',
-
-    // ── LINKS & ACCENTS ──
-    // Section accent headings (the site uses green for some heading colors)
-    '.section-header__eyebrow{color:'+accent+' !important;}',
-    '.Mini-Title,.Mini-Title-White{color:'+accent+' !important;}',
-    // Price tags
-    '.Price,.PriceColor,.product-card__price{color:'+accent+' !important;}',
-
-    // ── HERO / SECTION BACKGROUNDS ──
-    // Action sections that have a dark team color
-    '.Action-section,.Section-hero,.Feature-background{background-color:'+primary+' !important;}',
-
-    // ── FOOTER ──
-    '.Footer,.Footer-2,.Footer-3,.Footer-Section{background-color:'+primary+' !important;}',
-    '.Footer-Link,.Footer-Notice-Text,.Footer-Notice,.Legal-text,.Legal-link{color:'+alpha(onPrimary,0.7)+' !important;}',
-    '.Footer-Link:hover{color:'+accent+' !important;}',
-    '.Footer-logo img{filter:brightness(100) !important;}',
-
-    // ── PROMO STRIP / TRUST STRIP ──
-    '.Promo-strip{background-color:'+accent+' !important;color:'+onAccent+' !important;}',
-    '.Promo-strip *{color:'+onAccent+' !important;}',
-
-    // ── BADGES / TAGS ──
-    '.badge--in-stock,.is-green{background-color:'+accent+' !important;color:'+onAccent+' !important;}',
-
-    // ── MOBILE NAV ──
+    // ── MOBILE OVERLAY menu ──
     '.w-nav-overlay .navbar6_menu{background-color:'+primary+' !important;}',
     '.w-nav-overlay .navbar6_link{color:'+onPrimary+' !important;}',
     '.w-nav-overlay .navbar6_link:hover{color:'+accent+' !important;}',
 
-    // ── CHECKLIST ACCENT ──
-    '.checklist-view-btn{background-color:'+accent+' !important;color:'+onAccent+' !important;}',
+    // ── BUTTONS ──
+    // .btn--primary / .btn--secondary already use var(--team-accent) in Webflow
+    '.btn--primary{background-color:'+accent+' !important;border-color:'+accent+' !important;color:'+onAccent+' !important;}',
+    '.btn--secondary{border-color:'+accent+' !important;color:'+accent+' !important;}',
+    '.Button{background-color:'+accent+' !important;border-color:'+accent+' !important;color:'+onAccent+' !important;}',
+    // Add to cart
+    '.add-to-cart-button,.Add-to-Cart,.Add-to-Cart-2{background-color:'+accent+' !important;border-color:'+accent+' !important;color:'+onAccent+' !important;}',
+    // Checkout
+    '.Checkout-Button,.Checkout-Button-2{background-color:'+accent+' !important;border-color:'+accent+' !important;color:'+onAccent+' !important;}',
+
+    // ── ACCENT TEXT ──
+    '.section-header__eyebrow{color:'+accent+' !important;}',
+    '.Mini-Title,.Mini-Title-White,.Mini-Title-Copy{color:'+accent+' !important;}',
+    '.Price,.PriceColor,.product-card__price{color:'+accent+' !important;}',
+
+    // ── FOOTER ──
+    '.Footer,.Footer-2,.Footer-3,.Footer-Section{background-color:'+primary+' !important;}',
+    '.Footer-Link,.Footer-Notice,.Footer-Notice-Text,.Legal-text,.Legal-link{color:rgba('+pr+','+pg+','+pb+',0.7) !important;filter:brightness(3);}',
+    '.Footer-Link:hover,.Legal-link:hover{color:'+accent+' !important;filter:none;}',
+
+    // ── PROMO STRIP ──
+    '.Promo-strip,.Rotating-promo-text{background-color:'+accent+' !important;}',
+    '.Promo-strip *,.Rotating-promo-text *{color:'+onAccent+' !important;}',
+
+    // ── BADGES ──
+    '.badge--in-stock,.is-green,.is-green-2{background-color:'+accent+' !important;color:'+onAccent+' !important;}',
+
+    // ── CHECKLIST ──
+    '.checklist-view-btn{background-color:'+accent+' !important;color:'+onAccent+' !important;border-color:'+accent+' !important;}',
     '.checklist-sport-badge{background-color:'+primary+' !important;color:'+onPrimary+' !important;}',
+
+    // ── HERO/ACTION SECTIONS ──
+    '.Action-section,.Section-hero,.Feature-background,.Hero-Section,.Shop-Hero-Section{background-color:'+primary+' !important;}',
+    '.Action-section *,.Section-hero *,.Hero-Section *,.Shop-Hero-Section *{color:'+onPrimary+' !important;}',
   ].join('\n');
 
   var el=document.getElementById('wo-theme');
@@ -121,14 +116,14 @@ WO.applyTheme=function(t,cw){
   el.textContent=css;
 };
 
-// ─── IMAGE URL ───────────────────────────────────────────────────────────────
+// ─── IMAGE URL ────────────────────────────────────────────────────────────────
 function imgUrl(lg,k){
   if(lg==='pokemon')return'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/'+k+'.png';
   if(lg==='mtg')return'https://svgs.scryfall.io/card-symbols/'+k+'.svg';
   return'https://a.espncdn.com/i/teamlogos/'+lg+'/500/'+k+'.png';
 }
 
-// ─── MODAL COLOR STATE ────────────────────────────────────────────────────────
+// ─── MODAL PALETTE ───────────────────────────────────────────────────────────
 function pal(){
   var t=S.team;
   if(!t)return{bg:'#13161c',acc:'#69BE28',txt:'#fff',mut:'rgba(255,255,255,0.45)'};
@@ -225,7 +220,7 @@ function openModal(){buildUI();render();paint();setOpenStyle();document.body.sty
 function closeModal(){if(!OVL)return;setClosedStyle();document.body.style.overflow='';}
 WO.openModal=openModal;
 
-// ─── TEAMS LOOKUP ────────────────────────────────────────────────────────────
+// ─── TEAMS ───────────────────────────────────────────────────────────────────
 function getTeams(){
   var map={mlb:'__WO_MLB__',nfl:'__WO_NFL__',nba:'__WO_NBA__',nhl:'__WO_NHL__'};
   if(map[S.lg])return(window[map[S.lg]]&&window[map[S.lg]].teams)||[];
@@ -259,7 +254,7 @@ function render(){
   });
 }
 
-// ─── NAVBAR BUTTON ───────────────────────────────────────────────────────────
+// ─── NAVBAR BUTTON ────────────────────────────────────────────────────────────
 function updateBtns(){
   if(!S.team)return;
   var home=S.cw!=='away';
@@ -305,15 +300,14 @@ function injectMobile(){
 function tryInject(){injectDesktop();injectMobile();}
 new MutationObserver(function(){tryInject();}).observe(document.body,{childList:true,subtree:true});
 
-// ─── RESTORE ON PAGE LOAD ────────────────────────────────────────────────────
+// ─── RESTORE ON PAGE LOAD ─────────────────────────────────────────────────────
 function restore(){
   var sv=WO.load();
   if(!sv||!sv.k)return;
-  // Build a minimal team object from saved data
   var t={k:sv.k,n:sv.n,hp:sv.hp,ap:sv.ap,ht:sv.ht,at:sv.at,_lg:sv.lg};
   S.team=t;S.cw=sv.cw||'home';S.lg=sv.lg||'nfl';
   WO.applyTheme(t,S.cw);
-  setTimeout(updateBtns,100); // after buttons are injected
+  setTimeout(updateBtns,200);
 }
 
 function boot(){
