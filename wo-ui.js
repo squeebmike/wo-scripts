@@ -1,4 +1,4 @@
-// WO UI v5 — checklist pages fully theme-aware
+// WO UI v6 — correct Webflow CSS variable names + dark theme defaults
 (function(){
 if(window.__WO_UI__)return;
 window.__WO_UI__=true;
@@ -8,7 +8,7 @@ var TABS=['mlb','nfl','nba','nhl','pokemon','mtg'];
 var LBL={mlb:'MLB',nfl:'NFL',nba:'NBA',nhl:'NHL',pokemon:'Pokemon',mtg:'MTG'};
 var LS_KEY='wo-team-v1';
 
-// ─── SAVE / LOAD ────────────────────────────────────────────────────────────
+// ─── SAVE / LOAD ─────────────────────────────────────────────────────────────
 WO.save=function(t,cw,lg){
   try{localStorage.setItem(LS_KEY,JSON.stringify({k:t.k,n:t.n,hp:t.hp,ap:t.ap,ht:t.ht,at:t.at,cw:cw,lg:lg}));}catch(e){}
 };
@@ -36,7 +36,6 @@ function alpha(h,a){
   var r=parseInt(c.substr(0,2),16),g=parseInt(c.substr(2,2),16),b=parseInt(c.substr(4,2),16);
   return'rgba('+r+','+g+','+b+','+a+')';
 }
-// slightly lighter/darker shade of a hex color
 function shade(hex,pct){
   var c=hex.replace('#','');
   if(c.length===3)c=c[0]+c[0]+c[1]+c[1]+c[2]+c[2];
@@ -46,50 +45,47 @@ function shade(hex,pct){
   var b=Math.min(255,Math.max(0,Math.round(parseInt(c.substr(4,2),16)*(1+pct))));
   return'#'+(r<16?'0':'')+r.toString(16)+(g<16?'0':'')+g.toString(16)+(b<16?'0':'')+b.toString(16);
 }
-// card bg: slightly lighter than primary for dark teams, slightly darker for light teams
-function cardBg(primary){
-  return lum(primary)>0.25 ? shade(primary,-0.08) : shade(primary,0.5);
-}
-// border color: subtle version of primary
-function borderCol(primary){
-  return lum(primary)>0.25 ? shade(primary,-0.2) : alpha(primary.replace(/hsla?\([^)]+\)/,primary),1);
-}
-// muted text: readable on both dark and light backgrounds
-function mutedText(primary){
-  return lum(primary)>0.25 ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.55)';
-}
 
 // ─── APPLY THEME ─────────────────────────────────────────────────────────────
 WO.applyTheme=function(t,cw){
   var home=cw!=='away';
-  var primary=t[home?'hp':'ap']||'#002244';
-  var accent=t[home?'ap':'hp']||'#69BE28';
+  var primary=t[home?'hp':'ap']||'#001a72';
+  var accent=t[home?'ap':'hp']||'#69be28';
   var onPrimary=textOn(primary);
   var onAccent=textOn(accent);
-  var card=cardBg(primary);
-  var border=lum(primary)>0.25 ? shade(primary,-0.2) : alpha('#ffffff',0.12);
-  var muted=mutedText(primary);
-  // section bg: darker version of primary for hero/section backgrounds
-  var sectionBg=lum(primary)>0.25 ? shade(primary,-0.15) : shade(primary,-0.3);
-  // Make sure sectionBg stays dark enough for contrast when primary is dark
-  if(sectionBg==='#000000'||sectionBg.replace('#','').length!==6)sectionBg='#0a0a14';
+
+  // Derived colors for checklist pages
+  var isDark=lum(primary)<0.25;
+  var cardBg=isDark ? shade(primary,0.4) : shade(primary,-0.06);
+  var border=isDark ? alpha(primary.length===7?primary:primary,1).replace('rgba(','').replace(')','').split(',').length>1 ? alpha(primary,0.3) : shade(primary,0.8) : shade(primary,-0.15);
+  // simpler border:
+  border=isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.12)';
+  var pageBg=isDark ? shade(primary,-0.2) : '#f4f4f8';
+  if(pageBg==='#000000')pageBg='#07071a';
+  var mutedTxt=isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)';
+  var sectionBorder=isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
 
   var css=[
-    // ─── CSS VARIABLES ───
+    // ── Global team vars ──
     ':root{',
     '  --team-primary:'+primary+';',
     '  --team-accent:'+accent+';',
     '  --team-on-primary:'+onPrimary+';',
     '  --team-on-accent:'+onAccent+';',
-    // Webflow design variable overrides (these are rendered as CSS custom props)
-    '  --variable-2c6f7a2f-e752-e91f-7527-eec138769da7:'+primary+';',  // Checklist - Primary
-    '  --variable-d137a89d-2f0f-6b3a-d991-2dcc5eea5a95:'+accent+';',  // Checklist - Accent
-    '  --variable-86ea6156-3dd7-5204-2aaf-8e852a79c163:'+card+';',    // Checklist - Background
-    '  --variable-bc16dca7-b842-e4b1-0f46-17130e36b1e6:'+border+';',  // Checklist - Border
-    '  --variable-0c01d148-ff6d-fc73-aae6-8bf857367757:'+onPrimary+';', // Checklist - Text
+    // ── Webflow Design Variable overrides (Webflow renders these by name, lowercased, spaces→hyphens) ──
+    // "Checklist - Primary" → --checklist---primary
+    // "Checklist - Accent"  → --checklist---accent
+    // "Checklist - Background" → --checklist---background
+    // "Checklist - Border" → --checklist---border
+    // "Checklist - Text" → --checklist---text
+    '  --checklist---primary:'+primary+';',
+    '  --checklist---accent:'+accent+';',
+    '  --checklist---background:'+cardBg+';',
+    '  --checklist---border:'+sectionBorder+';',
+    '  --checklist---text:'+onPrimary+';',
     '}',
 
-    // ─── NAVBAR ───
+    // ── NAVBAR (wins specificity battle vs #navbarID in page header) ──
     '#navbarID{background:'+primary+' !important;}',
     '#navbarID.scrolled{background:'+alpha(primary,0.2)+' !important;backdrop-filter:blur(12px) !important;}',
     '.navbar6_component{background-color:'+primary+' !important;}',
@@ -98,65 +94,56 @@ WO.applyTheme=function(t,cw){
     '.navbar6_dropdown-link{color:'+primary+' !important;}',
     '.menu-icon_line-top,.menu-icon_line-middle,.menu-icon_line-middle-inner,.menu-icon_line-bottom{background-color:'+onPrimary+' !important;}',
 
-    // ─── BUTTONS ───
+    // ── BUTTONS ──
     '.btn--primary{background-color:'+accent+' !important;border-color:'+accent+' !important;color:'+onAccent+' !important;}',
     '.btn--secondary{border-color:'+accent+' !important;color:'+accent+' !important;}',
-    '.btn--ghost{border-color:'+alpha(accent,0.5)+' !important;color:'+onPrimary+' !important;}',
-    '.btn--ghost:hover{border-color:'+accent+' !important;color:'+accent+' !important;}',
     '.Button{background-color:'+accent+' !important;border-color:'+accent+' !important;color:'+onAccent+' !important;}',
     '.Add-to-Cart,.Add-to-Cart-Button,.add-to-cart{background-color:'+accent+' !important;border-color:'+accent+' !important;color:'+onAccent+' !important;}',
     '.Checkout-Button,.Checkout-Button-2{background-color:'+accent+' !important;}',
 
-    // ─── LINKS & ACCENTS ───
+    // ── ACCENTS ──
     '.section-header__eyebrow{color:'+accent+' !important;}',
     '.Mini-Title,.Mini-Title-White{color:'+accent+' !important;}',
     '.Price,.PriceColor,.product-card__price{color:'+accent+' !important;}',
 
-    // ─── HERO / SECTION BACKGROUNDS ───
+    // ── BACKGROUNDS ──
     '.Action-section,.Section-hero,.Feature-background{background-color:'+primary+' !important;}',
-    '.Shop-Hero-Section,.Shop Hero Section{background-color:'+sectionBg+' !important;}',
 
-    // ─── FOOTER ───
+    // ── FOOTER ──
     '.Footer,.Footer-2,.Footer-3,.Footer-Section{background-color:'+primary+' !important;}',
     '.Footer-Link,.Footer-Notice-Text,.Footer-Notice,.Legal-text,.Legal-link{color:'+alpha(onPrimary,0.7)+' !important;}',
     '.Footer-Link:hover{color:'+accent+' !important;}',
 
-    // ─── PROMO / BADGES ───
+    // ── PROMO / BADGES ──
     '.Promo-strip{background-color:'+accent+' !important;color:'+onAccent+' !important;}',
     '.Promo-strip *{color:'+onAccent+' !important;}',
     '.badge--in-stock,.is-green{background-color:'+accent+' !important;color:'+onAccent+' !important;}',
 
-    // ─── MOBILE NAV ───
+    // ── MOBILE NAV ──
     '.w-nav-overlay .navbar6_menu{background-color:'+primary+' !important;}',
     '.w-nav-overlay .navbar6_link{color:'+onPrimary+' !important;}',
-    '.w-nav-overlay .navbar6_link:hover{color:'+accent+' !important;}',
 
-    // ─── CHECKLIST INDEX PAGE ───
-    // Hero section background
-    '.shop-hero-section,[class*="Shop Hero Section"]{background-color:'+sectionBg+' !important;}',
-    // Filter bar buttons (btn--ghost)
-    '.filter-bar .btn,.Filter-bar .btn{border-color:'+alpha(accent,0.4)+' !important;color:'+onPrimary+' !important;}',
-    // Cards
-    '.checklist-card{background-color:'+card+' !important;border-color:'+border+' !important;}',
-    '.checklist-card:hover{border-color:'+accent+' !important;box-shadow:0 4px 24px '+alpha(primary,0.4)+' !important;}',
+    // ── CHECKLIST INDEX PAGE ──
+    // hero section (Shop Hero Section style uses bg-color:#080808 — override)
+    '.shop-hero-section{background-color:'+shade(primary,-0.3)+' !important;}',
+    // cards
+    '.checklist-card{background-color:'+cardBg+' !important;border-color:'+sectionBorder+' !important;}',
+    '.checklist-card:hover{border-color:'+accent+' !important;box-shadow:0 4px 24px '+alpha(primary,0.5)+' !important;}',
     '.checklist-card__title{color:'+onPrimary+' !important;}',
-    '.checklist-card__meta,.checklist-count{color:'+muted+' !important;}',
-    '.checklist-card__footer{border-top-color:'+border+' !important;}',
-    '.checklist-sport-badge{background-color:'+primary+' !important;color:'+onPrimary+' !important;border:1px solid '+accent+' !important;}',
+    '.checklist-card__meta,.checklist-count{color:'+mutedTxt+' !important;}',
+    '.checklist-card__footer{border-top-color:'+sectionBorder+' !important;}',
+    '.checklist-sport-badge{background-color:'+primary+' !important;color:'+onPrimary+' !important;border:1px solid '+alpha(accent,0.5)+' !important;}',
     '.checklist-view-btn{background-color:'+accent+' !important;color:'+onAccent+' !important;}',
+    '.checklist-card__sport{color:'+accent+' !important;}',
 
-    // ─── CHECKLIST DETAIL (CMS TEMPLATE) PAGE ───
-    // The header/title area
+    // ── CHECKLIST DETAIL (CMS TEMPLATE) PAGE ──
+    // These override the Webflow variable-based styles as a fallback
+    // (in case CSS variable naming doesn't match)
     '.checklist-header{background-color:'+primary+' !important;color:'+onPrimary+' !important;}',
     '.checklist-title{color:'+onPrimary+' !important;}',
-    '.checklist-subtitle{color:'+muted+' !important;}',
-    // Section headers (Base Checklist, Parallels, Inserts, etc.)
-    '.checklist-section{background-color:'+card+' !important;border-bottom-color:'+border+' !important;}',
+    '.checklist-subtitle{color:'+mutedTxt+' !important;}',
+    '.checklist-section{background-color:'+cardBg+' !important;border-bottom-color:'+sectionBorder+' !important;}',
     '.checklist-section-title{color:'+accent+' !important;}',
-    // Overall page background
-    '.checklist-container,.checklist-page{background-color:'+sectionBg+' !important;}',
-    // Sport badge on detail page
-    '.checklist-card__sport{color:'+accent+' !important;}',
   ].join('\n');
 
   var el=document.getElementById('wo-theme');
@@ -213,11 +200,11 @@ function paint(){
 function buildUI(){
   if(OVL)return;
   OVL=document.createElement('div');OVL.id='wo-portal';
-  setClosedStyle();
+  OVL.style.cssText='position:fixed;inset:0;z-index:99999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0);pointer-events:none;transition:background 0.3s;';
   OVL.addEventListener('click',function(e){if(e.target===OVL)closeModal();});
 
   BOX=document.createElement('div');
-  BOX.style.cssText='width:100%;max-width:680px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;border-radius:20px 20px 0 0;box-shadow:0 -12px 60px rgba(0,0,0,0.95);box-sizing:border-box;background:#13161c;';
+  BOX.style.cssText='width:100%;max-width:680px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;border-radius:20px 20px 0 0;box-shadow:0 -12px 60px rgba(0,0,0,0.95);box-sizing:border-box;background:#13161c;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);';
 
   var hdl=document.createElement('div');
   hdl.style.cssText='width:40px;height:5px;border-radius:3px;margin:12px auto 0;flex-shrink:0;background:rgba(255,255,255,0.2);cursor:pointer;';
@@ -239,12 +226,12 @@ function buildUI(){
     b.addEventListener('click',function(){
       S.cw=this.dataset.cw;
       if(S.team){WO.applyTheme(S.team,S.cw);WO.save(S.team,S.cw,S.lg);}
-      updateBtns();paint();render();
+      paint();render();
     });
     cwRow.appendChild(b);
   });
 
-  var tabs=document.createElement('div');tabs.style.cssText='display:flex;gap:4px;overflow-x:auto;padding-bottom:6px;margin-bottom:2px;scrollbar-width:none;';
+  var tabs=document.createElement('div');tabs.style.cssText='display:flex;gap:4px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;';
   TABS.forEach(function(lg){
     var b=document.createElement('button');b.dataset.tab=lg;b.textContent=LBL[lg];
     b.style.cssText='all:unset;box-sizing:border-box;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:system-ui,sans-serif;background:transparent;color:rgba(255,255,255,0.45);min-height:32px;';
@@ -262,10 +249,6 @@ function buildUI(){
   document.body.appendChild(OVL);
 }
 
-function setClosedStyle(){
-  OVL.style.cssText='position:fixed;inset:0;z-index:99999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0);pointer-events:none;transition:background 0.3s;';
-}
-
 function render(){
   if(!GRID)return;
   GRID.innerHTML='';
@@ -280,8 +263,7 @@ function render(){
   src.forEach(function(team){
     var tile=document.createElement('div');
     tile.className='wo-tile';
-    tile.dataset.k=team.k;
-    tile.dataset.lg=S.lg;
+    tile.dataset.k=team.k;tile.dataset.lg=S.lg;
     tile.style.cssText='display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:10px;border:1px solid rgba(255,255,255,0.07);cursor:pointer;transition:all 0.15s;background:rgba(255,255,255,0.03);';
     var img=document.createElement('img');
     img.src=imgUrl(S.lg,team.k);
@@ -302,22 +284,11 @@ function render(){
   paint();
 }
 
-function updateBtns(){
-  document.querySelectorAll('[data-cw]').forEach(function(b){
-    var p=pal();
-    var on=b.dataset.cw===S.cw;
-    b.style.borderColor=on?p.acc:'rgba(128,128,128,0.3)';
-    b.style.color=on?p.acc:p.mut;
-    b.style.background=on?p.acc+'33':'transparent';
-  });
-}
-
 function openModal(){
   if(!OVL)buildUI();
   OVL.style.background='rgba(0,0,0,0.7)';
   OVL.style.pointerEvents='auto';
   BOX.style.transform='translateY(0)';
-  BOX.style.transition='transform 0.35s cubic-bezier(0.32,0.72,0,1)';
   render();paint();
 }
 
@@ -327,11 +298,9 @@ function closeModal(){
   BOX.style.transform='translateY(100%)';
 }
 
-// ─── TRIGGER BUTTON ──────────────────────────────────────────────────────────
 WO.openTheme=function(){openModal();};
 
 document.addEventListener('DOMContentLoaded',function(){
-  // restore saved theme
   var saved=WO.load();
   if(saved){
     S.team={k:saved.k,n:saved.n,hp:saved.hp,ap:saved.ap,ht:saved.ht,at:saved.at};
@@ -339,7 +308,6 @@ document.addEventListener('DOMContentLoaded',function(){
     S.lg=saved.lg||'nfl';
     WO.applyTheme(S.team,S.cw);
   }
-  // wire up any [data-wo-theme] buttons on the page
   document.querySelectorAll('[data-wo-theme]').forEach(function(el){
     el.addEventListener('click',openModal);
   });
