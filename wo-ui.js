@@ -1,103 +1,221 @@
 (function(){
 'use strict';
 
-// Kill any old WO and take over
-window.__WO__=true;
 var WO=window.WO={};
+window.__WO__=true;
+
 var TEAMS={
   nfl:[
-    {k:'ari',n:'Cardinals',hp:'#97233f',ap:'#000000'},{k:'atl',n:'Falcons',hp:'#a71930',ap:'#000000'},
-    {k:'bal',n:'Ravens',hp:'#241773',ap:'#000000'},{k:'buf',n:'Bills',hp:'#00338d',ap:'#c60c30'},
-    {k:'car',n:'Panthers',hp:'#0085ca',ap:'#000000'},{k:'chi',n:'Bears',hp:'#0b162a',ap:'#c83803'},
-    {k:'cin',n:'Bengals',hp:'#fb4f14',ap:'#000000'},{k:'cle',n:'Browns',hp:'#311d00',ap:'#ff3c00'},
-    {k:'dal',n:'Cowboys',hp:'#003594',ap:'#869397'},{k:'den',n:'Broncos',hp:'#fb4f14',ap:'#002244'},
-    {k:'det',n:'Lions',hp:'#0076b6',ap:'#b0b7bc'},{k:'gb',n:'Packers',hp:'#203731',ap:'#ffb612'},
-    {k:'hou',n:'Texans',hp:'#03202f',ap:'#a71930'},{k:'ind',n:'Colts',hp:'#002c5f',ap:'#a2aaad'},
-    {k:'jax',n:'Jaguars',hp:'#006778',ap:'#d7a22a'},{k:'kc',n:'Chiefs',hp:'#e31837',ap:'#ffb81c'},
-    {k:'lv',n:'Raiders',hp:'#000000',ap:'#a5acaf'},{k:'lar',n:'Rams',hp:'#003594',ap:'#ffd100'},
-    {k:'lac',n:'Chargers',hp:'#0080c6',ap:'#ffc20e'},{k:'mia',n:'Dolphins',hp:'#008e97',ap:'#fc4c02'},
-    {k:'min',n:'Vikings',hp:'#4f2683',ap:'#ffc62f'},{k:'ne',n:'Patriots',hp:'#002244',ap:'#c60c30'},
-    {k:'no',n:'Saints',hp:'#101820',ap:'#d3bc8d'},{k:'nyg',n:'Giants',hp:'#0b2265',ap:'#a71930'},
-    {k:'nyj',n:'Jets',hp:'#125740',ap:'#ffffff'},{k:'phi',n:'Eagles',hp:'#004c54',ap:'#a5acaf'},
-    {k:'pit',n:'Steelers',hp:'#101820',ap:'#ffb612'},{k:'sf',n:'49ers',hp:'#aa0000',ap:'#b3995d'},
-    {k:'sea',n:'Seahawks',hp:'#002244',ap:'#69be28'},{k:'tb',n:'Buccaneers',hp:'#d50a0a',ap:'#ff7900'},
-    {k:'ten',n:'Titans',hp:'#0c2340',ap:'#4b92db'},{k:'wsh',n:'Commanders',hp:'#5a1414',ap:'#ffb612'}
+    {k:'ari',n:'Cardinals',hp:'#97233f',ap:'#000000'},
+    {k:'atl',n:'Falcons',hp:'#a71930',ap:'#000000'},
+    {k:'bal',n:'Ravens',hp:'#241773',ap:'#9e7c0c'},
+    {k:'buf',n:'Bills',hp:'#00338d',ap:'#c60c30'},
+    {k:'car',n:'Panthers',hp:'#0085ca',ap:'#000000'},
+    {k:'chi',n:'Bears',hp:'#0b162a',ap:'#c83803'},
+    {k:'cin',n:'Bengals',hp:'#fb4f14',ap:'#000000'},
+    {k:'cle',n:'Browns',hp:'#311d00',ap:'#ff3c00'},
+    {k:'dal',n:'Cowboys',hp:'#003594',ap:'#869397'},
+    {k:'den',n:'Broncos',hp:'#fb4f14',ap:'#002244'},
+    {k:'det',n:'Lions',hp:'#0076b6',ap:'#b0b7bc'},
+    {k:'gb',n:'Packers',hp:'#203731',ap:'#ffb612'},
+    {k:'hou',n:'Texans',hp:'#03202f',ap:'#a71930'},
+    {k:'ind',n:'Colts',hp:'#002c5f',ap:'#a2aaad'},
+    {k:'jax',n:'Jaguars',hp:'#006778',ap:'#d7a22a'},
+    {k:'kc',n:'Chiefs',hp:'#e31837',ap:'#ffb81c'},
+    {k:'lv',n:'Raiders',hp:'#000000',ap:'#a5acaf'},
+    {k:'lar',n:'Rams',hp:'#003594',ap:'#ffd100'},
+    {k:'lac',n:'Chargers',hp:'#0080c6',ap:'#ffc20e'},
+    {k:'mia',n:'Dolphins',hp:'#008e97',ap:'#fc4c02'},
+    {k:'min',n:'Vikings',hp:'#4f2683',ap:'#ffc62f'},
+    {k:'ne',n:'Patriots',hp:'#002244',ap:'#c60c30'},
+    {k:'no',n:'Saints',hp:'#101820',ap:'#d3bc8d'},
+    {k:'nyg',n:'Giants',hp:'#0b2265',ap:'#a71930'},
+    {k:'nyj',n:'Jets',hp:'#125740',ap:'#ffffff'},
+    {k:'phi',n:'Eagles',hp:'#004c54',ap:'#a5acaf'},
+    {k:'pit',n:'Steelers',hp:'#101820',ap:'#ffb612'},
+    {k:'sf',n:'49ers',hp:'#aa0000',ap:'#b3995d'},
+    {k:'sea',n:'Seahawks',hp:'#002244',ap:'#69be28'},
+    {k:'tb',n:'Buccaneers',hp:'#d50a0a',ap:'#ff7900'},
+    {k:'ten',n:'Titans',hp:'#0c2340',ap:'#4b92db'},
+    {k:'wsh',n:'Commanders',hp:'#5a1414',ap:'#ffb612'}
   ],
   mlb:[
-    {k:'ari',n:'D-backs',hp:'#a71930',ap:'#e3d4ad'},{k:'atl',n:'Braves',hp:'#ce1141',ap:'#13274f'},
-    {k:'bal',n:'Orioles',hp:'#df4601',ap:'#000000'},{k:'bos',n:'Red Sox',hp:'#bd3039',ap:'#0d2b56'},
-    {k:'chc',n:'Cubs',hp:'#0e3386',ap:'#cc3433'},{k:'cws',n:'White Sox',hp:'#27251f',ap:'#c4ced4'},
-    {k:'cin',n:'Reds',hp:'#c6011f',ap:'#000000'},{k:'cle',n:'Guardians',hp:'#00385d',ap:'#e31937'},
-    {k:'col',n:'Rockies',hp:'#33006f',ap:'#c4ced4'},{k:'det',n:'Tigers',hp:'#0c2340',ap:'#fa4616'},
-    {k:'hou',n:'Astros',hp:'#002d62',ap:'#eb6e1f'},{k:'kc',n:'Royals',hp:'#004687',ap:'#bd9b60'},
-    {k:'laa',n:'Angels',hp:'#ba0021',ap:'#003263'},{k:'lad',n:'Dodgers',hp:'#005a9c',ap:'#ef3e42'},
-    {k:'mia',n:'Marlins',hp:'#00a3e0',ap:'#ef3340'},{k:'mil',n:'Brewers',hp:'#12284b',ap:'#ffc52f'},
-    {k:'min',n:'Twins',hp:'#002b5c',ap:'#d31145'},{k:'nym',n:'Mets',hp:'#002d72',ap:'#ff5910'},
-    {k:'nyy',n:'Yankees',hp:'#003087',ap:'#e4002c'},{k:'oak',n:'Athletics',hp:'#003831',ap:'#efb21e'},
-    {k:'phi',n:'Phillies',hp:'#e81828',ap:'#002d72'},{k:'pit',n:'Pirates',hp:'#27251f',ap:'#fdb827'},
-    {k:'sd',n:'Padres',hp:'#2f241d',ap:'#ffc425'},{k:'sf',n:'Giants',hp:'#fd5a1e',ap:'#27251f'},
-    {k:'sea',n:'Mariners',hp:'#0c2c56',ap:'#005c5c'},{k:'stl',n:'Cardinals',hp:'#c41e3a',ap:'#0c2340'},
-    {k:'tb',n:'Rays',hp:'#092c5c',ap:'#8fbce6'},{k:'tex',n:'Rangers',hp:'#003278',ap:'#c0111f'},
-    {k:'tor',n:'Blue Jays',hp:'#134a8e',ap:'#1d2d5c'},{k:'wsh',n:'Nationals',hp:'#ab0003',ap:'#14225a'}
+    {k:'ari',n:'D-backs',hp:'#a71930',ap:'#e3d4ad'},
+    {k:'atl',n:'Braves',hp:'#ce1141',ap:'#13274f'},
+    {k:'bal',n:'Orioles',hp:'#df4601',ap:'#000000'},
+    {k:'bos',n:'Red Sox',hp:'#bd3039',ap:'#0d2b56'},
+    {k:'chc',n:'Cubs',hp:'#0e3386',ap:'#cc3433'},
+    {k:'cws',n:'White Sox',hp:'#27251f',ap:'#c4ced4'},
+    {k:'cin',n:'Reds',hp:'#c6011f',ap:'#000000'},
+    {k:'cle',n:'Guardians',hp:'#00385d',ap:'#e31937'},
+    {k:'col',n:'Rockies',hp:'#33006f',ap:'#c4ced4'},
+    {k:'det',n:'Tigers',hp:'#0c2340',ap:'#fa4616'},
+    {k:'hou',n:'Astros',hp:'#002d62',ap:'#eb6e1f'},
+    {k:'kc',n:'Royals',hp:'#004687',ap:'#bd9b60'},
+    {k:'laa',n:'Angels',hp:'#ba0021',ap:'#003263'},
+    {k:'lad',n:'Dodgers',hp:'#005a9c',ap:'#ef3e42'},
+    {k:'mia',n:'Marlins',hp:'#00a3e0',ap:'#ef3340'},
+    {k:'mil',n:'Brewers',hp:'#12284b',ap:'#ffc52f'},
+    {k:'min',n:'Twins',hp:'#002b5c',ap:'#d31145'},
+    {k:'nym',n:'Mets',hp:'#002d72',ap:'#ff5910'},
+    {k:'nyy',n:'Yankees',hp:'#003087',ap:'#e4002c'},
+    {k:'oak',n:'Athletics',hp:'#003831',ap:'#efb21e'},
+    {k:'phi',n:'Phillies',hp:'#e81828',ap:'#002d72'},
+    {k:'pit',n:'Pirates',hp:'#27251f',ap:'#fdb827'},
+    {k:'sd',n:'Padres',hp:'#2f241d',ap:'#ffc425'},
+    {k:'sf',n:'Giants',hp:'#fd5a1e',ap:'#27251f'},
+    {k:'sea',n:'Mariners',hp:'#0c2c56',ap:'#005c5c'},
+    {k:'stl',n:'Cardinals',hp:'#c41e3a',ap:'#0c2340'},
+    {k:'tb',n:'Rays',hp:'#092c5c',ap:'#8fbce6'},
+    {k:'tex',n:'Rangers',hp:'#003278',ap:'#c0111f'},
+    {k:'tor',n:'Blue Jays',hp:'#134a8e',ap:'#1d2d5c'},
+    {k:'wsh',n:'Nationals',hp:'#ab0003',ap:'#14225a'}
   ],
   nba:[
-    {k:'hawks',n:'Hawks',hp:'#e03a3e',ap:'#c1d32f'},{k:'celtics',n:'Celtics',hp:'#007a33',ap:'#ba9653'},
-    {k:'nets',n:'Nets',hp:'#000000',ap:'#ffffff'},{k:'hornets',n:'Hornets',hp:'#1d1160',ap:'#00788c'},
-    {k:'bulls',n:'Bulls',hp:'#ce1141',ap:'#000000'},{k:'cavaliers',n:'Cavaliers',hp:'#860038',ap:'#fdbb30'},
-    {k:'mavericks',n:'Mavericks',hp:'#00538c',ap:'#002b5e'},{k:'nuggets',n:'Nuggets',hp:'#0e2240',ap:'#fec524'},
-    {k:'pistons',n:'Pistons',hp:'#c8102e',ap:'#006bb6'},{k:'warriors',n:'Warriors',hp:'#1d428a',ap:'#ffc72c'},
-    {k:'rockets',n:'Rockets',hp:'#ce1141',ap:'#000000'},{k:'pacers',n:'Pacers',hp:'#002d62',ap:'#fdbb30'},
-    {k:'clippers',n:'Clippers',hp:'#c8102e',ap:'#1d428a'},{k:'lakers',n:'Lakers',hp:'#552583',ap:'#fdb927'},
-    {k:'grizzlies',n:'Grizzlies',hp:'#5d76a9',ap:'#12173f'},{k:'heat',n:'Heat',hp:'#98002e',ap:'#f9a01b'},
-    {k:'bucks',n:'Bucks',hp:'#00471b',ap:'#eee1c6'},{k:'timberwolves',n:'T-Wolves',hp:'#0c2340',ap:'#236192'},
-    {k:'pelicans',n:'Pelicans',hp:'#0c2340',ap:'#c8102e'},{k:'knicks',n:'Knicks',hp:'#006bb6',ap:'#f58426'},
-    {k:'thunder',n:'Thunder',hp:'#007ac1',ap:'#ef3b24'},{k:'magic',n:'Magic',hp:'#0077c0',ap:'#000000'},
-    {k:'sixers',n:'76ers',hp:'#006bb6',ap:'#ed174c'},{k:'suns',n:'Suns',hp:'#1d1160',ap:'#e56020'},
-    {k:'blazers',n:'Blazers',hp:'#e03a3e',ap:'#000000'},{k:'kings',n:'Kings',hp:'#5a2d81',ap:'#63727a'},
-    {k:'spurs',n:'Spurs',hp:'#c4ced4',ap:'#000000'},{k:'raptors',n:'Raptors',hp:'#ce1141',ap:'#000000'},
-    {k:'jazz',n:'Jazz',hp:'#002b5c',ap:'#f9a01b'},{k:'wizards',n:'Wizards',hp:'#002b5c',ap:'#e31837'}
+    {k:'hawks',n:'Hawks',hp:'#e03a3e',ap:'#c1d32f'},
+    {k:'celtics',n:'Celtics',hp:'#007a33',ap:'#ba9653'},
+    {k:'nets',n:'Nets',hp:'#000000',ap:'#ffffff'},
+    {k:'hornets',n:'Hornets',hp:'#1d1160',ap:'#00788c'},
+    {k:'bulls',n:'Bulls',hp:'#ce1141',ap:'#000000'},
+    {k:'cavaliers',n:'Cavaliers',hp:'#860038',ap:'#fdbb30'},
+    {k:'mavericks',n:'Mavericks',hp:'#00538c',ap:'#002b5e'},
+    {k:'nuggets',n:'Nuggets',hp:'#0e2240',ap:'#fec524'},
+    {k:'pistons',n:'Pistons',hp:'#c8102e',ap:'#006bb6'},
+    {k:'warriors',n:'Warriors',hp:'#1d428a',ap:'#ffc72c'},
+    {k:'rockets',n:'Rockets',hp:'#ce1141',ap:'#000000'},
+    {k:'pacers',n:'Pacers',hp:'#002d62',ap:'#fdbb30'},
+    {k:'clippers',n:'Clippers',hp:'#c8102e',ap:'#1d428a'},
+    {k:'lakers',n:'Lakers',hp:'#552583',ap:'#fdb927'},
+    {k:'grizzlies',n:'Grizzlies',hp:'#5d76a9',ap:'#12173f'},
+    {k:'heat',n:'Heat',hp:'#98002e',ap:'#f9a01b'},
+    {k:'bucks',n:'Bucks',hp:'#00471b',ap:'#eee1c6'},
+    {k:'timberwolves',n:'T-Wolves',hp:'#0c2340',ap:'#236192'},
+    {k:'pelicans',n:'Pelicans',hp:'#0c2340',ap:'#c8102e'},
+    {k:'knicks',n:'Knicks',hp:'#006bb6',ap:'#f58426'},
+    {k:'thunder',n:'Thunder',hp:'#007ac1',ap:'#ef3b24'},
+    {k:'magic',n:'Magic',hp:'#0077c0',ap:'#000000'},
+    {k:'sixers',n:'76ers',hp:'#006bb6',ap:'#ed174c'},
+    {k:'suns',n:'Suns',hp:'#1d1160',ap:'#e56020'},
+    {k:'blazers',n:'Blazers',hp:'#e03a3e',ap:'#000000'},
+    {k:'kings',n:'Kings',hp:'#5a2d81',ap:'#63727a'},
+    {k:'spurs',n:'Spurs',hp:'#c4ced4',ap:'#000000'},
+    {k:'raptors',n:'Raptors',hp:'#ce1141',ap:'#000000'},
+    {k:'jazz',n:'Jazz',hp:'#002b5c',ap:'#f9a01b'},
+    {k:'wizards',n:'Wizards',hp:'#002b5c',ap:'#e31837'}
   ],
   nhl:[
-    {k:'ana',n:'Ducks',hp:'#fc4c02',ap:'#85714d'},{k:'ari',n:'Coyotes',hp:'#8c2633',ap:'#e2d6b5'},
-    {k:'bos',n:'Bruins',hp:'#fcb514',ap:'#000000'},{k:'buf',n:'Sabres',hp:'#003087',ap:'#fcb514'},
-    {k:'cgy',n:'Flames',hp:'#c8102e',ap:'#f1be48'},{k:'car',n:'Hurricanes',hp:'#cc0000',ap:'#000000'},
-    {k:'chi',n:'Blackhawks',hp:'#cf0a2c',ap:'#000000'},{k:'col',n:'Avalanche',hp:'#6f263d',ap:'#236192'},
-    {k:'cbj',n:'Blue Jackets',hp:'#002654',ap:'#ce1126'},{k:'dal',n:'Stars',hp:'#006847',ap:'#8f8f8c'},
-    {k:'det',n:'Red Wings',hp:'#ce1126',ap:'#ffffff'},{k:'edm',n:'Oilers',hp:'#041e42',ap:'#fc4c02'},
-    {k:'fla',n:'Panthers',hp:'#041e42',ap:'#c8102e'},{k:'la',n:'Kings',hp:'#111111',ap:'#a2aaad'},
-    {k:'min',n:'Wild',hp:'#154734',ap:'#ddcba4'},{k:'mtl',n:'Canadiens',hp:'#af1e2d',ap:'#192168'},
-    {k:'nsh',n:'Predators',hp:'#041e42',ap:'#ffb81c'},{k:'nj',n:'Devils',hp:'#ce1126',ap:'#000000'},
-    {k:'nyi',n:'Islanders',hp:'#00539b',ap:'#f47d30'},{k:'nyr',n:'Rangers',hp:'#0038a8',ap:'#ce1126'},
-    {k:'ott',n:'Senators',hp:'#c2912c',ap:'#000000'},{k:'phi',n:'Flyers',hp:'#f74902',ap:'#000000'},
-    {k:'pit',n:'Penguins',hp:'#fcb514',ap:'#000000'},{k:'sjs',n:'Sharks',hp:'#006d75',ap:'#000000'},
-    {k:'sea',n:'Kraken',hp:'#001628',ap:'#99d9d9'},{k:'stl',n:'Blues',hp:'#002f87',ap:'#fcb514'},
-    {k:'tb',n:'Lightning',hp:'#002868',ap:'#ffffff'},{k:'tor',n:'Maple Leafs',hp:'#003e7e',ap:'#ffffff'},
-    {k:'van',n:'Canucks',hp:'#00205b',ap:'#00843d'},{k:'vgk',n:'Golden Knights',hp:'#b4975a',ap:'#333f42'},
-    {k:'wsh',n:'Capitals',hp:'#041e42',ap:'#c8102e'},{k:'wpg',n:'Jets',hp:'#041e42',ap:'#ac162c'}
+    {k:'ana',n:'Ducks',hp:'#fc4c02',ap:'#85714d'},
+    {k:'bos',n:'Bruins',hp:'#fcb514',ap:'#000000'},
+    {k:'buf',n:'Sabres',hp:'#003087',ap:'#fcb514'},
+    {k:'cgy',n:'Flames',hp:'#c8102e',ap:'#f1be48'},
+    {k:'car',n:'Hurricanes',hp:'#cc0000',ap:'#000000'},
+    {k:'chi',n:'Blackhawks',hp:'#cf0a2c',ap:'#000000'},
+    {k:'col',n:'Avalanche',hp:'#6f263d',ap:'#236192'},
+    {k:'cbj',n:'Blue Jackets',hp:'#002654',ap:'#ce1126'},
+    {k:'dal',n:'Stars',hp:'#006847',ap:'#8f8f8c'},
+    {k:'det',n:'Red Wings',hp:'#ce1126',ap:'#ffffff'},
+    {k:'edm',n:'Oilers',hp:'#041e42',ap:'#fc4c02'},
+    {k:'fla',n:'Panthers',hp:'#041e42',ap:'#c8102e'},
+    {k:'la',n:'Kings',hp:'#111111',ap:'#a2aaad'},
+    {k:'min',n:'Wild',hp:'#154734',ap:'#ddcba4'},
+    {k:'mtl',n:'Canadiens',hp:'#af1e2d',ap:'#192168'},
+    {k:'nsh',n:'Predators',hp:'#041e42',ap:'#ffb81c'},
+    {k:'nj',n:'Devils',hp:'#ce1126',ap:'#000000'},
+    {k:'nyi',n:'Islanders',hp:'#00539b',ap:'#f47d30'},
+    {k:'nyr',n:'Rangers',hp:'#0038a8',ap:'#ce1126'},
+    {k:'ott',n:'Senators',hp:'#c2912c',ap:'#000000'},
+    {k:'phi',n:'Flyers',hp:'#f74902',ap:'#000000'},
+    {k:'pit',n:'Penguins',hp:'#fcb514',ap:'#000000'},
+    {k:'sjs',n:'Sharks',hp:'#006d75',ap:'#000000'},
+    {k:'sea',n:'Kraken',hp:'#001628',ap:'#99d9d9'},
+    {k:'stl',n:'Blues',hp:'#002f87',ap:'#fcb514'},
+    {k:'tb',n:'Lightning',hp:'#002868',ap:'#ffffff'},
+    {k:'tor',n:'Maple Leafs',hp:'#003e7e',ap:'#ffffff'},
+    {k:'van',n:'Canucks',hp:'#00205b',ap:'#00843d'},
+    {k:'vgk',n:'Golden Knights',hp:'#b4975a',ap:'#333f42'},
+    {k:'wsh',n:'Capitals',hp:'#041e42',ap:'#c8102e'},
+    {k:'wpg',n:'Jets',hp:'#041e42',ap:'#ac162c'},
+    {k:'uta',n:'Utah HC',hp:'#69b3e7',ap:'#000000'}
   ],
   pokemon:[
-    {k:'25',n:'Pikachu',hp:'#ffde00',ap:'#cc0000'},{k:'6',n:'Charizard',hp:'#ff6600',ap:'#3399ff'},
-    {k:'9',n:'Blastoise',hp:'#3399ff',ap:'#cc6600'},{k:'3',n:'Venusaur',hp:'#33cc33',ap:'#cc33cc'},
-    {k:'130',n:'Gyarados',hp:'#0066cc',ap:'#ffcc00'},{k:'149',n:'Dragonite',hp:'#ff9900',ap:'#6633cc'},
-    {k:'150',n:'Mewtwo',hp:'#9966cc',ap:'#cc0000'},{k:'151',n:'Mew',hp:'#ff99cc',ap:'#6699ff'},
-    {k:'248',n:'Tyranitar',hp:'#336600',ap:'#cc9900'},{k:'384',n:'Rayquaza',hp:'#006600',ap:'#ffff00'},
-    {k:'445',n:'Garchomp',hp:'#003399',ap:'#ffcc00'},{k:'448',n:'Lucario',hp:'#003399',ap:'#cc0000'},
-    {k:'249',n:'Lugia',hp:'#99ccff',ap:'#cc9900'},{k:'250',n:'Ho-Oh',hp:'#cc0000',ap:'#ffcc00'},
-    {k:'716',n:'Xerneas',hp:'#003366',ap:'#99cc00'},{k:'717',n:'Yveltal',hp:'#cc0000',ap:'#333333'},
-    {k:'785',n:'Tapu Koko',hp:'#ffcc00',ap:'#000000'},{k:'800',n:'Necrozma',hp:'#333333',ap:'#ffffff'},
-    {k:'888',n:'Zacian',hp:'#3399ff',ap:'#ffcc00'},{k:'889',n:'Zamazenta',hp:'#cc0000',ap:'#3399ff'}
+    // Mono starters & legends
+    {k:'1',n:'Bulbasaur',hp:'#33cc33',ap:'#cc33cc'},
+    {k:'4',n:'Charmander',hp:'#ff6600',ap:'#cc0000'},
+    {k:'7',n:'Squirtle',hp:'#3399ff',ap:'#cc6600'},
+    {k:'25',n:'Pikachu',hp:'#ffde00',ap:'#cc0000'},
+    {k:'6',n:'Charizard',hp:'#ff6600',ap:'#3399ff'},
+    {k:'9',n:'Blastoise',hp:'#3399ff',ap:'#cc6600'},
+    {k:'3',n:'Venusaur',hp:'#33cc33',ap:'#cc33cc'},
+    {k:'130',n:'Gyarados',hp:'#0066cc',ap:'#ffcc00'},
+    {k:'131',n:'Lapras',hp:'#66ccff',ap:'#cc99ff'},
+    {k:'143',n:'Snorlax',hp:'#668899',ap:'#ffcc00'},
+    {k:'149',n:'Dragonite',hp:'#ff9900',ap:'#6633cc'},
+    {k:'150',n:'Mewtwo',hp:'#9966cc',ap:'#cc0000'},
+    {k:'151',n:'Mew',hp:'#ff99cc',ap:'#6699ff'},
+    {k:'196',n:'Espeon',hp:'#cc66ff',ap:'#ffcc00'},
+    {k:'197',n:'Umbreon',hp:'#1a1a2e',ap:'#ffcc00'},
+    {k:'245',n:'Suicune',hp:'#0099cc',ap:'#cc99ff'},
+    {k:'248',n:'Tyranitar',hp:'#336600',ap:'#cc9900'},
+    {k:'249',n:'Lugia',hp:'#99ccff',ap:'#cc9900'},
+    {k:'250',n:'Ho-Oh',hp:'#cc0000',ap:'#ffcc00'},
+    {k:'257',n:'Blaziken',hp:'#cc3300',ap:'#ff9900'},
+    {k:'282',n:'Gardevoir',hp:'#ff99cc',ap:'#33cc99'},
+    {k:'373',n:'Salamence',hp:'#3366cc',ap:'#cc3300'},
+    {k:'376',n:'Metagross',hp:'#336699',ap:'#cc0000'},
+    {k:'384',n:'Rayquaza',hp:'#006600',ap:'#ffff00'},
+    {k:'445',n:'Garchomp',hp:'#003399',ap:'#ffcc00'},
+    {k:'448',n:'Lucario',hp:'#003399',ap:'#cc0000'},
+    {k:'460',n:'Abomasnow',hp:'#66cccc',ap:'#99cc00'},
+    {k:'470',n:'Leafeon',hp:'#99cc00',ap:'#cc9900'},
+    {k:'471',n:'Glaceon',hp:'#66ccff',ap:'#ffffff'},
+    {k:'700',n:'Sylveon',hp:'#ff99cc',ap:'#6699ff'},
+    {k:'716',n:'Xerneas',hp:'#003366',ap:'#99cc00'},
+    {k:'717',n:'Yveltal',hp:'#cc0000',ap:'#333333'},
+    {k:'785',n:'Tapu Koko',hp:'#ffcc00',ap:'#000000'},
+    {k:'800',n:'Necrozma',hp:'#333333',ap:'#ffffff'},
+    {k:'888',n:'Zacian',hp:'#3399ff',ap:'#ffcc00'},
+    {k:'889',n:'Zamazenta',hp:'#cc0000',ap:'#3399ff'},
+    {k:'890',n:'Eternatus',hp:'#6600cc',ap:'#cc0000'},
+    {k:'898',n:'Calyrex',hp:'#66cccc',ap:'#cc99ff'}
   ],
   mtg:[
-    {k:'W',n:'White',hp:'#f9faf4',ap:'#c4b7a6'},{k:'U',n:'Blue',hp:'#0e68ab',ap:'#c4b7a6'},
-    {k:'B',n:'Black',hp:'#150b00',ap:'#c4b7a6'},{k:'R',n:'Red',hp:'#d3202a',ap:'#c4b7a6'},
-    {k:'G',n:'Green',hp:'#00733e',ap:'#c4b7a6'},{k:'WU',n:'Azorius',hp:'#0e68ab',ap:'#f9faf4'},
-    {k:'WB',n:'Orzhov',hp:'#150b00',ap:'#f9faf4'},{k:'UB',n:'Dimir',hp:'#150b00',ap:'#0e68ab'},
-    {k:'UR',n:'Izzet',hp:'#0e68ab',ap:'#d3202a'},{k:'BR',n:'Rakdos',hp:'#d3202a',ap:'#150b00'},
-    {k:'BG',n:'Golgari',hp:'#00733e',ap:'#150b00'},{k:'RG',n:'Gruul',hp:'#d3202a',ap:'#00733e'},
-    {k:'RW',n:'Boros',hp:'#d3202a',ap:'#f9faf4'},{k:'GW',n:'Selesnya',hp:'#00733e',ap:'#f9faf4'},
-    {k:'GU',n:'Simic',hp:'#00733e',ap:'#0e68ab'},{k:'WUB',n:'Esper',hp:'#0e68ab',ap:'#150b00'},
-    {k:'UBR',n:'Grixis',hp:'#150b00',ap:'#d3202a'},{k:'BRG',n:'Jund',hp:'#d3202a',ap:'#00733e'},
-    {k:'RGW',n:'Naya',hp:'#d3202a',ap:'#f9faf4'},{k:'GWU',n:'Bant',hp:'#00733e',ap:'#0e68ab'}
+    // Mono colors
+    {k:'W',n:'White',hp:'#f9faf4',ap:'#c4b7a6'},
+    {k:'U',n:'Blue',hp:'#0e68ab',ap:'#c4b7a6'},
+    {k:'B',n:'Black',hp:'#150b00',ap:'#c4b7a6'},
+    {k:'R',n:'Red',hp:'#d3202a',ap:'#c4b7a6'},
+    {k:'G',n:'Green',hp:'#00733e',ap:'#c4b7a6'},
+    // Guilds (2-color)
+    {k:'WU',n:'Azorius',hp:'#0e68ab',ap:'#f9faf4'},
+    {k:'WB',n:'Orzhov',hp:'#150b00',ap:'#f9faf4'},
+    {k:'UB',n:'Dimir',hp:'#150b00',ap:'#0e68ab'},
+    {k:'UR',n:'Izzet',hp:'#0e68ab',ap:'#d3202a'},
+    {k:'BR',n:'Rakdos',hp:'#d3202a',ap:'#150b00'},
+    {k:'BG',n:'Golgari',hp:'#00733e',ap:'#150b00'},
+    {k:'RG',n:'Gruul',hp:'#d3202a',ap:'#00733e'},
+    {k:'RW',n:'Boros',hp:'#d3202a',ap:'#f9faf4'},
+    {k:'GW',n:'Selesnya',hp:'#00733e',ap:'#f9faf4'},
+    {k:'GU',n:'Simic',hp:'#00733e',ap:'#0e68ab'},
+    // Shards (3-color)
+    {k:'WUB',n:'Esper',hp:'#0e68ab',ap:'#150b00'},
+    {k:'UBR',n:'Grixis',hp:'#150b00',ap:'#d3202a'},
+    {k:'BRG',n:'Jund',hp:'#d3202a',ap:'#00733e'},
+    {k:'RGW',n:'Naya',hp:'#d3202a',ap:'#f9faf4'},
+    {k:'GWU',n:'Bant',hp:'#00733e',ap:'#0e68ab'},
+    // Wedges (3-color)
+    {k:'WBG',n:'Abzan',hp:'#00733e',ap:'#f9faf4'},
+    {k:'URW',n:'Jeskai',hp:'#0e68ab',ap:'#d3202a'},
+    {k:'BGR',n:'Sultai',hp:'#150b00',ap:'#00733e'},
+    {k:'RWB',n:'Mardu',hp:'#d3202a',ap:'#150b00'},
+    {k:'GUR',n:'Temur',hp:'#00733e',ap:'#0e68ab'},
+    // 4-color
+    {k:'WUBR',n:'Artifice',hp:'#0e68ab',ap:'#d3202a'},
+    {k:'UBRG',n:'Chaos',hp:'#150b00',ap:'#00733e'},
+    {k:'BRGW',n:'Aggression',hp:'#d3202a',ap:'#f9faf4'},
+    {k:'RGWU',n:'Altruism',hp:'#00733e',ap:'#0e68ab'},
+    {k:'GWUB',n:'Growth',hp:'#00733e',ap:'#150b00'},
+    // 5-color
+    {k:'WUBRG',n:'5-Color',hp:'#6b21a8',ap:'#ffd700'}
   ]
 };
 
@@ -144,7 +262,8 @@ WO.applyTheme=function(team,colorway){
   var pri=team[home?'hp':'ap']||'#001a72';
   var acc=team[home?'ap':'hp']||'#69be28';
   var p=palette(pri,acc);
-  var css=':root{--wo-primary:'+pri+';--wo-accent:'+p.acc+';--wo-bg:'+p.bg+';--wo-surface:'+p.surf+';--wo-text:'+p.txt+';}'+
+  var css=
+  ':root{--wo-primary:'+pri+';--wo-accent:'+p.acc+';--wo-bg:'+p.bg+';--wo-surface:'+p.surf+';--wo-text:'+p.txt+';}'+
   'html,body,.page-wrapper-2{background-color:'+p.bg+' !important;color:'+p.txt+' !important;}'+
   '#navbarID,.navbar6_component,.navbar6_container{background:'+p.navBg+' !important;}'+
   '#navbarID.scrolled{background:'+rgba(pri,.2)+' !important;}'+
@@ -162,11 +281,14 @@ WO.applyTheme=function(team,colorway){
   'h1,h2,h3,h4,h5,h6,.heading{color:'+p.txt+' !important;}'+
   'p,.body-display,.text-block-5{color:'+p.txtSub+' !important;}'+
   '.button-3{background:'+p.acc+' !important;color:'+p.onAcc+' !important;}'+
+  '.button-3:hover{background:'+p.btnHov+' !important;}'+
   '.footer,.footer-section{background:'+p.footBg+' !important;color:'+p.footTxt+' !important;}'+
   '.footer-link{color:'+rgba(p.footTxt,.6)+' !important;}'+
   '.footer-link:hover{color:'+p.acc+' !important;}'+
   '.collection-item-4{background:'+p.surf+' !important;border-color:'+p.bdr+' !important;}'+
-  '.collection-item-4:hover{border-color:'+p.acc+' !important;}';
+  '.collection-item-4:hover{border-color:'+p.acc+' !important;}'+
+  'input,textarea,select{background:'+p.surf+' !important;color:'+p.txt+' !important;border-color:'+p.bdrStr+' !important;}'+
+  '.w-commerce-commerceaddtocartbutton,.w-commerce-commercecartcheckoutbutton{background:'+p.acc+' !important;color:'+p.onAcc+' !important;}';
   var el=document.getElementById('wo-theme-css');
   if(!el){el=document.createElement('style');el.id='wo-theme-css';document.head.appendChild(el);}
   el.textContent=css;
@@ -178,7 +300,7 @@ var LABELS={nfl:'NFL',mlb:'MLB',nba:'NBA',nhl:'NHL',pokemon:'Pokémon',mtg:'MTG'
 
 function logoUrl(league,k){
   if(league==='pokemon')return'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/'+k+'.png';
-  if(league==='mtg')return'https://svgs.scryfall.io/card-symbols/'+k+'.svg';
+  if(league==='mtg')return'https://svgs.scryfall.io/card-symbols/'+k.charAt(0).toUpperCase()+'.svg';
   return'https://a.espncdn.com/i/teamlogos/'+league+'/500/'+k+'.png';
 }
 function mc(){
@@ -287,7 +409,6 @@ function openModal(){buildModal();overlay.style.background='rgba(0,0,0,.75)';ove
 function closeModal(){if(!overlay)return;overlay.style.background='rgba(0,0,0,0)';overlay.style.pointerEvents='none';sheet.style.transform='translateY(105%)';}
 WO.openTheme=openModal;WO.closeTheme=closeModal;
 
-// INIT
 function init(){
   try{
     var d=localStorage.getItem(LS);
