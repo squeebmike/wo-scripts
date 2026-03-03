@@ -1,309 +1,532 @@
-(function(){
-'use strict';
+/* ==============================================
+   Walk-Off Sports Cards - Complete JavaScript
+   ============================================== */
 
-// Kill any old WO and take over
-window.__WO__=true;
-var WO=window.WO={};
-var TEAMS={
-  nfl:[
-    {k:'ari',n:'Cardinals',hp:'#97233f',ap:'#000000'},{k:'atl',n:'Falcons',hp:'#a71930',ap:'#000000'},
-    {k:'bal',n:'Ravens',hp:'#241773',ap:'#000000'},{k:'buf',n:'Bills',hp:'#00338d',ap:'#c60c30'},
-    {k:'car',n:'Panthers',hp:'#0085ca',ap:'#000000'},{k:'chi',n:'Bears',hp:'#0b162a',ap:'#c83803'},
-    {k:'cin',n:'Bengals',hp:'#fb4f14',ap:'#000000'},{k:'cle',n:'Browns',hp:'#311d00',ap:'#ff3c00'},
-    {k:'dal',n:'Cowboys',hp:'#003594',ap:'#869397'},{k:'den',n:'Broncos',hp:'#fb4f14',ap:'#002244'},
-    {k:'det',n:'Lions',hp:'#0076b6',ap:'#b0b7bc'},{k:'gb',n:'Packers',hp:'#203731',ap:'#ffb612'},
-    {k:'hou',n:'Texans',hp:'#03202f',ap:'#a71930'},{k:'ind',n:'Colts',hp:'#002c5f',ap:'#a2aaad'},
-    {k:'jax',n:'Jaguars',hp:'#006778',ap:'#d7a22a'},{k:'kc',n:'Chiefs',hp:'#e31837',ap:'#ffb81c'},
-    {k:'lv',n:'Raiders',hp:'#000000',ap:'#a5acaf'},{k:'lar',n:'Rams',hp:'#003594',ap:'#ffd100'},
-    {k:'lac',n:'Chargers',hp:'#0080c6',ap:'#ffc20e'},{k:'mia',n:'Dolphins',hp:'#008e97',ap:'#fc4c02'},
-    {k:'min',n:'Vikings',hp:'#4f2683',ap:'#ffc62f'},{k:'ne',n:'Patriots',hp:'#002244',ap:'#c60c30'},
-    {k:'no',n:'Saints',hp:'#101820',ap:'#d3bc8d'},{k:'nyg',n:'Giants',hp:'#0b2265',ap:'#a71930'},
-    {k:'nyj',n:'Jets',hp:'#125740',ap:'#ffffff'},{k:'phi',n:'Eagles',hp:'#004c54',ap:'#a5acaf'},
-    {k:'pit',n:'Steelers',hp:'#101820',ap:'#ffb612'},{k:'sf',n:'49ers',hp:'#aa0000',ap:'#b3995d'},
-    {k:'sea',n:'Seahawks',hp:'#002244',ap:'#69be28'},{k:'tb',n:'Buccaneers',hp:'#d50a0a',ap:'#ff7900'},
-    {k:'ten',n:'Titans',hp:'#0c2340',ap:'#4b92db'},{k:'wsh',n:'Commanders',hp:'#5a1414',ap:'#ffb612'}
-  ],
-  mlb:[
-    {k:'ari',n:'D-backs',hp:'#a71930',ap:'#e3d4ad'},{k:'atl',n:'Braves',hp:'#ce1141',ap:'#13274f'},
-    {k:'bal',n:'Orioles',hp:'#df4601',ap:'#000000'},{k:'bos',n:'Red Sox',hp:'#bd3039',ap:'#0d2b56'},
-    {k:'chc',n:'Cubs',hp:'#0e3386',ap:'#cc3433'},{k:'cws',n:'White Sox',hp:'#27251f',ap:'#c4ced4'},
-    {k:'cin',n:'Reds',hp:'#c6011f',ap:'#000000'},{k:'cle',n:'Guardians',hp:'#00385d',ap:'#e31937'},
-    {k:'col',n:'Rockies',hp:'#33006f',ap:'#c4ced4'},{k:'det',n:'Tigers',hp:'#0c2340',ap:'#fa4616'},
-    {k:'hou',n:'Astros',hp:'#002d62',ap:'#eb6e1f'},{k:'kc',n:'Royals',hp:'#004687',ap:'#bd9b60'},
-    {k:'laa',n:'Angels',hp:'#ba0021',ap:'#003263'},{k:'lad',n:'Dodgers',hp:'#005a9c',ap:'#ef3e42'},
-    {k:'mia',n:'Marlins',hp:'#00a3e0',ap:'#ef3340'},{k:'mil',n:'Brewers',hp:'#12284b',ap:'#ffc52f'},
-    {k:'min',n:'Twins',hp:'#002b5c',ap:'#d31145'},{k:'nym',n:'Mets',hp:'#002d72',ap:'#ff5910'},
-    {k:'nyy',n:'Yankees',hp:'#003087',ap:'#e4002c'},{k:'oak',n:'Athletics',hp:'#003831',ap:'#efb21e'},
-    {k:'phi',n:'Phillies',hp:'#e81828',ap:'#002d72'},{k:'pit',n:'Pirates',hp:'#27251f',ap:'#fdb827'},
-    {k:'sd',n:'Padres',hp:'#2f241d',ap:'#ffc425'},{k:'sf',n:'Giants',hp:'#fd5a1e',ap:'#27251f'},
-    {k:'sea',n:'Mariners',hp:'#0c2c56',ap:'#005c5c'},{k:'stl',n:'Cardinals',hp:'#c41e3a',ap:'#0c2340'},
-    {k:'tb',n:'Rays',hp:'#092c5c',ap:'#8fbce6'},{k:'tex',n:'Rangers',hp:'#003278',ap:'#c0111f'},
-    {k:'tor',n:'Blue Jays',hp:'#134a8e',ap:'#1d2d5c'},{k:'wsh',n:'Nationals',hp:'#ab0003',ap:'#14225a'}
-  ],
-  nba:[
-    {k:'hawks',n:'Hawks',hp:'#e03a3e',ap:'#c1d32f'},{k:'celtics',n:'Celtics',hp:'#007a33',ap:'#ba9653'},
-    {k:'nets',n:'Nets',hp:'#000000',ap:'#ffffff'},{k:'hornets',n:'Hornets',hp:'#1d1160',ap:'#00788c'},
-    {k:'bulls',n:'Bulls',hp:'#ce1141',ap:'#000000'},{k:'cavaliers',n:'Cavaliers',hp:'#860038',ap:'#fdbb30'},
-    {k:'mavericks',n:'Mavericks',hp:'#00538c',ap:'#002b5e'},{k:'nuggets',n:'Nuggets',hp:'#0e2240',ap:'#fec524'},
-    {k:'pistons',n:'Pistons',hp:'#c8102e',ap:'#006bb6'},{k:'warriors',n:'Warriors',hp:'#1d428a',ap:'#ffc72c'},
-    {k:'rockets',n:'Rockets',hp:'#ce1141',ap:'#000000'},{k:'pacers',n:'Pacers',hp:'#002d62',ap:'#fdbb30'},
-    {k:'clippers',n:'Clippers',hp:'#c8102e',ap:'#1d428a'},{k:'lakers',n:'Lakers',hp:'#552583',ap:'#fdb927'},
-    {k:'grizzlies',n:'Grizzlies',hp:'#5d76a9',ap:'#12173f'},{k:'heat',n:'Heat',hp:'#98002e',ap:'#f9a01b'},
-    {k:'bucks',n:'Bucks',hp:'#00471b',ap:'#eee1c6'},{k:'timberwolves',n:'T-Wolves',hp:'#0c2340',ap:'#236192'},
-    {k:'pelicans',n:'Pelicans',hp:'#0c2340',ap:'#c8102e'},{k:'knicks',n:'Knicks',hp:'#006bb6',ap:'#f58426'},
-    {k:'thunder',n:'Thunder',hp:'#007ac1',ap:'#ef3b24'},{k:'magic',n:'Magic',hp:'#0077c0',ap:'#000000'},
-    {k:'sixers',n:'76ers',hp:'#006bb6',ap:'#ed174c'},{k:'suns',n:'Suns',hp:'#1d1160',ap:'#e56020'},
-    {k:'blazers',n:'Blazers',hp:'#e03a3e',ap:'#000000'},{k:'kings',n:'Kings',hp:'#5a2d81',ap:'#63727a'},
-    {k:'spurs',n:'Spurs',hp:'#c4ced4',ap:'#000000'},{k:'raptors',n:'Raptors',hp:'#ce1141',ap:'#000000'},
-    {k:'jazz',n:'Jazz',hp:'#002b5c',ap:'#f9a01b'},{k:'wizards',n:'Wizards',hp:'#002b5c',ap:'#e31837'}
-  ],
-  nhl:[
-    {k:'ana',n:'Ducks',hp:'#fc4c02',ap:'#85714d'},{k:'ari',n:'Coyotes',hp:'#8c2633',ap:'#e2d6b5'},
-    {k:'bos',n:'Bruins',hp:'#fcb514',ap:'#000000'},{k:'buf',n:'Sabres',hp:'#003087',ap:'#fcb514'},
-    {k:'cgy',n:'Flames',hp:'#c8102e',ap:'#f1be48'},{k:'car',n:'Hurricanes',hp:'#cc0000',ap:'#000000'},
-    {k:'chi',n:'Blackhawks',hp:'#cf0a2c',ap:'#000000'},{k:'col',n:'Avalanche',hp:'#6f263d',ap:'#236192'},
-    {k:'cbj',n:'Blue Jackets',hp:'#002654',ap:'#ce1126'},{k:'dal',n:'Stars',hp:'#006847',ap:'#8f8f8c'},
-    {k:'det',n:'Red Wings',hp:'#ce1126',ap:'#ffffff'},{k:'edm',n:'Oilers',hp:'#041e42',ap:'#fc4c02'},
-    {k:'fla',n:'Panthers',hp:'#041e42',ap:'#c8102e'},{k:'la',n:'Kings',hp:'#111111',ap:'#a2aaad'},
-    {k:'min',n:'Wild',hp:'#154734',ap:'#ddcba4'},{k:'mtl',n:'Canadiens',hp:'#af1e2d',ap:'#192168'},
-    {k:'nsh',n:'Predators',hp:'#041e42',ap:'#ffb81c'},{k:'nj',n:'Devils',hp:'#ce1126',ap:'#000000'},
-    {k:'nyi',n:'Islanders',hp:'#00539b',ap:'#f47d30'},{k:'nyr',n:'Rangers',hp:'#0038a8',ap:'#ce1126'},
-    {k:'ott',n:'Senators',hp:'#c2912c',ap:'#000000'},{k:'phi',n:'Flyers',hp:'#f74902',ap:'#000000'},
-    {k:'pit',n:'Penguins',hp:'#fcb514',ap:'#000000'},{k:'sjs',n:'Sharks',hp:'#006d75',ap:'#000000'},
-    {k:'sea',n:'Kraken',hp:'#001628',ap:'#99d9d9'},{k:'stl',n:'Blues',hp:'#002f87',ap:'#fcb514'},
-    {k:'tb',n:'Lightning',hp:'#002868',ap:'#ffffff'},{k:'tor',n:'Maple Leafs',hp:'#003e7e',ap:'#ffffff'},
-    {k:'van',n:'Canucks',hp:'#00205b',ap:'#00843d'},{k:'vgk',n:'Golden Knights',hp:'#b4975a',ap:'#333f42'},
-    {k:'wsh',n:'Capitals',hp:'#041e42',ap:'#c8102e'},{k:'wpg',n:'Jets',hp:'#041e42',ap:'#ac162c'}
-  ],
-  pokemon:[
-    {k:'25',n:'Pikachu',hp:'#ffde00',ap:'#cc0000'},{k:'6',n:'Charizard',hp:'#ff6600',ap:'#3399ff'},
-    {k:'9',n:'Blastoise',hp:'#3399ff',ap:'#cc6600'},{k:'3',n:'Venusaur',hp:'#33cc33',ap:'#cc33cc'},
-    {k:'130',n:'Gyarados',hp:'#0066cc',ap:'#ffcc00'},{k:'149',n:'Dragonite',hp:'#ff9900',ap:'#6633cc'},
-    {k:'150',n:'Mewtwo',hp:'#9966cc',ap:'#cc0000'},{k:'151',n:'Mew',hp:'#ff99cc',ap:'#6699ff'},
-    {k:'248',n:'Tyranitar',hp:'#336600',ap:'#cc9900'},{k:'384',n:'Rayquaza',hp:'#006600',ap:'#ffff00'},
-    {k:'445',n:'Garchomp',hp:'#003399',ap:'#ffcc00'},{k:'448',n:'Lucario',hp:'#003399',ap:'#cc0000'},
-    {k:'249',n:'Lugia',hp:'#99ccff',ap:'#cc9900'},{k:'250',n:'Ho-Oh',hp:'#cc0000',ap:'#ffcc00'},
-    {k:'716',n:'Xerneas',hp:'#003366',ap:'#99cc00'},{k:'717',n:'Yveltal',hp:'#cc0000',ap:'#333333'},
-    {k:'785',n:'Tapu Koko',hp:'#ffcc00',ap:'#000000'},{k:'800',n:'Necrozma',hp:'#333333',ap:'#ffffff'},
-    {k:'888',n:'Zacian',hp:'#3399ff',ap:'#ffcc00'},{k:'889',n:'Zamazenta',hp:'#cc0000',ap:'#3399ff'}
-  ],
-  mtg:[
-    {k:'W',n:'White',hp:'#f9faf4',ap:'#c4b7a6'},{k:'U',n:'Blue',hp:'#0e68ab',ap:'#c4b7a6'},
-    {k:'B',n:'Black',hp:'#150b00',ap:'#c4b7a6'},{k:'R',n:'Red',hp:'#d3202a',ap:'#c4b7a6'},
-    {k:'G',n:'Green',hp:'#00733e',ap:'#c4b7a6'},{k:'WU',n:'Azorius',hp:'#0e68ab',ap:'#f9faf4'},
-    {k:'WB',n:'Orzhov',hp:'#150b00',ap:'#f9faf4'},{k:'UB',n:'Dimir',hp:'#150b00',ap:'#0e68ab'},
-    {k:'UR',n:'Izzet',hp:'#0e68ab',ap:'#d3202a'},{k:'BR',n:'Rakdos',hp:'#d3202a',ap:'#150b00'},
-    {k:'BG',n:'Golgari',hp:'#00733e',ap:'#150b00'},{k:'RG',n:'Gruul',hp:'#d3202a',ap:'#00733e'},
-    {k:'RW',n:'Boros',hp:'#d3202a',ap:'#f9faf4'},{k:'GW',n:'Selesnya',hp:'#00733e',ap:'#f9faf4'},
-    {k:'GU',n:'Simic',hp:'#00733e',ap:'#0e68ab'},{k:'WUB',n:'Esper',hp:'#0e68ab',ap:'#150b00'},
-    {k:'UBR',n:'Grixis',hp:'#150b00',ap:'#d3202a'},{k:'BRG',n:'Jund',hp:'#d3202a',ap:'#00733e'},
-    {k:'RGW',n:'Naya',hp:'#d3202a',ap:'#f9faf4'},{k:'GWU',n:'Bant',hp:'#00733e',ap:'#0e68ab'}
-  ]
-};
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // ===========================================
+    // TEAM PERSONALIZATION SYSTEM
+    // ===========================================
+    
+    const teamData = {
+        'angels': { name: 'Angels', logo: '😇', colors: { primary: '#BA0021', secondary: '#003263', accent: '#C4CED4' }},
+        'astros': { name: 'Astros', logo: '⭐', colors: { primary: '#002D62', secondary: '#EB6E1F', accent: '#F4911E' }},
+        'athletics': { name: 'Athletics', logo: '🟢', colors: { primary: '#003831', secondary: '#EFB21E', accent: '#A2AAAD' }},
+        'blue-jays': { name: 'Blue Jays', logo: '🔵', colors: { primary: '#134A8E', secondary: '#1D2D5C', accent: '#E8291C' }},
+        'braves': { name: 'Braves', logo: '🪓', colors: { primary: '#CE1141', secondary: '#13274F', accent: '#EAAA00' }},
+        'brewers': { name: 'Brewers', logo: '🍺', colors: { primary: '#12284B', secondary: '#FFC52F', accent: '#87CEEB' }},
+        'cardinals': { name: 'Cardinals', logo: '🐦', colors: { primary: '#C41E3A', secondary: '#FEDB00', accent: '#000000' }},
+        'cubs': { name: 'Cubs', logo: '🐻', colors: { primary: '#0E3386', secondary: '#CC3433', accent: '#FFFFFF' }},
+        'diamondbacks': { name: 'D-backs', logo: '🐍', colors: { primary: '#A71930', secondary: '#E3D4A7', accent: '#000000' }},
+        'dodgers': { name: 'Dodgers', logo: '⚾', colors: { primary: '#005A9C', secondary: '#FFFFFF', accent: '#A5ACAF' }},
+        'giants': { name: 'Giants', logo: '🧡', colors: { primary: '#FD5A1E', secondary: '#27251F', accent: '#EFD19F' }},
+        'guardians': { name: 'Guardians', logo: '⚔️', colors: { primary: '#E50022', secondary: '#0C2340', accent: '#A2AAAD' }},
+        'mariners': { name: 'Mariners', logo: '⚓', colors: { primary: '#0C2C56', secondary: '#005C5C', accent: '#C4CED4' }},
+        'marlins': { name: 'Marlins', logo: '🐟', colors: { primary: '#00A3E0', secondary: '#EF3340', accent: '#41748D' }},
+        'mets': { name: 'Mets', logo: '🟠', colors: { primary: '#002D72', secondary: '#FF5910', accent: '#C4CED4' }},
+        'nationals': { name: 'Nationals', logo: '🦅', colors: { primary: '#AB0003', secondary: '#14225A', accent: '#C4CED4' }},
+        'orioles': { name: 'Orioles', logo: '🐦‍⬛', colors: { primary: '#DF4601', secondary: '#000000', accent: '#FFFFFF' }},
+        'padres': { name: 'Padres', logo: '🌴', colors: { primary: '#2F241D', secondary: '#FFC425', accent: '#A0AAB2' }},
+        'phillies': { name: 'Phillies', logo: '🔔', colors: { primary: '#E81828', secondary: '#002D72', accent: '#C4CED4' }},
+        'pirates': { name: 'Pirates', logo: '🏴‍☠️', colors: { primary: '#FDB827', secondary: '#27251F', accent: '#A2AAAD' }},
+        'rangers': { name: 'Rangers', logo: '🤠', colors: { primary: '#003278', secondary: '#C0111F', accent: '#C4CED4' }},
+        'rays': { name: 'Rays', logo: '☀️', colors: { primary: '#092C5C', secondary: '#8FBCE6', accent: '#F5D130' }},
+        'red-sox': { name: 'Red Sox', logo: '🧦', colors: { primary: '#BD3039', secondary: '#0C2340', accent: '#C4CED4' }},
+        'reds': { name: 'Reds', logo: '🔴', colors: { primary: '#C6011F', secondary: '#000000', accent: '#FFFFFF' }},
+        'rockies': { name: 'Rockies', logo: '🏔️', colors: { primary: '#33006F', secondary: '#C4CED4', accent: '#000000' }},
+        'royals': { name: 'Royals', logo: '👑', colors: { primary: '#004687', secondary: '#C09A5B', accent: '#FFFFFF' }},
+        'tigers': { name: 'Tigers', logo: '🐅', colors: { primary: '#0C2340', secondary: '#FA4616', accent: '#FFFFFF' }},
+        'twins': { name: 'Twins', logo: '👯', colors: { primary: '#002B5C', secondary: '#D31145', accent: '#CFAB7A' }},
+        'white-sox': { name: 'White Sox', logo: '⚪', colors: { primary: '#27251F', secondary: '#C4CED4', accent: '#000000' }},
+        'yankees': { name: 'Yankees', logo: '🗽', colors: { primary: '#132448', secondary: '#C4CED4', accent: '#FFFFFF' }}
+    };
 
-// COLOR MATH
-var LS='wo-v9';
-var state={league:'nfl',colorway:'home',team:null};
-
-function hex2rgb(h){
-  var c=(h||'').replace('#','');
-  if(c.length===3)c=c[0]+c[0]+c[1]+c[1]+c[2]+c[2];
-  if(c.length!==6)return[0,0,20];
-  return[parseInt(c.substr(0,2),16),parseInt(c.substr(2,2),16),parseInt(c.substr(4,2),16)];
-}
-function lum(h){
-  var r=hex2rgb(h).map(function(v){v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4);});
-  return .2126*r[0]+.7152*r[1]+.0722*r[2];
-}
-function onBg(h){return lum(h)>.179?'#111111':'#ffffff';}
-function rgba(h,a){var r=hex2rgb(h);return'rgba('+r[0]+','+r[1]+','+r[2]+','+a+')';}
-function adj(h,p){
-  var r=hex2rgb(h),v=Math.round(255*p);
-  var c=r.map(function(x){return Math.min(255,Math.max(0,x+v));});
-  return'#'+c.map(function(x){return(x<16?'0':'')+x.toString(16);}).join('');
-}
-function palette(pri,acc){
-  var L=lum(pri);
-  var dark=L<.08,mid=L>=.08&&L<.35;
-  var bg=dark?adj(pri,-.55):(mid?'#080812':adj(pri,.5));
-  var surf=dark?adj(pri,-.25):(mid?adj(pri,-.15):'#ffffff');
-  var surfAlt=dark?adj(pri,-.12):(mid?adj(pri,-.08):'#f2f2f6');
-  var txt=onBg(bg),txtSub=rgba(txt,.6),txtMut=rgba(txt,.35);
-  var bdr=rgba(txt,.1),bdrStr=rgba(txt,.2);
-  var da=acc,aL=lum(acc),bgL=lum(bg);
-  var cr=(Math.max(aL,bgL)+.05)/(Math.min(aL,bgL)+.05);
-  if(cr<3){da=bgL<.3?adj(acc,.35):adj(acc,-.25);}
-  var footBg=dark?adj(pri,-.45):adj(pri,-.08);
-  return{bg:bg,surf:surf,surfAlt:surfAlt,txt:txt,txtSub:txtSub,txtMut:txtMut,
-    bdr:bdr,bdrStr:bdrStr,navBg:pri,onNav:onBg(pri),acc:da,onAcc:onBg(da),
-    btnHov:adj(da,.15),footBg:footBg,footTxt:onBg(footBg),shadow:rgba(pri,.4)};
-}
-
-WO.applyTheme=function(team,colorway){
-  var home=(colorway||'home')==='home';
-  var pri=team[home?'hp':'ap']||'#001a72';
-  var acc=team[home?'ap':'hp']||'#69be28';
-  var p=palette(pri,acc);
-  var css=':root{--wo-primary:'+pri+';--wo-accent:'+p.acc+';--wo-bg:'+p.bg+';--wo-surface:'+p.surf+';--wo-text:'+p.txt+';}'+
-  'html,body,.page-wrapper-2{background-color:'+p.bg+' !important;color:'+p.txt+' !important;}'+
-  '#navbarID,.navbar6_component,.navbar6_container{background:'+p.navBg+' !important;}'+
-  '#navbarID.scrolled{background:'+rgba(pri,.2)+' !important;}'+
-  '.navbar6_link,.w-nav-link{color:'+p.onNav+' !important;}'+
-  '.navbar6_link:hover,.navbar6_link.w--current,.navbar6_dropdown-link:hover{color:'+p.acc+' !important;}'+
-  '.navbar6_dropdown-list,.w-dropdown-list{background:'+p.surf+' !important;}'+
-  '.navbar6_dropdown-link{color:'+p.txt+' !important;}'+
-  '.menu-icon_line-top,.menu-icon_line-middle,.menu-icon_line-middle-inner,.menu-icon_line-bottom{background-color:'+p.onNav+' !important;}'+
-  '.w-nav-overlay .w-nav-menu{background:'+pri+' !important;}'+
-  '.promo-strip{background:'+p.acc+' !important;}'+
-  '.rotating-promo-text,.promo-strip *{color:'+p.onAcc+' !important;}'+
-  '.trust-strip{background:'+p.surfAlt+' !important;}'+
-  '.section-hero,.slider-3,.basic-slider,.slider-background{background-color:'+adj(pri,-.5)+' !important;}'+
-  '.slide-intro,.slide-heading,.slide-content,.text-white{color:#ffffff !important;}'+
-  'h1,h2,h3,h4,h5,h6,.heading{color:'+p.txt+' !important;}'+
-  'p,.body-display,.text-block-5{color:'+p.txtSub+' !important;}'+
-  '.button-3{background:'+p.acc+' !important;color:'+p.onAcc+' !important;}'+
-  '.footer,.footer-section{background:'+p.footBg+' !important;color:'+p.footTxt+' !important;}'+
-  '.footer-link{color:'+rgba(p.footTxt,.6)+' !important;}'+
-  '.footer-link:hover{color:'+p.acc+' !important;}'+
-  '.collection-item-4{background:'+p.surf+' !important;border-color:'+p.bdr+' !important;}'+
-  '.collection-item-4:hover{border-color:'+p.acc+' !important;}';
-  var el=document.getElementById('wo-theme-css');
-  if(!el){el=document.createElement('style');el.id='wo-theme-css';document.head.appendChild(el);}
-  el.textContent=css;
-};
-
-// MODAL
-var overlay,sheet,grid;
-var LABELS={nfl:'NFL',mlb:'MLB',nba:'NBA',nhl:'NHL',pokemon:'Pokémon',mtg:'MTG'};
-
-function logoUrl(league,k){
-  if(league==='pokemon')return'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/'+k+'.png';
-  if(league==='mtg')return'https://svgs.scryfall.io/card-symbols/'+k+'.svg';
-  return'https://a.espncdn.com/i/teamlogos/'+league+'/500/'+k+'.png';
-}
-function mc(){
-  if(!state.team)return{bg:'#13161c',acc:'#69be28',txt:'#fff',sub:'rgba(255,255,255,.4)',bdr:'rgba(255,255,255,.08)'};
-  var h=state.colorway==='home';
-  var bg=state.team[h?'hp':'ap'],acc=state.team[h?'ap':'hp'];
-  var txt=onBg(bg);
-  return{bg:bg,acc:acc,txt:txt,sub:rgba(txt,.4),bdr:rgba(txt,.1)};
-}
-function refreshUI(){
-  var m=mc();
-  if(sheet){sheet.style.background=m.bg;sheet.style.borderTop='3px solid '+m.acc;}
-  var t=document.getElementById('wo-ttl');if(t)t.style.color=m.txt;
-  var s=document.getElementById('wo-sub');if(s)s.style.color=m.sub;
-  var d=document.getElementById('wo-done');if(d){d.style.background=m.acc;d.style.color=onBg(m.acc);}
-  document.querySelectorAll('[data-cw]').forEach(function(b){
-    var on=b.dataset.cw===state.colorway;
-    b.style.borderColor=on?m.acc:m.bdr;b.style.color=on?m.acc:m.sub;
-    b.style.background=on?rgba(m.acc,.15):'transparent';
-  });
-  document.querySelectorAll('[data-lg]').forEach(function(b){
-    var on=b.dataset.lg===state.league;
-    b.style.background=on?m.acc:'transparent';b.style.color=on?onBg(m.acc):m.sub;
-  });
-  document.querySelectorAll('.wo-tile').forEach(function(t){
-    var sel=state.team&&t.dataset.k===state.team.k&&t.dataset.lg===state.league;
-    t.style.borderColor=sel?m.acc:m.bdr;
-    t.style.background=sel?rgba(m.acc,.12):'rgba(255,255,255,.03)';
-    t.style.boxShadow=sel?'0 0 0 1px '+m.acc+',0 4px 20px '+rgba(m.acc,.3):'none';
-    var l=t.querySelector('.wo-lbl');if(l)l.style.color=sel?m.acc:m.sub;
-  });
-}
-function renderGrid(){
-  if(!grid)return;
-  grid.innerHTML='';
-  var m=mc();
-  var teams=TEAMS[state.league]||[];
-  teams.forEach(function(team){
-    var t=document.createElement('div');
-    t.className='wo-tile';t.dataset.k=team.k;t.dataset.lg=state.league;
-    t.style.cssText='display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 4px 8px;border-radius:12px;cursor:pointer;border:1px solid '+m.bdr+';background:rgba(255,255,255,.03);transition:all .18s;';
-    var img=document.createElement('img');
-    img.src=logoUrl(state.league,team.k);
-    img.style.cssText='width:44px;height:44px;object-fit:contain;';
-    img.onerror=function(){this.style.display='none';};
-    var lbl=document.createElement('div');
-    lbl.className='wo-lbl';lbl.textContent=team.n;
-    lbl.style.cssText='font-size:9px;text-align:center;line-height:1.3;font-weight:700;max-width:68px;word-break:break-word;color:'+m.sub+';';
-    t.appendChild(img);t.appendChild(lbl);
-    t.addEventListener('click',function(){
-      state.team=team;WO.applyTheme(team,state.colorway);
-      try{localStorage.setItem(LS,JSON.stringify({k:team.k,n:team.n,hp:team.hp,ap:team.ap,league:state.league,colorway:state.colorway}));}catch(e){}
-      refreshUI();
-    });
-    grid.appendChild(t);
-  });
-  refreshUI();
-}
-function buildModal(){
-  if(overlay)return;
-  overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;z-index:2147483647;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0);pointer-events:none;transition:background .3s;font-family:system-ui,-apple-system,sans-serif;';
-  overlay.addEventListener('click',function(e){if(e.target===overlay)closeModal();});
-  sheet=document.createElement('div');
-  sheet.style.cssText='width:100%;max-width:680px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;border-radius:20px 20px 0 0;background:#13161c;box-shadow:0 -20px 80px rgba(0,0,0,.9);transform:translateY(105%);transition:transform .38s cubic-bezier(.32,.72,0,1);';
-  var hdl=document.createElement('div');
-  hdl.style.cssText='padding:12px 0 4px;display:flex;justify-content:center;cursor:pointer;flex-shrink:0;';
-  var pip=document.createElement('div');pip.style.cssText='width:40px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);';
-  hdl.appendChild(pip);hdl.addEventListener('click',closeModal);
-  var hdr=document.createElement('div');hdr.style.cssText='flex-shrink:0;padding:8px 20px 0;';
-  var row1=document.createElement('div');row1.style.cssText='display:flex;justify-content:space-between;align-items:flex-start;';
-  var tb=document.createElement('div');
-  var ttl=document.createElement('div');ttl.id='wo-ttl';ttl.textContent='Choose Your Team';
-  ttl.style.cssText='font-size:20px;font-weight:900;color:#fff;letter-spacing:-.02em;';
-  var sub=document.createElement('div');sub.id='wo-sub';sub.textContent='Colors update site-wide instantly';
-  sub.style.cssText='font-size:12px;color:rgba(255,255,255,.4);margin-top:2px;';
-  tb.appendChild(ttl);tb.appendChild(sub);
-  var done=document.createElement('button');done.id='wo-done';done.textContent='Done';
-  done.style.cssText='all:unset;cursor:pointer;padding:9px 22px;border-radius:100px;font-size:13px;font-weight:800;background:#69be28;color:#fff;';
-  done.addEventListener('click',closeModal);
-  row1.appendChild(tb);row1.appendChild(done);
-  var cwRow=document.createElement('div');cwRow.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;';
-  [{k:'home',l:'🏠 Home Colors'},{k:'away',l:'✈️ Away Colors'}].forEach(function(o){
-    var b=document.createElement('button');b.dataset.cw=o.k;
-    b.style.cssText='all:unset;box-sizing:border-box;padding:10px;text-align:center;border:2px solid rgba(255,255,255,.1);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;color:rgba(255,255,255,.4);transition:all .2s;';
-    b.textContent=o.l;
-    b.addEventListener('click',function(){
-      state.colorway=o.k;if(state.team){WO.applyTheme(state.team,state.colorway);}refreshUI();
-    });
-    cwRow.appendChild(b);
-  });
-  var tabs=document.createElement('div');tabs.style.cssText='display:flex;gap:6px;overflow-x:auto;padding:12px 0 2px;scrollbar-width:none;';
-  Object.keys(TEAMS).forEach(function(lg){
-    var b=document.createElement('button');b.dataset.lg=lg;b.textContent=LABELS[lg];
-    b.style.cssText='all:unset;padding:7px 16px;border-radius:100px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;color:rgba(255,255,255,.4);transition:all .2s;';
-    b.addEventListener('click',function(){state.league=lg;renderGrid();});
-    tabs.appendChild(b);
-  });
-  hdr.appendChild(row1);hdr.appendChild(cwRow);hdr.appendChild(tabs);
-  grid=document.createElement('div');
-  grid.style.cssText='flex:1;overflow-y:auto;padding:12px 20px 32px;display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;';
-  sheet.appendChild(hdl);sheet.appendChild(hdr);sheet.appendChild(grid);
-  overlay.appendChild(sheet);document.body.appendChild(overlay);
-}
-function openModal(){buildModal();overlay.style.background='rgba(0,0,0,.75)';overlay.style.pointerEvents='auto';sheet.style.transform='translateY(0)';renderGrid();refreshUI();}
-function closeModal(){if(!overlay)return;overlay.style.background='rgba(0,0,0,0)';overlay.style.pointerEvents='none';sheet.style.transform='translateY(105%)';}
-WO.openTheme=openModal;WO.closeTheme=closeModal;
-
-// INIT
-function init(){
-  try{
-    var d=localStorage.getItem(LS);
-    if(d){
-      var s=JSON.parse(d);
-      state.team={k:s.k,n:s.n,hp:s.hp,ap:s.ap};
-      state.colorway=s.colorway||'home';
-      state.league=s.league||'nfl';
-      WO.applyTheme(state.team,state.colorway);
+    // Team Selection Modal
+    function createTeamModal() {
+        const modal = document.createElement('div');
+        modal.className = 'team-modal';
+        modal.id = 'teamModal';
+        
+        const content = document.createElement('div');
+        content.className = 'team-modal__content';
+        
+        content.innerHTML = `
+            <h2 class="team-modal__title">Pick Your Team</h2>
+            <p class="team-modal__subtitle">Choose your favorite team to personalize your experience</p>
+            <div class="team-grid" id="teamGrid">
+                ${Object.entries(teamData).map(([key, team]) => `
+                    <div class="team-option" data-team="${key}">
+                        <div class="team-logo">${team.logo}</div>
+                        <div class="team-name">${team.name}</div>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn--ghost" id="skipTeamSelection">Skip for now</button>
+                <button class="btn btn--primary" id="confirmTeamSelection" disabled>Set as My Team</button>
+            </div>
+        `;
+        
+        modal.appendChild(content);
+        return modal;
     }
-  }catch(e){}
-  document.querySelectorAll('[data-wo-theme],[data-theme-trigger],[data-wo-open]').forEach(function(el){
-    el.addEventListener('click',openModal);
-  });
-}
-if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}
-else{init();}
 
-})();
+    // Team Selection Logic
+    function initTeamPersonalization() {
+        const savedTeam = localStorage.getItem('walkoff-selected-team');
+        
+        // Show modal on first visit
+        if (!savedTeam) {
+            const modal = createTeamModal();
+            document.body.appendChild(modal);
+            
+            let selectedTeamKey = null;
+            const confirmButton = modal.querySelector('#confirmTeamSelection');
+            
+            // Team selection handling
+            modal.querySelectorAll('.team-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    // Remove previous selection
+                    modal.querySelectorAll('.team-option').forEach(opt => opt.classList.remove('selected'));
+                    
+                    // Add selection to clicked option
+                    this.classList.add('selected');
+                    selectedTeamKey = this.dataset.team;
+                    confirmButton.disabled = false;
+                });
+            });
+            
+            // Confirm team selection
+            confirmButton.addEventListener('click', function() {
+                if (selectedTeamKey) {
+                    applyTeamTheme(selectedTeamKey);
+                    localStorage.setItem('walkoff-selected-team', selectedTeamKey);
+                    modal.remove();
+                }
+            });
+            
+            // Skip team selection
+            modal.querySelector('#skipTeamSelection').addEventListener('click', function() {
+                modal.remove();
+            });
+        } else {
+            // Apply saved team theme
+            applyTeamTheme(savedTeam);
+        }
+        
+        // Add "Change Team" button to navbar if team is selected
+        if (savedTeam && document.querySelector('.navbar__team-btn')) {
+            const teamBtn = document.querySelector('.navbar__team-btn');
+            teamBtn.textContent = `${teamData[savedTeam].name} Fan`;
+            teamBtn.addEventListener('click', function() {
+                const modal = createTeamModal();
+                document.body.appendChild(modal);
+                
+                // Pre-select current team
+                const currentOption = modal.querySelector(`[data-team="${savedTeam}"]`);
+                if (currentOption) {
+                    currentOption.classList.add('selected');
+                    modal.querySelector('#confirmTeamSelection').disabled = false;
+                }
+                
+                // Handle new selection (same as above)
+                let selectedTeamKey = savedTeam;
+                const confirmButton = modal.querySelector('#confirmTeamSelection');
+                
+                modal.querySelectorAll('.team-option').forEach(option => {
+                    option.addEventListener('click', function() {
+                        modal.querySelectorAll('.team-option').forEach(opt => opt.classList.remove('selected'));
+                        this.classList.add('selected');
+                        selectedTeamKey = this.dataset.team;
+                        confirmButton.disabled = false;
+                    });
+                });
+                
+                confirmButton.addEventListener('click', function() {
+                    applyTeamTheme(selectedTeamKey);
+                    localStorage.setItem('walkoff-selected-team', selectedTeamKey);
+                    teamBtn.textContent = `${teamData[selectedTeamKey].name} Fan`;
+                    modal.remove();
+                });
+                
+                modal.querySelector('#skipTeamSelection').addEventListener('click', function() {
+                    modal.remove();
+                });
+            });
+        }
+    }
+
+    // Apply team theme to page
+    function applyTeamTheme(teamKey) {
+        const team = teamData[teamKey];
+        if (!team) return;
+        
+        // Remove existing team classes
+        document.body.className = document.body.className.replace(/team-\w+/g, '');
+        
+        // Add new team class
+        document.body.classList.add(`team-${teamKey}`);
+        
+        // Update CSS custom properties for immediate effect
+        const root = document.documentElement;
+        root.style.setProperty('--team-primary', team.colors.primary);
+        root.style.setProperty('--team-secondary', team.colors.secondary);
+        root.style.setProperty('--team-accent', team.colors.accent);
+    }
+
+    // ===========================================
+    // PRODUCT FILTERING SYSTEM
+    // ===========================================
+    
+    function initProductFiltering() {
+        const filterButtons = document.querySelectorAll('[data-filter]');
+        const productCards = document.querySelectorAll('[data-category]');
+        const searchInput = document.querySelector('[data-search-products]');
+        const sortSelect = document.querySelector('[data-sort-products]');
+
+        // Filter by category
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Update active state
+                filterButtons.forEach(btn => btn.classList.remove('is-active'));
+                this.classList.add('is-active');
+                
+                const filterValue = this.dataset.filter;
+                
+                productCards.forEach(card => {
+                    const cardCategory = card.dataset.category;
+                    
+                    if (filterValue === 'all' || cardCategory === filterValue) {
+                        card.style.display = 'block';
+                        card.classList.add('animate-fadeIn');
+                    } else {
+                        card.style.display = 'none';
+                        card.classList.remove('animate-fadeIn');
+                    }
+                });
+            });
+        });
+
+        // Search functionality
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                
+                productCards.forEach(card => {
+                    const searchTerms = (card.dataset.searchTerms || '').toLowerCase();
+                    const productTitle = card.querySelector('.product-card__title');
+                    const titleText = productTitle ? productTitle.textContent.toLowerCase() : '';
+                    
+                    if (searchTerms.includes(searchTerm) || titleText.includes(searchTerm)) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        // Sort functionality
+        if (sortSelect) {
+            // Add sort options
+            sortSelect.innerHTML = `
+                <option value="name-asc">Name (A-Z)</option>
+                <option value="name-desc">Name (Z-A)</option>
+                <option value="price-low">Price (Low to High)</option>
+                <option value="price-high">Price (High to Low)</option>
+            `;
+            
+            sortSelect.addEventListener('change', function() {
+                const sortValue = this.value;
+                const container = document.querySelector('.product-grid');
+                if (!container) return;
+                
+                const cards = Array.from(productCards);
+                
+                cards.sort((a, b) => {
+                    const aTitle = a.querySelector('.product-card__title')?.textContent || '';
+                    const bTitle = b.querySelector('.product-card__title')?.textContent || '';
+                    const aPrice = parseFloat(a.querySelector('.product-card__price')?.textContent.replace('$', '') || '0');
+                    const bPrice = parseFloat(b.querySelector('.product-card__price')?.textContent.replace('$', '') || '0');
+                    
+                    switch(sortValue) {
+                        case 'name-asc':
+                            return aTitle.localeCompare(bTitle);
+                        case 'name-desc':
+                            return bTitle.localeCompare(aTitle);
+                        case 'price-low':
+                            return aPrice - bPrice;
+                        case 'price-high':
+                            return bPrice - aPrice;
+                        default:
+                            return 0;
+                    }
+                });
+                
+                // Reorder DOM elements
+                cards.forEach(card => container.appendChild(card));
+            });
+        }
+    }
+
+    // ===========================================
+    // MOBILE NAVIGATION
+    // ===========================================
+    
+    function initMobileNavigation() {
+        const mobileToggle = document.querySelector('.navbar__mobile-toggle');
+        const navLinks = document.querySelector('.navbar__links');
+        
+        if (mobileToggle && navLinks) {
+            mobileToggle.addEventListener('click', function() {
+                navLinks.classList.toggle('is-open');
+                
+                // Update toggle icon
+                const icon = this.querySelector('i') || this;
+                if (navLinks.classList.contains('is-open')) {
+                    icon.innerHTML = '✕';
+                } else {
+                    icon.innerHTML = '☰';
+                }
+            });
+            
+            // Close menu when clicking links
+            navLinks.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', function() {
+                    navLinks.classList.remove('is-open');
+                    mobileToggle.innerHTML = '☰';
+                });
+            });
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!mobileToggle.contains(e.target) && !navLinks.contains(e.target)) {
+                    navLinks.classList.remove('is-open');
+                    mobileToggle.innerHTML = '☰';
+                }
+            });
+        }
+    }
+
+    // ===========================================
+    // ENHANCED FEATURES
+    // ===========================================
+    
+    // Smooth scrolling for anchor links
+    function initSmoothScrolling() {
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    }
+
+    // Loading states for async actions
+    function showLoading(element) {
+        const originalText = element.textContent;
+        element.textContent = 'Loading...';
+        element.disabled = true;
+        
+        return function hideLoading() {
+            element.textContent = originalText;
+            element.disabled = false;
+        };
+    }
+
+    // Form validation and submission
+    function initFormHandling() {
+        const forms = document.querySelectorAll('form[data-walkoff-form]');
+        
+        forms.forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const submitButton = form.querySelector('[type="submit"]');
+                const hideLoading = showLoading(submitButton);
+                
+                // Basic form validation
+                const requiredFields = form.querySelectorAll('[required]');
+                let isValid = true;
+                
+                requiredFields.forEach(field => {
+                    if (!field.value.trim()) {
+                        field.style.borderColor = '#ef4444';
+                        isValid = false;
+                    } else {
+                        field.style.borderColor = '#d1d5db';
+                    }
+                });
+                
+                if (isValid) {
+                    // Simulate form submission
+                    setTimeout(() => {
+                        hideLoading();
+                        
+                        // Show success message
+                        const successDiv = document.createElement('div');
+                        successDiv.style.cssText = `
+                            position: fixed;
+                            top: 20px;
+                            right: 20px;
+                            background: #10b981;
+                            color: white;
+                            padding: 1rem 1.5rem;
+                            border-radius: 0.5rem;
+                            font-weight: 600;
+                            z-index: 1000;
+                        `;
+                        successDiv.textContent = 'Form submitted successfully!';
+                        document.body.appendChild(successDiv);
+                        
+                        // Remove success message after 3 seconds
+                        setTimeout(() => successDiv.remove(), 3000);
+                        
+                        // Reset form
+                        form.reset();
+                    }, 1500);
+                } else {
+                    hideLoading();
+                }
+            });
+        });
+    }
+
+    // Add to cart functionality (placeholder)
+    function initAddToCart() {
+        document.addEventListener('click', function(e) {
+            if (e.target.matches('[data-add-to-cart]') || e.target.closest('[data-add-to-cart]')) {
+                e.preventDefault();
+                
+                const button = e.target.matches('[data-add-to-cart]') ? e.target : e.target.closest('[data-add-to-cart]');
+                const productCard = button.closest('.product-card');
+                const productName = productCard?.querySelector('.product-card__title')?.textContent || 'Product';
+                
+                // Animate button
+                const originalText = button.textContent;
+                button.textContent = 'Added!';
+                button.style.background = '#10b981';
+                
+                // Show notification
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: var(--team-primary);
+                    color: white;
+                    padding: 1rem 1.5rem;
+                    border-radius: 0.5rem;
+                    font-weight: 600;
+                    z-index: 1000;
+                    animation: slideIn 0.3s ease-out;
+                `;
+                notification.textContent = `${productName} added to cart!`;
+                document.body.appendChild(notification);
+                
+                // Reset button and remove notification
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '';
+                    notification.remove();
+                }, 2000);
+            }
+        });
+    }
+
+    // Image lazy loading
+    function initLazyLoading() {
+        const images = document.querySelectorAll('img[data-src]');
+        
+        const imageObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    img.src = img.dataset.src;
+                    img.classList.remove('lazy');
+                    imageObserver.unobserve(img);
+                }
+            });
+        });
+        
+        images.forEach(img => imageObserver.observe(img));
+    }
+
+    // Theme switching based on time of day
+    function initAutoTheme() {
+        const hour = new Date().getHours();
+        const isDarkTime = hour < 7 || hour > 19;
+        
+        if (isDarkTime && !localStorage.getItem('walkoff-selected-team')) {
+            document.body.style.filter = 'brightness(0.9) contrast(1.1)';
+        }
+    }
+
+    // Performance monitoring
+    function initPerformanceTracking() {
+        // Track page load time
+        window.addEventListener('load', function() {
+            const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
+            console.log(`Page loaded in ${loadTime}ms`);
+        });
+        
+        // Track interaction timing
+        document.addEventListener('click', function(e) {
+            if (e.target.matches('.btn') || e.target.closest('.btn')) {
+                const startTime = performance.now();
+                
+                requestAnimationFrame(() => {
+                    const endTime = performance.now();
+                    const interactionTime = endTime - startTime;
+                    
+                    if (interactionTime > 16) { // More than one frame
+                        console.log(`Button interaction took ${interactionTime.toFixed(2)}ms`);
+                    }
+                });
+            }
+        });
+    }
+
+    // ===========================================
+    // INITIALIZATION
+    // ===========================================
+    
+    // Initialize all features
+    initTeamPersonalization();
+    initProductFiltering();
+    initMobileNavigation();
+    initSmoothScrolling();
+    initFormHandling();
+    initAddToCart();
+    initLazyLoading();
+    initAutoTheme();
+    
+    // Initialize performance tracking in development
+    if (window.location.hostname === 'localhost' || window.location.hostname.includes('staging')) {
+        initPerformanceTracking();
+    }
+    
+    // Global error handling
+    window.addEventListener('error', function(e) {
+        console.error('Walk-Off JS Error:', e.error);
+    });
+    
+    // Service worker registration (if available)
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => console.log('SW registered'))
+                .catch(error => console.log('SW registration failed'));
+        });
+    }
+    
+    console.log('🎾 Walk-Off Sports Cards - JavaScript loaded successfully! ⚾');
+});
