@@ -1249,35 +1249,105 @@ WO.applyTheme=function(team,colorway){
   var acc=team[home?'ap':'hp']||'#69be28';
   var p=palette(pri,acc);
   var css=
-  ':root{--wo-primary:'+pri+';--wo-accent:'+p.acc+';--wo-bg:'+p.bg+';--wo-surface:'+p.surf+';--wo-text:'+p.txt+';}'+
-  'html,body,.page-wrapper-2{background-color:'+p.bg+' !important;color:'+p.txt+' !important;}'+
-  '#navbarID,.navbar6_component,.navbar6_container{background:'+p.navBg+' !important;}'+
-  '#navbarID.scrolled{background:'+rgba(pri,.2)+' !important;}'+
+  // CSS vars
+  ':root{--wo-primary:'+pri+';--wo-accent:'+p.acc+';--wo-bg:'+p.bg+';--wo-surface:'+p.surf+';--wo-surface-alt:'+p.surfAlt+';--wo-text:'+p.txt+';--wo-text-sub:'+p.txtSub+';--wo-border:'+p.bdr+';}'+
+  // Page shell
+  'html,body{background-color:'+p.bg+' !important;color:'+p.txt+' !important;}'+
+  '.page-wrapper-2,.page-content{background-color:'+p.bg+' !important;}'+
+  // Page content wrapper (white div that sits on top of bg image)
+  '[id="page-content"],[class*="Page content"]{background-color:'+p.bg+' !important;}'+
+  // Navbar
+  '.navbar6_component,.navbar6_container,.w-nav{background:'+p.navBg+' !important;}'+
   '.navbar6_link,.w-nav-link{color:'+p.onNav+' !important;}'+
-  '.navbar6_link:hover,.navbar6_link.w--current,.navbar6_dropdown-link:hover{color:'+p.acc+' !important;}'+
-  '.navbar6_dropdown-list,.w-dropdown-list{background:'+p.surf+' !important;}'+
+  '.navbar6_link:hover,.navbar6_link.w--current{color:'+p.acc+' !important;}'+
+  '.navbar6_dropdown-list,.w-dropdown-list{background:'+p.surf+' !important;border-color:'+p.bdr+' !important;}'+
   '.navbar6_dropdown-link{color:'+p.txt+' !important;}'+
+  '.navbar6_dropdown-link:hover{color:'+p.acc+' !important;background:'+p.surfAlt+' !important;}'+
   '.menu-icon_line-top,.menu-icon_line-middle,.menu-icon_line-middle-inner,.menu-icon_line-bottom{background-color:'+p.onNav+' !important;}'+
-  '.w-nav-overlay .w-nav-menu{background:'+pri+' !important;}'+
-  '.promo-strip{background:'+p.acc+' !important;}'+
+  '.w-nav-overlay,.w-nav-overlay .w-nav-menu{background:'+p.navBg+' !important;}'+
+  // My Team button stays accent-colored
+  '.wo-my-team-btn{background:'+p.acc+' !important;color:'+p.onAcc+' !important;border:none !important;}'+
+  // Promo strip
+  '.promo-strip,.Promo-strip{background:'+p.acc+' !important;}'+
   '.rotating-promo-text,.promo-strip *{color:'+p.onAcc+' !important;}'+
-  '.trust-strip{background:'+p.surfAlt+' !important;}'+
-  '.section-hero,.slider-3,.basic-slider,.slider-background{background-color:'+adj(pri,-.5)+' !important;}'+
-  '.slide-intro,.slide-heading,.slide-content,.text-white{color:#ffffff !important;}'+
-  'h1,h2,h3,h4,h5,h6,.heading{color:'+p.txt+' !important;}'+
-  'p,.body-display,.text-block-5{color:'+p.txtSub+' !important;}'+
-  '.button-3{background:'+p.acc+' !important;color:'+p.onAcc+' !important;}'+
+  // Trust strip
+  '.trust-strip{background:'+p.surfAlt+' !important;border-top-color:'+p.bdrStr+' !important;border-bottom-color:'+p.bdrStr+' !important;}'+
+  '.trust-strip__item{color:'+p.txtSub+' !important;}'+
+  // Hero section & main slider bg
+  '.section-hero,.Section-hero{background-color:'+adj(pri,-.4)+' !important;}'+
+  '.slider-3,.Slider-3{background-color:'+adj(pri,-.4)+' !important;}'+
+  // Overlay tinted with primary color
+  '.overlay{background-color:'+rgba(pri,.5)+' !important;}'+
+  // Slide dots & arrows
+  '.w-slider-dot{background:'+rgba(p.onNav,.25)+' !important;}'+
+  '.w-slider-dot.w-active{background:'+p.acc+' !important;}'+
+  '.w-slider-arrow-left,.w-slider-arrow-right{color:'+p.onNav+' !important;}'+
+  // Slide text content
+  '.slide-intro,.Slide-intro,.slide-heading,.Slide-heading,.slide-content,.basic-slide-content{color:#ffffff !important;}'+
+  '.text-white,.Text-White{color:#ffffff !important;}'+
+  // Basic slider (second slider section)
+  '.basic-slider,.Basic-slider{background-color:'+p.bg+' !important;}'+
+  '.basic-slide-wrapper{background-color:'+adj(pri,-.3)+' !important;}'+
+  '.dark-slide-arrow{background-color:'+p.navBg+' !important;border-color:'+p.bdrStr+' !important;}'+
+  // Section backgrounds
+  '.section-3,.Section-3{background-color:'+p.bg+' !important;}'+
+  // Typography
+  'h1,h2,h3,h4,h5,h6{color:'+p.txt+' !important;}'+
+  '.heading,.Heading{color:'+p.txt+' !important;}'+
+  'p{color:'+p.txtSub+' !important;}'+
+  '.body-display,.body-display-2{color:'+p.txtSub+' !important;}'+
+  '.text-block-5,.text-block{color:'+p.txtSub+' !important;}'+
+  // Stacked intro / story content areas
+  '.stacked-intro,.story-content,.story-content *{color:'+p.txt+' !important;}'+
+  '.width-large,.width-medium{color:'+p.txt+' !important;}'+
+  // Buttons
+  '.button-3,.Button-3{background:'+p.acc+' !important;color:'+p.onAcc+' !important;}'+
   '.button-3:hover{background:'+p.btnHov+' !important;}'+
-  '.footer,.footer-section{background:'+p.footBg+' !important;color:'+p.footTxt+' !important;}'+
-  '.footer-link{color:'+rgba(p.footTxt,.6)+' !important;}'+
-  '.footer-link:hover{color:'+p.acc+' !important;}'+
+  '.button-3.dark,.Button-3.Dark{background:'+p.navBg+' !important;color:'+p.onNav+' !important;}'+
+  // Underline / text links  
+  '.underline-link,.Underline-link{color:'+p.txtSub+' !important;border-bottom-color:'+p.bdr+' !important;}'+
+  '.underline-link.light,.underline-link.Light{color:#fff !important;}'+
+  '.underline-link:hover{color:'+p.acc+' !important;}'+
+  // Collection cards
   '.collection-item-4{background:'+p.surf+' !important;border-color:'+p.bdr+' !important;}'+
   '.collection-item-4:hover{border-color:'+p.acc+' !important;}'+
-  'input,textarea,select{background:'+p.surf+' !important;color:'+p.txt+' !important;border-color:'+p.bdrStr+' !important;}'+
-  '.w-commerce-commerceaddtocartbutton,.w-commerce-commercecartcheckoutbutton{background:'+p.acc+' !important;color:'+p.onAcc+' !important;}';
+  // Generic cards used on other pages
+  '.w-dyn-item{background:'+p.surf+' !important;}'+
+  '.card,.break-card,.product-card{background:'+p.surf+' !important;border-color:'+p.bdr+' !important;}'+
+  '.card:hover{border-color:'+p.acc+' !important;}'+
+  '.card-title,.product-title{color:'+p.txt+' !important;}'+
+  '.card-price,.price-tag{color:'+p.acc+' !important;}'+
+  '.card-meta,.card-date{color:'+p.txtSub+' !important;}'+
+  // Inputs
+  'input,textarea,select,.w-input,.w-select{background:'+p.surf+' !important;color:'+p.txt+' !important;border-color:'+p.bdrStr+' !important;}'+
+  'input::placeholder,textarea::placeholder{color:'+p.txtMut+' !important;}'+
+  '.w-form-label{color:'+p.txt+' !important;}'+
+  // Tabs
+  '.w-tab-link{color:'+p.txtSub+' !important;border-color:'+p.bdr+' !important;}'+
+  '.w-tab-link.w--current{color:'+p.acc+' !important;border-color:'+p.acc+' !important;}'+
+  // Commerce
+  '.w-commerce-commerceaddtocartbutton,.w-commerce-commercecartcheckoutbutton,.w-commerce-commercebuynowbutton{background:'+p.acc+' !important;color:'+p.onAcc+' !important;}'+
+  '.w-commerce-commercecartcontainerwrapper{background:'+p.surf+' !important;}'+
+  '.w-commerce-commercecartitem,.w-commerce-commercecartiteminfo{color:'+p.txt+' !important;}'+
+  '.w-commerce-commercecartlineitem{border-color:'+p.bdr+' !important;}'+
+  // Footer
+  '.footer,.footer-section,.Footer,.SemiFooter{background:'+p.footBg+' !important;}'+
+  '.footer *,.footer-section *,.Footer *,.SemiFooter *{color:'+p.footTxt+' !important;}'+
+  '.footer a,.footer-link,.Footer a{color:'+rgba(p.footTxt,.55)+' !important;}'+
+  '.footer a:hover,.footer-link:hover{color:'+p.acc+' !important;}'+
+  'hr,.footer hr,.Footer hr{border-color:'+rgba(p.footTxt,.1)+' !important;}'+
+  // Rich text
+  '.w-richtext a{color:'+p.acc+' !important;}'+
+  '.w-richtext blockquote{border-left-color:'+p.acc+' !important;}'+
+  // Badges/tags
+  '.badge,.tag,.pill{background:'+rgba(p.acc,.15)+' !important;color:'+p.acc+' !important;}';
+
   var el=document.getElementById('wo-theme-css');
   if(!el){el=document.createElement('style');el.id='wo-theme-css';document.head.appendChild(el);}
   el.textContent=css;
+
+  // Update the navbar button logo
+  updateNavBtn(team,colorway);
 };
 
 // MODAL
@@ -1288,6 +1358,25 @@ function logoUrl(league,k){
   if(league==='pokemon')return'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/'+k+'.png';
   if(league==='mtg')return'https://svgs.scryfall.io/card-symbols/'+k.charAt(0).toUpperCase()+'.svg';
   return'https://a.espncdn.com/i/teamlogos/'+league+'/500/'+k+'.png';
+}
+function updateNavBtn(team,colorway){
+  if(!team)return;
+  var home=(colorway||'home')==='home';
+  var acc=team[home?'ap':'hp']||'#69be28';
+  var txtColor=onBg(acc);
+  var src=logoUrl(state.league,team.k);
+  var name=team.n.length>13?team.n.substring(0,12)+'…':team.n;
+  document.querySelectorAll('[data-wo-theme],[data-theme-trigger],[data-wo-open]').forEach(function(btn){
+    btn.style.cssText='all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:7px;padding:5px 13px 5px 6px;border-radius:100px;background:'+acc+';color:'+txtColor+';font-size:13px;font-weight:800;cursor:pointer;line-height:1;transition:opacity .2s;white-space:nowrap;';
+    btn.innerHTML='';
+    var img=document.createElement('img');
+    img.style.cssText='width:26px;height:26px;object-fit:contain;border-radius:50%;background:rgba(255,255,255,.15);flex-shrink:0;display:block;';
+    img.src=src;img.alt=team.n;
+    img.onerror=function(){this.style.display='none';};
+    var lbl=document.createElement('span');
+    lbl.textContent=name;
+    btn.appendChild(img);btn.appendChild(lbl);
+  });
 }
 function mc(){
   if(!state.team)return{bg:'#13161c',acc:'#69be28',txt:'#fff',sub:'rgba(255,255,255,.4)',bdr:'rgba(255,255,255,.08)'};
