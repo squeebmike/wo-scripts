@@ -171,11 +171,6 @@
   <details>
     <summary>Advanced (manual sliders)</summary>
     <div class="row">
-      <label for="skinThresh">Skin threshold</label>
-      <input type="range" id="skinThresh" min="0.03" max="0.30" step="0.01" value="0.10">
-      <span class="val" id="skinThreshVal">0.10</span>
-    </div>
-    <div class="row">
       <label for="diffThresh">Motion threshold</label>
       <input type="range" id="diffThresh" min="0.005" max="0.10" step="0.005" value="0.015">
       <span class="val" id="diffThreshVal">0.015</span>
@@ -251,20 +246,18 @@
   const compatWarn = $('compatWarn');
 
   const sliders = {
-    skinThresh: $('skinThresh'),
     diffThresh: $('diffThresh'),
     padSeconds: $('padSeconds'),
     minKeep: $('minKeep'),
     speed: $('speed'),
   };
   const sliderVals = {
-    skinThresh: $('skinThreshVal'),
     diffThresh: $('diffThreshVal'),
     padSeconds: $('padSecondsVal'),
     minKeep: $('minKeepVal'),
     speed: $('speedVal'),
   };
-  const fmt = { skinThresh: 2, diffThresh: 3, padSeconds: 2, minKeep: 1, speed: 0 };
+  const fmt = { diffThresh: 3, padSeconds: 2, minKeep: 1, speed: 0 };
   for (const key in sliders) {
     const el = sliders[key];
     const update = () => {
@@ -279,9 +272,9 @@
   }
 
   const PRESETS = {
-    gentle:     { skinThresh: 0.14, diffThresh: 0.030, padSeconds: 0.10, minKeep: 0.2 },
-    balanced:   { skinThresh: 0.10, diffThresh: 0.015, padSeconds: 0.15, minKeep: 0.3 },
-    aggressive: { skinThresh: 0.07, diffThresh: 0.008, padSeconds: 0.20, minKeep: 0.4 },
+    gentle:     { diffThresh: 0.030, padSeconds: 0.10, minKeep: 0.2 },
+    balanced:   { diffThresh: 0.015, padSeconds: 0.15, minKeep: 0.3 },
+    aggressive: { diffThresh: 0.008, padSeconds: 0.20, minKeep: 0.4 },
   };
   const PRESET_HINTS = {
     gentle: 'Gentle selected. Keeps more footage, but hand/pencil frames are more likely to slip through.',
@@ -307,7 +300,7 @@
     btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
   });
 
-  const presetCoreKeys = ['skinThresh', 'diffThresh', 'padSeconds', 'minKeep'];
+  const presetCoreKeys = ['diffThresh', 'padSeconds', 'minKeep'];
   presetCoreKeys.forEach(key => {
     sliders[key].addEventListener('input', () => {
       const matches = Object.entries(PRESETS).find(([, p]) =>
@@ -348,31 +341,6 @@
     }
   });
 
-  function rgbToHsv(r, g, b) {
-    r /= 255; g /= 255; b /= 255;
-    const max = Math.max(r, g, b), min = Math.min(r, g, b);
-    const d = max - min;
-    let h = 0;
-    if (d !== 0) {
-      if (max === r) h = 60 * (((g - b) / d) % 6);
-      else if (max === g) h = 60 * ((b - r) / d + 2);
-      else h = 60 * ((r - g) / d + 4);
-    }
-    if (h < 0) h += 360;
-    const s = max === 0 ? 0 : d / max;
-    const v = max;
-    return [h, s, v];
-  }
-
-  function isSkin(h, s, v) {
-    // mirrors OpenCV HSV ranges (0,30,60)-(25,180,255) and (160,30,60)-(180,180,255),
-    // scaled from OpenCV's 0-179 hue to standard 0-360 degrees.
-    const sOk = s >= 30 / 255 && s <= 180 / 255;
-    const vOk = v >= 60 / 255 && v <= 255 / 255;
-    if (!sOk || !vOk) return false;
-    return (h >= 0 && h <= 50) || (h >= 320 && h <= 360);
-  }
-
   const ANALYSIS_WIDTH = 192;
   let analysisCanvas, analysisCtx, analysisH;
   function ensureAnalysisCanvas(videoW, videoH) {
@@ -388,14 +356,10 @@
     const { data } = analysisCtx.getImageData(0, 0, ANALYSIS_WIDTH, analysisH);
     const n = ANALYSIS_WIDTH * analysisH;
     const gray = new Uint8ClampedArray(n);
-    let skinCount = 0;
     for (let i = 0, p = 0; i < n; i++, p += 4) {
-      const r = data[p], g = data[p + 1], b = data[p + 2];
-      gray[i] = (0.299 * r + 0.587 * g + 0.114 * b) | 0;
-      const [h, s, v] = rgbToHsv(r, g, b);
-      if (isSkin(h, s, v)) skinCount++;
+      gray[i] = (0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2]) | 0;
     }
-    return { gray, skinRatio: skinCount / n };
+    return gray;
   }
 
   function diffRatio(gray, refGray) {
@@ -449,7 +413,6 @@
     const tctx = timeline.getContext('2d');
     tctx.clearRect(0, 0, timeline.width, timeline.height);
 
-    const skinThresh = parseFloat(sliders.skinThresh.value);
     const motionThresh = parseFloat(sliders.diffThresh.value);
     const padSeconds = parseFloat(sliders.padSeconds.value);
     const minKeep = parseFloat(sliders.minKeep.value);
@@ -475,9 +438,9 @@
         if (stop) return;
         try {
           const t = meta.mediaTime;
-          const { gray, skinRatio } = analyzeFrame(video);
+          const gray = analyzeFrame(video);
           const motion = prevGray ? diffRatio(gray, prevGray) : 0;
-          const flagged = skinRatio > skinThresh || motion > motionThresh;
+          const flagged = motion > motionThresh;
           prevGray = gray;
 
           samples.push({ t, flagged });
