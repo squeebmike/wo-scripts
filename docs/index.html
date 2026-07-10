@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lead Only — remove pencil/hand frames</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #2a2f3a;
+    --text: #e8eaed;
+    --muted: #9aa3b2;
+    --accent: #5b9df9;
+    --accent-strong: #3f7fe0;
+    --good: #3ecf8e;
+    --bad: #e25c5c;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f8;
+      --panel: #ffffff;
+      --border: #dde1e8;
+      --text: #14161a;
+      --muted: #5b6472;
+      --accent: #2b6fe0;
+      --accent-strong: #1f57b3;
+      --good: #1f9d64;
+      --bad: #c73b3b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 16px 16px 48px;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 640px;
+    margin-inline: auto;
+  }
+  h1 { font-size: 19px; margin: 4px 0 2px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 12px; }
+  input[type=file] {
+    width: 100%;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .filemeta { margin-top: 10px; font-size: 13px; color: var(--muted); }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 14px 0; }
+  .row label { font-size: 13px; flex: 0 0 auto; }
+  .row .val { font-variant-numeric: tabular-nums; color: var(--accent); font-size: 13px; min-width: 3.5em; text-align: right; }
+  input[type=range] {
+    flex: 1 1 auto;
+    accent-color: var(--accent);
+  }
+  details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+  button {
+    appearance: none;
+    border: none;
+    border-radius: 10px;
+    padding: 13px 18px;
+    font-size: 15px;
+    font-weight: 600;
+    width: 100%;
+    cursor: pointer;
+    background: var(--accent);
+    color: white;
+    transition: background .15s;
+  }
+  button:active { background: var(--accent-strong); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btnrow { display: flex; gap: 10px; }
+  .btnrow > button { flex: 1; }
+  .status { font-size: 13px; color: var(--muted); margin-top: 10px; min-height: 1.3em; white-space: pre-wrap; }
+  progress {
+    width: 100%;
+    height: 8px;
+    accent-color: var(--accent);
+    margin-top: 8px;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  canvas#timeline {
+    width: 100%;
+    height: 44px;
+    border-radius: 6px;
+    background: var(--border);
+    display: block;
+    margin-top: 10px;
+  }
+  .legend { display: flex; gap: 16px; margin-top: 6px; font-size: 12px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .preview {
+    width: 100%;
+    border-radius: 8px;
+    background: #000;
+    display: none;
+    margin-top: 10px;
+  }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .stat { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+  .stat .n { font-size: 20px; font-weight: 700; }
+  .stat .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+  a.download {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    background: var(--good);
+    color: #06231a;
+    font-weight: 700;
+    padding: 14px;
+    border-radius: 10px;
+    margin-top: 10px;
+  }
+  .warn {
+    background: color-mix(in srgb, var(--bad) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--bad) 40%, transparent);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12.5px;
+    color: var(--text);
+    margin-top: 10px;
+  }
+  footer { text-align: center; font-size: 12px; color: var(--muted); margin-top: 24px; }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<h1>Lead Only</h1>
+<div class="sub">Cuts every frame where a hand or pencil is in shot, keeping only the clean drawing. Runs entirely on this device — your video is never uploaded anywhere.</div>
+
+<div class="card">
+  <h2>1. Choose video</h2>
+  <input type="file" id="fileInput" accept="video/*">
+  <div class="filemeta" id="fileMeta"></div>
+</div>
+
+<div class="card">
+  <h2>2. Settings</h2>
+  <div class="row">
+    <label for="skinThresh">Skin threshold</label>
+    <input type="range" id="skinThresh" min="0.03" max="0.30" step="0.01" value="0.10">
+    <span class="val" id="skinThreshVal">0.10</span>
+  </div>
+  <div class="row">
+    <label for="diffThresh">Object threshold</label>
+    <input type="range" id="diffThresh" min="0.005" max="0.10" step="0.005" value="0.020">
+    <span class="val" id="diffThreshVal">0.020</span>
+  </div>
+  <div class="row">
+    <label for="padSeconds">Pad (sec)</label>
+    <input type="range" id="padSeconds" min="0" max="1" step="0.05" value="0.1">
+    <span class="val" id="padSecondsVal">0.10</span>
+  </div>
+  <div class="row">
+    <label for="minKeep">Min keep (sec)</label>
+    <input type="range" id="minKeep" min="0" max="2" step="0.1" value="0.3">
+    <span class="val" id="minKeepVal">0.3</span>
+  </div>
+  <details>
+    <summary>Advanced</summary>
+    <div class="row">
+      <label for="speed">Analysis speed</label>
+      <input type="range" id="speed" min="1" max="8" step="1" value="4">
+      <span class="val" id="speedVal">4x</span>
+    </div>
+    <div class="row">
+      <label for="staleSeconds">Max stale (sec)</label>
+      <input type="range" id="staleSeconds" min="1" max="20" step="1" value="6">
+      <span class="val" id="staleSecondsVal">6</span>
+    </div>
+  </details>
+</div>
+
+<div class="card">
+  <h2>3. Analyze</h2>
+  <button id="analyzeBtn" disabled>Analyze video</button>
+  <progress id="analyzeProgress" value="0" max="1" style="display:none"></progress>
+  <div class="status" id="analyzeStatus"></div>
+  <canvas id="timeline" width="600" height="44" style="display:none"></canvas>
+  <div class="legend" id="legend" style="display:none">
+    <span><i class="swatch" style="background:var(--good)"></i>clean (kept)</span>
+    <span><i class="swatch" style="background:var(--bad)"></i>hand/pencil (cut)</span>
+  </div>
+  <div class="stat-grid" id="stats" style="display:none">
+    <div class="stat"><div class="n" id="statSegments">0</div><div class="l">clean clips</div></div>
+    <div class="stat"><div class="n" id="statKept">0s</div><div class="l">kept of total</div></div>
+  </div>
+</div>
+
+<div class="card" id="renderCard" style="display:none">
+  <h2>4. Export</h2>
+  <button id="renderBtn">Render &amp; download</button>
+  <progress id="renderProgress" value="0" max="1" style="display:none"></progress>
+  <div class="status" id="renderStatus"></div>
+  <video id="preview" class="preview" controls playsinline></video>
+  <a id="downloadLink" class="download" style="display:none" download>Download video</a>
+</div>
+
+<div class="warn" id="compatWarn" style="display:none"></div>
+
+<footer>
+  Everything happens locally in your browser (video decode, analysis, and re-encoding). Nothing is uploaded. Source: <a href="https://github.com/squeebmike/wo-scripts">wo-scripts</a>
+</footer>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const fileInput = $('fileInput');
+  const fileMeta = $('fileMeta');
+  const analyzeBtn = $('analyzeBtn');
+  const analyzeProgress = $('analyzeProgress');
+  const analyzeStatus = $('analyzeStatus');
+  const timeline = $('timeline');
+  const legend = $('legend');
+  const stats = $('stats');
+  const statSegments = $('statSegments');
+  const statKept = $('statKept');
+  const renderCard = $('renderCard');
+  const renderBtn = $('renderBtn');
+  const renderProgress = $('renderProgress');
+  const renderStatus = $('renderStatus');
+  const preview = $('preview');
+  const downloadLink = $('downloadLink');
+  const compatWarn = $('compatWarn');
+
+  const sliders = {
+    skinThresh: $('skinThresh'),
+    diffThresh: $('diffThresh'),
+    padSeconds: $('padSeconds'),
+    minKeep: $('minKeep'),
+    speed: $('speed'),
+    staleSeconds: $('staleSeconds'),
+  };
+  const sliderVals = {
+    skinThresh: $('skinThreshVal'),
+    diffThresh: $('diffThreshVal'),
+    padSeconds: $('padSecondsVal'),
+    minKeep: $('minKeepVal'),
+    speed: $('speedVal'),
+    staleSeconds: $('staleSecondsVal'),
+  };
+  const fmt = { skinThresh: 2, diffThresh: 3, padSeconds: 2, minKeep: 1, speed: 0, staleSeconds: 0 };
+  for (const key in sliders) {
+    const el = sliders[key];
+    const update = () => {
+      const suffix = key === 'speed' ? 'x' : '';
+      sliderVals[key].textContent = Number(el.value).toFixed(fmt[key]) + suffix;
+      try { localStorage.setItem('leadonly_' + key, el.value); } catch (e) {}
+    };
+    const saved = (() => { try { return localStorage.getItem('leadonly_' + key); } catch (e) { return null; } })();
+    if (saved !== null) el.value = saved;
+    el.addEventListener('input', update);
+    update();
+  }
+
+  if (!('requestVideoFrameCallback' in HTMLVideoElement.prototype)) {
+    compatWarn.style.display = 'block';
+    compatWarn.textContent = 'This browser does not support requestVideoFrameCallback (needed for analysis). Try Chrome on Android.';
+  }
+
+  let file = null;
+  let segments = null; // [{start, end}] in seconds
+  let duration = 0;
+
+  fileInput.addEventListener('change', () => {
+    file = fileInput.files[0] || null;
+    segments = null;
+    renderCard.style.display = 'none';
+    timeline.style.display = 'none';
+    legend.style.display = 'none';
+    stats.style.display = 'none';
+    analyzeStatus.textContent = '';
+    if (file) {
+      const mb = (file.size / 1e6).toFixed(1);
+      fileMeta.textContent = `${file.name} — ${mb} MB`;
+      analyzeBtn.disabled = false;
+    } else {
+      fileMeta.textContent = '';
+      analyzeBtn.disabled = true;
+    }
+  });
+
+  function rgbToHsv(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const d = max - min;
+    let h = 0;
+    if (d !== 0) {
+      if (max === r) h = 60 * (((g - b) / d) % 6);
+      else if (max === g) h = 60 * ((b - r) / d + 2);
+      else h = 60 * ((r - g) / d + 4);
+    }
+    if (h < 0) h += 360;
+    const s = max === 0 ? 0 : d / max;
+    const v = max;
+    return [h, s, v];
+  }
+
+  function isSkin(h, s, v) {
+    // mirrors OpenCV HSV ranges (0,30,60)-(25,180,255) and (160,30,60)-(180,180,255),
+    // scaled from OpenCV's 0-179 hue to standard 0-360 degrees.
+    const sOk = s >= 30 / 255 && s <= 180 / 255;
+    const vOk = v >= 60 / 255 && v <= 255 / 255;
+    if (!sOk || !vOk) return false;
+    return (h >= 0 && h <= 50) || (h >= 320 && h <= 360);
+  }
+
+  const ANALYSIS_WIDTH = 128;
+  let analysisCanvas, analysisCtx, analysisH;
+  function ensureAnalysisCanvas(videoW, videoH) {
+    analysisH = Math.max(1, Math.round(ANALYSIS_WIDTH * videoH / videoW));
+    analysisCanvas = document.createElement('canvas');
+    analysisCanvas.width = ANALYSIS_WIDTH;
+    analysisCanvas.height = analysisH;
+    analysisCtx = analysisCanvas.getContext('2d', { willReadFrequently: true });
+  }
+
+  function analyzeFrame(video) {
+    analysisCtx.drawImage(video, 0, 0, ANALYSIS_WIDTH, analysisH);
+    const { data } = analysisCtx.getImageData(0, 0, ANALYSIS_WIDTH, analysisH);
+    const n = ANALYSIS_WIDTH * analysisH;
+    const gray = new Uint8ClampedArray(n);
+    let skinCount = 0;
+    for (let i = 0, p = 0; i < n; i++, p += 4) {
+      const r = data[p], g = data[p + 1], b = data[p + 2];
+      gray[i] = (0.299 * r + 0.587 * g + 0.114 * b) | 0;
+      const [h, s, v] = rgbToHsv(r, g, b);
+      if (isSkin(h, s, v)) skinCount++;
+    }
+    return { gray, skinRatio: skinCount / n };
+  }
+
+  function diffRatio(gray, refGray) {
+    const w = ANALYSIS_WIDTH, h = analysisH;
+    const mask = new Uint8Array(w * h);
+    for (let i = 0; i < mask.length; i++) {
+      mask[i] = Math.abs(gray[i] - refGray[i]) > 25 ? 1 : 0;
+    }
+    // morphological opening (erode then dilate) with a 5x5 window
+    const eroded = boxMorph(mask, w, h, 2, Math.min);
+    const opened = boxMorph(eroded, w, h, 2, Math.max);
+    let count = 0;
+    for (let i = 0; i < opened.length; i++) count += opened[i];
+    return count / opened.length;
+  }
+
+  function boxMorph(mask, w, h, r, reducer) {
+    const out = new Uint8Array(w * h);
+    for (let y = 0; y < h; y++) {
+      const y0 = Math.max(0, y - r), y1 = Math.min(h - 1, y + r);
+      for (let x = 0; x < w; x++) {
+        const x0 = Math.max(0, x - r), x1 = Math.min(w - 1, x + r);
+        let acc = reducer === Math.min ? 1 : 0;
+        for (let yy = y0; yy <= y1; yy++) {
+          const row = yy * w;
+          for (let xx = x0; xx <= x1; xx++) {
+            acc = reducer(acc, mask[row + xx]);
+          }
+        }
+        out[y * w + x] = acc;
+      }
+    }
+    return out;
+  }
+
+  function seekTo(video, t) {
+    return new Promise(resolve => {
+      const onSeeked = () => { video.removeEventListener('seeked', onSeeked); resolve(); };
+      video.addEventListener('seeked', onSeeked);
+      video.currentTime = t;
+    });
+  }
+
+  async function analyze() {
+    analyzeBtn.disabled = true;
+    fileInput.disabled = true;
+    analyzeProgress.style.display = 'block';
+    analyzeProgress.value = 0;
+    timeline.style.display = 'block';
+    legend.style.display = 'flex';
+    const tctx = timeline.getContext('2d');
+    tctx.clearRect(0, 0, timeline.width, timeline.height);
+
+    const skinThresh = parseFloat(sliders.skinThresh.value);
+    const diffThresh = parseFloat(sliders.diffThresh.value);
+    const padSeconds = parseFloat(sliders.padSeconds.value);
+    const minKeep = parseFloat(sliders.minKeep.value);
+    const staleSeconds = parseFloat(sliders.staleSeconds.value);
+    const speed = parseFloat(sliders.speed.value);
+    const REF_UPDATE_SECONDS = 0.5;
+
+    const video = document.createElement('video');
+    video.src = URL.createObjectURL(file);
+    video.muted = true;
+    video.playsInline = true;
+    await new Promise((resolve, reject) => {
+      video.onloadedmetadata = resolve;
+      video.onerror = () => reject(new Error('Could not load video'));
+    });
+    duration = video.duration;
+    ensureAnalysisCanvas(video.videoWidth, video.videoHeight);
+
+    const samples = []; // {t, flagged}
+    let refGray = null;
+    let lastRefTime = -Infinity;
+    let staleStart = null;
+
+    let stop = false;
+    await new Promise((resolve, reject) => {
+      const onFrame = (now, meta) => {
+        if (stop) return;
+        try {
+          const t = meta.mediaTime;
+          const { gray, skinRatio } = analyzeFrame(video);
+          let dratio = 0;
+          let flagged = skinRatio > skinThresh;
+          if (refGray) {
+            dratio = diffRatio(gray, refGray);
+            flagged = flagged || dratio > diffThresh;
+          }
+
+          if (flagged) {
+            if (staleStart === null) staleStart = t;
+            if (skinRatio <= skinThresh && (t - staleStart) > staleSeconds) {
+              flagged = false;
+              staleStart = null;
+            }
+          } else {
+            staleStart = null;
+          }
+
+          if (!flagged && (refGray === null || (t - lastRefTime) >= REF_UPDATE_SECONDS)) {
+            refGray = gray;
+            lastRefTime = t;
+          }
+
+          samples.push({ t, flagged });
+          analyzeProgress.value = duration ? t / duration : 0;
+          analyzeStatus.textContent = `Scanning… ${t.toFixed(1)}s / ${duration.toFixed(1)}s`;
+          drawTimelineLive(tctx, samples, duration);
+
+          if (video.ended || t >= duration - 0.05) { stop = true; resolve(); return; }
+          video.requestVideoFrameCallback(onFrame);
+        } catch (err) {
+          stop = true;
+          reject(err);
+        }
+      };
+      video.requestVideoFrameCallback(onFrame);
+      video.playbackRate = speed;
+      video.play().catch(reject);
+      video.onended = () => { stop = true; resolve(); };
+    });
+    video.pause();
+
+    segments = computeSegments(samples, duration, padSeconds, minKeep);
+    drawTimelineFinal(tctx, samples, segments, duration);
+
+    const kept = segments.reduce((a, s) => a + (s.end - s.start), 0);
+    statSegments.textContent = segments.length;
+    statKept.textContent = `${kept.toFixed(1)}s / ${duration.toFixed(0)}s`;
+    stats.style.display = 'grid';
+    analyzeProgress.style.display = 'none';
+    analyzeStatus.textContent = segments.length
+      ? `Done. Found ${segments.length} clean clip(s) totaling ${kept.toFixed(1)}s.`
+      : 'Done, but no clean segments found — try loosening the thresholds.';
+
+    // If the browser couldn't keep up with decoding at this speed, frames
+    // get dropped unevenly and the result becomes unreliable (in testing,
+    // dropped frames skewed results toward "everything looks clean").
+    // Warn instead of silently returning a bogus timeline.
+    const avgInterval = samples.length > 1 ? duration / samples.length : 0;
+    if (avgInterval > 0.3) {
+      compatWarn.style.display = 'block';
+      compatWarn.textContent = `Only ${samples.length} frames were sampled over ${duration.toFixed(0)}s ` +
+        `(~1 every ${avgInterval.toFixed(2)}s) — this device couldn't keep up at ${speed}x and dropped a lot of ` +
+        `frames, so short hand/pencil appearances may have been missed. Lower "Analysis speed" and re-run for a ` +
+        `trustworthy result.`;
+    } else {
+      compatWarn.style.display = 'none';
+    }
+
+    fileInput.disabled = false;
+    analyzeBtn.disabled = false;
+    renderCard.style.display = segments.length ? 'block' : 'none';
+
+    URL.revokeObjectURL(video.src);
+  }
+
+  function computeSegments(samples, duration, padSeconds, minKeep) {
+    if (!samples.length) return [];
+    // expand each flagged sample into a [t-pad, t+pad] bad interval, merge overlaps
+    const bad = [];
+    for (const s of samples) {
+      if (!s.flagged) continue;
+      const lo = Math.max(0, s.t - padSeconds);
+      const hi = Math.min(duration, s.t + padSeconds);
+      if (bad.length && lo <= bad[bad.length - 1][1]) {
+        bad[bad.length - 1][1] = Math.max(bad[bad.length - 1][1], hi);
+      } else {
+        bad.push([lo, hi]);
+      }
+    }
+    // clean segments = gaps between bad intervals
+    const segs = [];
+    let cursor = 0;
+    for (const [lo, hi] of bad) {
+      if (lo > cursor) segs.push({ start: cursor, end: lo });
+      cursor = Math.max(cursor, hi);
+    }
+    if (cursor < duration) segs.push({ start: cursor, end: duration });
+    return segs.filter(s => (s.end - s.start) >= minKeep);
+  }
+
+  function drawTimelineLive(ctx, samples, duration) {
+    const w = timeline.width, h = timeline.height;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--good');
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bad');
+    for (const s of samples) {
+      if (!s.flagged) continue;
+      const x = duration ? (s.t / duration) * w : 0;
+      ctx.fillRect(x, 0, 2, h);
+    }
+  }
+
+  function drawTimelineFinal(ctx, samples, segments, duration) {
+    const w = timeline.width, h = timeline.height;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bad');
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--good');
+    for (const s of segments) {
+      const x0 = duration ? (s.start / duration) * w : 0;
+      const x1 = duration ? (s.end / duration) * w : 0;
+      ctx.fillRect(x0, 0, Math.max(1, x1 - x0), h);
+    }
+  }
+
+  analyzeBtn.addEventListener('click', () => {
+    analyze().catch(err => {
+      analyzeStatus.textContent = 'Error: ' + err.message;
+      analyzeProgress.style.display = 'none';
+      fileInput.disabled = false;
+      analyzeBtn.disabled = false;
+    });
+  });
+
+  function pickMimeType() {
+    const candidates = [
+      'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+      'video/mp4',
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm',
+    ];
+    for (const c of candidates) {
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported(c)) return c;
+    }
+    return '';
+  }
+
+  function waitForTimeOrEnd(video, endTime) {
+    return new Promise(resolve => {
+      const onUpdate = () => {
+        if (video.currentTime >= endTime - 0.02 || video.ended) {
+          video.removeEventListener('timeupdate', onUpdate);
+          video.removeEventListener('ended', onUpdate);
+          resolve();
+        }
+      };
+      video.addEventListener('timeupdate', onUpdate);
+      video.addEventListener('ended', onUpdate);
+    });
+  }
+
+  async function render() {
+    renderBtn.disabled = true;
+    renderProgress.style.display = 'block';
+    renderProgress.value = 0;
+    downloadLink.style.display = 'none';
+    preview.style.display = 'none';
+    renderStatus.textContent = 'Preparing…';
+
+    const video = document.createElement('video');
+    video.src = URL.createObjectURL(file);
+    video.playsInline = true;
+    video.volume = 0;
+    await new Promise((resolve, reject) => {
+      video.onloadedmetadata = resolve;
+      video.onerror = () => reject(new Error('Could not load video'));
+    });
+
+    if (!video.captureStream) {
+      throw new Error('captureStream() not supported in this browser');
+    }
+    const mimeType = pickMimeType();
+    if (!mimeType) throw new Error('No supported recording format in this browser');
+
+    const stream = video.captureStream();
+    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 6_000_000 });
+    const chunks = [];
+    recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    const stopped = new Promise(resolve => { recorder.onstop = resolve; });
+
+    document.body.appendChild(video);
+    video.style.position = 'fixed';
+    video.style.left = '-9999px';
+
+    recorder.start(1000);
+    recorder.pause();
+
+    const totalKept = segments.reduce((a, s) => a + (s.end - s.start), 0);
+    let elapsedKept = 0;
+    for (const seg of segments) {
+      renderStatus.textContent = `Recording ${seg.start.toFixed(1)}s–${seg.end.toFixed(1)}s…`;
+      await seekTo(video, seg.start);
+      recorder.resume();
+      await video.play();
+      await waitForTimeOrEnd(video, seg.end);
+      video.pause();
+      recorder.pause();
+      elapsedKept += (seg.end - seg.start);
+      renderProgress.value = totalKept ? elapsedKept / totalKept : 1;
+    }
+    recorder.stop();
+    await stopped;
+
+    document.body.removeChild(video);
+    URL.revokeObjectURL(video.src);
+
+    const blob = new Blob(chunks, { type: mimeType.split(';')[0] });
+    const ext = mimeType.startsWith('video/mp4') ? 'mp4' : 'webm';
+    const url = URL.createObjectURL(blob);
+    preview.src = url;
+    preview.style.display = 'block';
+    downloadLink.href = url;
+    downloadLink.download = 'lead_only.' + ext;
+    downloadLink.style.display = 'block';
+    downloadLink.textContent = `Download (${(blob.size / 1e6).toFixed(1)} MB)`;
+
+    renderProgress.style.display = 'none';
+    renderStatus.textContent = 'Done.';
+    renderBtn.disabled = false;
+  }
+
+  renderBtn.addEventListener('click', () => {
+    render().catch(err => {
+      renderStatus.textContent = 'Error: ' + err.message;
+      renderProgress.style.display = 'none';
+      renderBtn.disabled = false;
+    });
+  });
+})();
+</script>
+</body>
+</html>
