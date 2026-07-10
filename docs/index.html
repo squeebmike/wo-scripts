@@ -176,17 +176,17 @@
       <span class="val" id="skinThreshVal">0.10</span>
     </div>
     <div class="row">
-      <label for="diffThresh">Object threshold</label>
-      <input type="range" id="diffThresh" min="0.005" max="0.10" step="0.005" value="0.025">
-      <span class="val" id="diffThreshVal">0.025</span>
+      <label for="diffThresh">Motion threshold</label>
+      <input type="range" id="diffThresh" min="0.005" max="0.10" step="0.005" value="0.015">
+      <span class="val" id="diffThreshVal">0.015</span>
     </div>
     <div class="row">
       <label for="padSeconds">Pad (sec)</label>
-      <input type="range" id="padSeconds" min="0" max="1" step="0.05" value="0.1">
-      <span class="val" id="padSecondsVal">0.10</span>
+      <input type="range" id="padSeconds" min="0" max="1" step="0.05" value="0.15">
+      <span class="val" id="padSecondsVal">0.15</span>
     </div>
     <div class="row">
-      <label for="minKeep">Min keep (sec)</label>
+      <label for="minKeep">Min hold (sec)</label>
       <input type="range" id="minKeep" min="0" max="2" step="0.1" value="0.3">
       <span class="val" id="minKeepVal">0.3</span>
     </div>
@@ -194,11 +194,6 @@
       <label for="speed">Analysis speed</label>
       <input type="range" id="speed" min="1" max="8" step="1" value="3">
       <span class="val" id="speedVal">3x</span>
-    </div>
-    <div class="row">
-      <label for="staleSeconds">Max stale (sec)</label>
-      <input type="range" id="staleSeconds" min="1" max="20" step="1" value="6">
-      <span class="val" id="staleSecondsVal">6</span>
     </div>
   </details>
 </div>
@@ -261,7 +256,6 @@
     padSeconds: $('padSeconds'),
     minKeep: $('minKeep'),
     speed: $('speed'),
-    staleSeconds: $('staleSeconds'),
   };
   const sliderVals = {
     skinThresh: $('skinThreshVal'),
@@ -269,9 +263,8 @@
     padSeconds: $('padSecondsVal'),
     minKeep: $('minKeepVal'),
     speed: $('speedVal'),
-    staleSeconds: $('staleSecondsVal'),
   };
-  const fmt = { skinThresh: 2, diffThresh: 3, padSeconds: 2, minKeep: 1, speed: 0, staleSeconds: 0 };
+  const fmt = { skinThresh: 2, diffThresh: 3, padSeconds: 2, minKeep: 1, speed: 0 };
   for (const key in sliders) {
     const el = sliders[key];
     const update = () => {
@@ -286,9 +279,9 @@
   }
 
   const PRESETS = {
-    gentle:     { skinThresh: 0.14, diffThresh: 0.045, padSeconds: 0.05, minKeep: 0.2 },
-    balanced:   { skinThresh: 0.10, diffThresh: 0.025, padSeconds: 0.10, minKeep: 0.3 },
-    aggressive: { skinThresh: 0.07, diffThresh: 0.012, padSeconds: 0.15, minKeep: 0.3 },
+    gentle:     { skinThresh: 0.14, diffThresh: 0.030, padSeconds: 0.10, minKeep: 0.2 },
+    balanced:   { skinThresh: 0.10, diffThresh: 0.015, padSeconds: 0.15, minKeep: 0.3 },
+    aggressive: { skinThresh: 0.07, diffThresh: 0.008, padSeconds: 0.20, minKeep: 0.4 },
   };
   const PRESET_HINTS = {
     gentle: 'Gentle selected. Keeps more footage, but hand/pencil frames are more likely to slip through.',
@@ -457,12 +450,10 @@
     tctx.clearRect(0, 0, timeline.width, timeline.height);
 
     const skinThresh = parseFloat(sliders.skinThresh.value);
-    const diffThresh = parseFloat(sliders.diffThresh.value);
+    const motionThresh = parseFloat(sliders.diffThresh.value);
     const padSeconds = parseFloat(sliders.padSeconds.value);
     const minKeep = parseFloat(sliders.minKeep.value);
-    const staleSeconds = parseFloat(sliders.staleSeconds.value);
     const speed = parseFloat(sliders.speed.value);
-    const REF_UPDATE_SECONDS = 0.5;
 
     const video = document.createElement('video');
     video.src = URL.createObjectURL(file);
@@ -476,9 +467,7 @@
     ensureAnalysisCanvas(video.videoWidth, video.videoHeight);
 
     const samples = []; // {t, flagged}
-    let refGray = null;
-    let lastRefTime = -Infinity;
-    let staleStart = null;
+    let prevGray = null;
 
     let stop = false;
     await new Promise((resolve, reject) => {
@@ -487,27 +476,9 @@
         try {
           const t = meta.mediaTime;
           const { gray, skinRatio } = analyzeFrame(video);
-          let dratio = 0;
-          let flagged = skinRatio > skinThresh;
-          if (refGray) {
-            dratio = diffRatio(gray, refGray);
-            flagged = flagged || dratio > diffThresh;
-          }
-
-          if (flagged) {
-            if (staleStart === null) staleStart = t;
-            if (skinRatio <= skinThresh && (t - staleStart) > staleSeconds) {
-              flagged = false;
-              staleStart = null;
-            }
-          } else {
-            staleStart = null;
-          }
-
-          if (!flagged && (refGray === null || (t - lastRefTime) >= REF_UPDATE_SECONDS)) {
-            refGray = gray;
-            lastRefTime = t;
-          }
+          const motion = prevGray ? diffRatio(gray, prevGray) : 0;
+          const flagged = skinRatio > skinThresh || motion > motionThresh;
+          prevGray = gray;
 
           samples.push({ t, flagged });
           analyzeProgress.value = duration ? t / duration : 0;
