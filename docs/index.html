@@ -83,6 +83,17 @@
   button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
   .btnrow { display: flex; gap: 10px; }
   .btnrow > button { flex: 1; }
+  .presetRow { display: flex; gap: 8px; }
+  .presetRow button.preset {
+    flex: 1;
+    padding: 10px 6px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .presetRow button.preset small { font-weight: 400; opacity: .8; font-size: 11px; }
+  .presetRow button.preset.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .presetHint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  details { margin-top: 14px; }
   .status { font-size: 13px; color: var(--muted); margin-top: 10px; min-height: 1.3em; white-space: pre-wrap; }
   progress {
     width: 100%;
@@ -151,32 +162,38 @@
 
 <div class="card">
   <h2>2. Settings</h2>
-  <div class="row">
-    <label for="skinThresh">Skin threshold</label>
-    <input type="range" id="skinThresh" min="0.03" max="0.30" step="0.01" value="0.10">
-    <span class="val" id="skinThreshVal">0.10</span>
+  <div class="presetRow" id="presetRow">
+    <button type="button" class="preset secondary" data-preset="gentle">Gentle<br><small>keeps more</small></button>
+    <button type="button" class="preset" data-preset="balanced">Balanced<br><small>recommended</small></button>
+    <button type="button" class="preset secondary" data-preset="aggressive">Aggressive<br><small>cuts more</small></button>
   </div>
-  <div class="row">
-    <label for="diffThresh">Object threshold</label>
-    <input type="range" id="diffThresh" min="0.005" max="0.10" step="0.005" value="0.020">
-    <span class="val" id="diffThreshVal">0.020</span>
-  </div>
-  <div class="row">
-    <label for="padSeconds">Pad (sec)</label>
-    <input type="range" id="padSeconds" min="0" max="1" step="0.05" value="0.1">
-    <span class="val" id="padSecondsVal">0.10</span>
-  </div>
-  <div class="row">
-    <label for="minKeep">Min keep (sec)</label>
-    <input type="range" id="minKeep" min="0" max="2" step="0.1" value="0.3">
-    <span class="val" id="minKeepVal">0.3</span>
-  </div>
+  <div class="presetHint" id="presetHint">Balanced selected. If pencil/hand frames still slip through, try Aggressive.</div>
   <details>
-    <summary>Advanced</summary>
+    <summary>Advanced (manual sliders)</summary>
+    <div class="row">
+      <label for="skinThresh">Skin threshold</label>
+      <input type="range" id="skinThresh" min="0.03" max="0.30" step="0.01" value="0.10">
+      <span class="val" id="skinThreshVal">0.10</span>
+    </div>
+    <div class="row">
+      <label for="diffThresh">Object threshold</label>
+      <input type="range" id="diffThresh" min="0.005" max="0.10" step="0.005" value="0.025">
+      <span class="val" id="diffThreshVal">0.025</span>
+    </div>
+    <div class="row">
+      <label for="padSeconds">Pad (sec)</label>
+      <input type="range" id="padSeconds" min="0" max="1" step="0.05" value="0.1">
+      <span class="val" id="padSecondsVal">0.10</span>
+    </div>
+    <div class="row">
+      <label for="minKeep">Min keep (sec)</label>
+      <input type="range" id="minKeep" min="0" max="2" step="0.1" value="0.3">
+      <span class="val" id="minKeepVal">0.3</span>
+    </div>
     <div class="row">
       <label for="speed">Analysis speed</label>
-      <input type="range" id="speed" min="1" max="8" step="1" value="4">
-      <span class="val" id="speedVal">4x</span>
+      <input type="range" id="speed" min="1" max="8" step="1" value="3">
+      <span class="val" id="speedVal">3x</span>
     </div>
     <div class="row">
       <label for="staleSeconds">Max stale (sec)</label>
@@ -268,6 +285,49 @@
     update();
   }
 
+  const PRESETS = {
+    gentle:     { skinThresh: 0.14, diffThresh: 0.045, padSeconds: 0.05, minKeep: 0.2 },
+    balanced:   { skinThresh: 0.10, diffThresh: 0.025, padSeconds: 0.10, minKeep: 0.3 },
+    aggressive: { skinThresh: 0.07, diffThresh: 0.012, padSeconds: 0.15, minKeep: 0.3 },
+  };
+  const PRESET_HINTS = {
+    gentle: 'Gentle selected. Keeps more footage, but hand/pencil frames are more likely to slip through.',
+    balanced: 'Balanced selected. If pencil/hand frames still slip through, try Aggressive.',
+    aggressive: 'Aggressive selected. Cuts more aggressively — safest against leftover hand/pencil frames, at the cost of trimming some clean footage too.',
+  };
+  const presetButtons = document.querySelectorAll('#presetRow button.preset');
+  const presetHint = $('presetHint');
+
+  function applyPreset(name, { save = true } = {}) {
+    const p = PRESETS[name];
+    if (!p) return;
+    for (const key in p) {
+      sliders[key].value = p[key];
+      sliders[key].dispatchEvent(new Event('input'));
+    }
+    presetButtons.forEach(b => b.classList.toggle('active', b.dataset.preset === name));
+    presetHint.textContent = PRESET_HINTS[name];
+    if (save) { try { localStorage.setItem('leadonly_preset', name); } catch (e) {} }
+  }
+
+  presetButtons.forEach(btn => {
+    btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
+  });
+
+  const presetCoreKeys = ['skinThresh', 'diffThresh', 'padSeconds', 'minKeep'];
+  presetCoreKeys.forEach(key => {
+    sliders[key].addEventListener('input', () => {
+      const matches = Object.entries(PRESETS).find(([, p]) =>
+        presetCoreKeys.every(k => Math.abs(p[k] - parseFloat(sliders[k].value)) < 1e-6)
+      );
+      presetButtons.forEach(b => b.classList.toggle('active', !!matches && b.dataset.preset === matches[0]));
+      if (!matches) presetHint.textContent = 'Custom settings (matches no preset).';
+    });
+  });
+
+  const savedPreset = (() => { try { return localStorage.getItem('leadonly_preset'); } catch (e) { return null; } })();
+  applyPreset(savedPreset && PRESETS[savedPreset] ? savedPreset : 'balanced', { save: false });
+
   if (!('requestVideoFrameCallback' in HTMLVideoElement.prototype)) {
     compatWarn.style.display = 'block';
     compatWarn.textContent = 'This browser does not support requestVideoFrameCallback (needed for analysis). Try Chrome on Android.';
@@ -320,7 +380,7 @@
     return (h >= 0 && h <= 50) || (h >= 320 && h <= 360);
   }
 
-  const ANALYSIS_WIDTH = 128;
+  const ANALYSIS_WIDTH = 192;
   let analysisCanvas, analysisCtx, analysisH;
   function ensureAnalysisCanvas(videoW, videoH) {
     analysisH = Math.max(1, Math.round(ANALYSIS_WIDTH * videoH / videoW));
