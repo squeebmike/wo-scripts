@@ -171,7 +171,7 @@
   <details>
     <summary>Advanced (manual sliders)</summary>
     <div class="row">
-      <label for="diffThresh">Motion threshold</label>
+      <label for="diffThresh">Motion / block threshold</label>
       <input type="range" id="diffThresh" min="0.005" max="0.10" step="0.005" value="0.015">
       <span class="val" id="diffThreshVal">0.015</span>
     </div>
@@ -417,6 +417,9 @@
     const padSeconds = parseFloat(sliders.padSeconds.value);
     const minKeep = parseFloat(sliders.minKeep.value);
     const speed = parseFloat(sliders.speed.value);
+    const REF_UPDATE_SECONDS = 0.5;
+    const MAX_STALE_SECONDS = 6.0;
+    const STARTUP_SECONDS = 1.0;
 
     const video = document.createElement('video');
     video.src = URL.createObjectURL(file);
@@ -431,6 +434,9 @@
 
     const samples = []; // {t, flagged}
     let prevGray = null;
+    let refGray = null;
+    let lastRefTime = -Infinity;
+    let staleStart = null;
 
     let stop = false;
     await new Promise((resolve, reject) => {
@@ -439,9 +445,32 @@
         try {
           const t = meta.mediaTime;
           const gray = analyzeFrame(video);
-          const motion = prevGray ? diffRatio(gray, prevGray) : 0;
-          const flagged = motion > motionThresh;
+          let flagged;
+          if (t < STARTUP_SECONDS) {
+            // No confirmed-clean reference yet, so if something is
+            // already blocking the shot right from the start, neither
+            // signal below could ever notice - motion-to-previous stays
+            // near zero if it hasn't moved yet, and there's no baseline
+            // for the block check either. Play it safe for a beat.
+            flagged = true;
+          } else {
+            const motion = prevGray ? diffRatio(gray, prevGray) : 0;
+            const block = refGray ? diffRatio(gray, refGray) : 0;
+            flagged = motion > motionThresh || block > motionThresh;
+          }
           prevGray = gray;
+
+          if (flagged) {
+            if (staleStart === null) staleStart = t;
+            if ((t - staleStart) > MAX_STALE_SECONDS) { flagged = false; staleStart = null; }
+          } else {
+            staleStart = null;
+          }
+
+          if (!flagged && (refGray === null || (t - lastRefTime) >= REF_UPDATE_SECONDS)) {
+            refGray = gray;
+            lastRefTime = t;
+          }
 
           samples.push({ t, flagged });
           analyzeProgress.value = duration ? t / duration : 0;
