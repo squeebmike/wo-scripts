@@ -1,5 +1,3 @@
-
-
 (function(){
 'use strict';
 var WO=window.WO={};window.__WO__=true;
