@@ -37,6 +37,37 @@
   position: relative;
 }
 
+.mp-broadcast {
+  background: var(--mp-hero);
+  color: var(--mp-hero-copy);
+  min-height: min(780px, 72svh);
+  overflow: hidden;
+  position: relative;
+}
+
+.mp-broadcast-media,
+.mp-broadcast-shade { inset: 0; position: absolute; }
+.mp-broadcast-media img { height: 100%; object-fit: cover; object-position: center; width: 100%; }
+.mp-broadcast-shade { background: linear-gradient(90deg, var(--mp-hero), transparent 80%), linear-gradient(0deg, var(--mp-hero), transparent 65%); opacity: .88; }
+.mp-broadcast-shell { align-items: end; display: flex; min-height: min(780px, 72svh); padding-bottom: clamp(118px, 12vw, 180px); padding-top: clamp(70px, 8vw, 110px); }
+.mp-broadcast-copy { max-width: 760px; position: relative; z-index: 2; }
+.mp-live-status { align-items: center; color: var(--mp-highlight) !important; display: inline-flex; font-size: 12px; font-weight: 950; gap: 9px; letter-spacing: .14em; margin-bottom: 18px; text-transform: uppercase; }
+.mp-live-status::before { background: currentColor; border-radius: 50%; content: ''; height: 10px; width: 10px; }
+.mp-live-status--on::before { animation: mp-live-pulse 1.5s ease-out infinite; box-shadow: 0 0 0 0 currentColor; }
+.mp-broadcast-title { color: inherit !important; font-family: Exo, system-ui, sans-serif; font-size: clamp(48px, 7vw, 108px); font-weight: 950; letter-spacing: -.065em; line-height: .86; margin: 0; max-width: 980px; text-transform: uppercase; }
+.mp-broadcast-text { color: inherit !important; font-size: clamp(17px, 1.7vw, 22px); line-height: 1.5; margin: 24px 0 0; max-width: 660px; opacity: .82; }
+.mp-broadcast--offair + .woh-hero { border-radius: 34px 34px 0 0; box-shadow: 0 -26px 64px var(--mp-shadow); margin-top: clamp(-116px, -8vw, -74px); z-index: 3; animation: mp-hero-rise .72s cubic-bezier(.2,.85,.25,1) both; }
+.mp-broadcast--live { min-height: 0; }
+.mp-broadcast--live .mp-broadcast-media { display: none; }
+.mp-broadcast--live .mp-broadcast-shell { align-items: center; display: grid; gap: clamp(28px, 5vw, 70px); grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); min-height: 0; padding-block: clamp(46px, 7vw, 96px); }
+.mp-live-viewer { aspect-ratio: 16 / 9; background: var(--mp-panel); border: 1px solid var(--mp-line-strong); border-radius: 22px; box-shadow: 0 24px 70px var(--mp-shadow); overflow: hidden; }
+.mp-live-viewer iframe { border: 0; height: 100%; width: 100%; }
+.mp-live-viewer-placeholder { align-items: center; color: var(--mp-copy-soft); display: flex; height: 100%; justify-content: center; padding: 28px; text-align: center; }
+.mp-broadcast--live + .woh-hero { margin-top: 0; }
+
+@keyframes mp-hero-rise { from { opacity: .2; transform: translateY(72px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes mp-live-pulse { 0% { box-shadow: 0 0 0 0 currentColor; } 70% { box-shadow: 0 0 0 11px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+
 .mp-home-redesign .woh-hero::before,
 .mp-home-redesign .mp-editorial::before {
   background-image: radial-gradient(circle, var(--mp-highlight) 0 1px, transparent 1.5px);
@@ -463,6 +494,8 @@
 .mp-happening-title { color: var(--mp-copy) !important; font-size: clamp(24px, 3vw, 42px); font-weight: 900; letter-spacing: -.035em; line-height: 1; margin: 0; }
 .mp-feature-copy,
 .mp-happening-copy { color: var(--mp-copy-soft) !important; line-height: 1.5; margin: 14px 0 0; }
+.mp-happening-when { color: var(--mp-accent); display: block; font-size: 17px; margin-top: 22px; }
+.mp-happening-location { color: var(--mp-copy-muted); display: block; font-size: 13px; font-weight: 800; letter-spacing: .06em; margin-top: 7px; text-transform: uppercase; }
 .mp-feature .mp-text-link,
 .mp-happening-card .mp-text-link { margin-top: auto; padding-top: 28px; }
 
@@ -559,6 +592,7 @@
 }
 
 @media (max-width: 840px) {
+  .mp-broadcast--live .mp-broadcast-shell { grid-template-columns: 1fr; }
   .mp-hero-grid { grid-template-columns: 1fr; padding-top: 28px; }
   .mp-hero-art { min-height: 0; }
   .mp-category,
@@ -571,6 +605,11 @@
 }
 
 @media (max-width: 640px) {
+  .mp-broadcast { min-height: 66svh; }
+  .mp-broadcast-shell { min-height: 66svh; padding-bottom: 106px; }
+  .mp-broadcast-media img { object-position: 58% center; }
+  .mp-broadcast--offair + .woh-hero { border-radius: 22px 22px 0 0; margin-top: -72px; }
+  .mp-broadcast-title { font-size: clamp(46px, 14vw, 68px); }
   .mp-shell { padding: 54px 16px; }
   .mp-hero-grid { min-height: auto; }
   .mp-hero-title { font-size: clamp(48px, 16vw, 72px); }

@@ -4,6 +4,8 @@
 var API_BASE='https://wo-checkout.swarnerauto.workers.dev';
 var CONFIG=window.MANA_HOMEPAGE_CONFIG||{};
 var scriptUrl=(document.currentScript&&document.currentScript.src)||'';
+var SCHEDULE_URL=CONFIG.scheduleUrl||'https://raw.githubusercontent.com/squeebmike/wo-scripts/codex/homepage-merchandising-redesign/homepage-schedule.json';
+var OFF_AIR_IMAGE='https://cdn.prod.website-files.com/65b15ee0228d06647ca7e4ce/6a7ceed727942e7f2a329aff_manapocketstorefront.avif';
 
 function isHomepage(){
   return window.location.pathname==='/'||window.location.pathname==='/index.html';
@@ -118,6 +120,54 @@ function productRow(items){
   return row;
 }
 
+function replacePromoMessage(){
+  Array.prototype.forEach.call(document.querySelectorAll('.rotating-promo-text > div'),function(item){
+    item.textContent='Fast shipping · Expert packing · Collector-grade care';
+  });
+}
+
+function buildBroadcastStage(hero){
+  var stage=el('section','mp-broadcast mp-broadcast--offair');stage.id='pocket-live';
+  var media=el('div','mp-broadcast-media');
+  var image=el('img');image.src=OFF_AIR_IMAGE;image.alt='The Mana Pocket storefront after dark';image.fetchPriority='high';media.appendChild(image);
+  var shade=el('div','mp-broadcast-shade');media.appendChild(shade);
+  var shell=el('div','mp-shell mp-broadcast-shell');
+  var copy=el('div','mp-broadcast-copy');
+  copy.appendChild(el('span','mp-live-status','Off air · The lights are out'));
+  copy.appendChild(el('h2','mp-broadcast-title','The shop is dark. For now.'));
+  copy.appendChild(el('p','mp-broadcast-text','When The Mana Pocket goes live, the show takes over this spot. Until then, the good stuff is waiting below.'));
+  var actions=el('div','mp-actions');actions.appendChild(link('See the schedule ↓','#pocket-calendar','mp-button'));actions.appendChild(link('Follow on Whatnot','https://www.whatnot.com/user/walkoffsportscards/shows','mp-button mp-button--ghost'));
+  copy.appendChild(actions);shell.appendChild(copy);stage.appendChild(media);stage.appendChild(shell);hero.before(stage);
+  return stage;
+}
+
+function renderBroadcast(stage,data){
+  if(!stage)return;
+  var live=Boolean(data&&data.live);
+  stage.classList.toggle('mp-broadcast--live',live);stage.classList.toggle('mp-broadcast--offair',!live);
+  var shell=stage.querySelector('.mp-broadcast-shell');if(!shell)return;
+  shell.innerHTML='';
+  if(live){
+    var viewer=el('div','mp-live-viewer');
+    if(data.embedUrl){
+      var frame=document.createElement('iframe');frame.src=data.embedUrl;frame.title=data.liveTitle||'The Mana Pocket live show';frame.allow='autoplay; encrypted-media; picture-in-picture';frame.allowFullscreen=true;viewer.appendChild(frame);
+    }else{
+      viewer.appendChild(el('div','mp-live-viewer-placeholder','The live show is happening now. Open Whatnot to watch and shop.'));
+    }
+    var liveCopy=el('div','mp-broadcast-copy');liveCopy.appendChild(el('span','mp-live-status mp-live-status--on','Live now'));
+    liveCopy.appendChild(el('h2','mp-broadcast-title',data.liveTitle||'We are live at The Mana Pocket.'));
+    if(data.liveDescription)liveCopy.appendChild(el('p','mp-broadcast-text',data.liveDescription));
+    liveCopy.appendChild(link('Watch and shop live →',data.liveUrl||'https://www.whatnot.com/user/walkoffsportscards','mp-button'));
+    shell.appendChild(viewer);shell.appendChild(liveCopy);
+  }else{
+    var copy=el('div','mp-broadcast-copy');copy.appendChild(el('span','mp-live-status','Off air · The lights are out'));
+    copy.appendChild(el('h2','mp-broadcast-title','The shop is dark. For now.'));
+    var next=data&&data.nextLive;
+    copy.appendChild(el('p','mp-broadcast-text',next&&next.when?'Next online show: '+next.when+'.':'No online show is scheduled yet. Follow us and we will let you know when the lights come back on.'));
+    var actions=el('div','mp-actions');actions.appendChild(link('See the schedule ↓','#pocket-calendar','mp-button'));actions.appendChild(link('Follow on Whatnot',next&&next.url||'https://www.whatnot.com/user/walkoffsportscards/shows','mp-button mp-button--ghost'));copy.appendChild(actions);shell.appendChild(copy);
+  }
+}
+
 function buildHero(mount){
   mount.innerHTML='';
   var shell=el('div','mp-shell mp-hero-grid');
@@ -223,25 +273,40 @@ function buildDynamicSections(categoryMount){
   caseSection.shell.appendChild(el('div','mp-case-labels','Slabs · autos · keys · rares · weird stuff'));
   caseSection.shell.appendChild(el('div','mp-loading','Polishing the glass…'));
 
-  var happening=makeSection('mp-happening');happening.section.id='happening-at-the-pocket';
-  happening.shell.appendChild(sectionHead('Community board','Happening at the pocket','Live sales, incoming drops, and where to find us.'));
+  var happening=makeSection('mp-happening');happening.section.id='pocket-calendar';
+  happening.shell.appendChild(sectionHead('Where we will be','The Pocket calendar','Online shows, weekend stops, events, and the next place to find us.'));
   var happeningGrid=el('div','mp-happening-grid');
-  [
-    {kicker:'Live now',title:'Rip with us.',copy:'Live sales, breaks, and the occasional monster pull.',href:'https://whatnot.com/invite/walkoffsportscards',cta:'Watch on Whatnot →'},
-    {kicker:'This week',title:'New stuff landed.',copy:'See the latest cards, sealed product, comics, and collectibles.',href:'/shop',cta:'Shop the drop →'},
-    {kicker:'At the shop',title:'Shows, events, and pop-ups.',copy:'Follow the build and see where The Mana Pocket is showing up next.',href:'/updates',cta:'See updates →'}
-  ].forEach(function(item){
-    var card=link('',item.href,'mp-happening-card');
-    card.appendChild(el('span','mp-card-kicker',item.kicker));
-    card.appendChild(el('h3','mp-happening-title',item.title));
-    card.appendChild(el('p','mp-happening-copy',item.copy));
-    card.appendChild(el('span','mp-text-link',item.cta));
-    happeningGrid.appendChild(card);
-  });
+  happeningGrid.setAttribute('data-mp-schedule-grid','');
+  happeningGrid.appendChild(el('div','mp-loading','Checking the calendar…'));
   happening.shell.appendChild(happeningGrid);
 
   categoryMount.after(fresh.section,editorial,pulled.section,caseSection.section,happening.section);
-  return{fresh:fresh,pulled:pulled,caseSection:caseSection};
+  return{fresh:fresh,pulled:pulled,caseSection:caseSection,happening:happening};
+}
+
+function renderSchedule(section,data){
+  var grid=section&&section.shell.querySelector('[data-mp-schedule-grid]');if(!grid)return;grid.innerHTML='';
+  var entries=[];
+  if(data&&data.nextLive)entries.push(data.nextLive);
+  (data&&Array.isArray(data.appearances)?data.appearances:[]).forEach(function(item){entries.push(item);});
+  if(!entries.length)entries=[{kicker:'Calendar update',title:'New dates are coming.',when:'Schedule in progress',copy:'We are locking in the next online show and in-person stops now.',href:'/updates',cta:'Follow the updates →'}];
+  entries.forEach(function(item){
+    var card=link('',item.href||'/updates','mp-happening-card');
+    card.appendChild(el('span','mp-card-kicker',item.kicker));
+    card.appendChild(el('h3','mp-happening-title',item.title));
+    if(item.when)card.appendChild(el('strong','mp-happening-when',item.when));
+    if(item.location)card.appendChild(el('span','mp-happening-location',item.location));
+    card.appendChild(el('p','mp-happening-copy',item.copy));
+    card.appendChild(el('span','mp-text-link',item.cta));
+    grid.appendChild(card);
+  });
+}
+
+function loadSchedule(section,stage){
+  fetch(SCHEDULE_URL+(SCHEDULE_URL.indexOf('?')===-1?'?':'&')+'v='+Math.floor(Date.now()/300000),{headers:{Accept:'application/json'}})
+    .then(function(response){if(!response.ok)throw new Error('Schedule unavailable');return response.json();})
+    .then(function(data){renderBroadcast(stage,data);renderSchedule(section,data);})
+    .catch(function(){renderBroadcast(stage,{});renderSchedule(section,{});});
 }
 
 function renderFresh(section,items){
@@ -351,9 +416,12 @@ function init(){
   var hero=document.querySelector('.woh-hero');
   var categories=document.querySelector('.woh-cats');
   if(!hero||!categories)return;
+  replacePromoMessage();
+  var broadcast=buildBroadcastStage(hero);
   buildHero(hero);
   buildCategories(categories,[]);
   var sections=buildDynamicSections(categories);
+  loadSchedule(sections.happening,broadcast);
   addNewsletter();
   fetch(API_BASE+'/api/inventory',{headers:{Accept:'application/json'}})
     .then(function(response){if(!response.ok)throw new Error('Inventory unavailable');return response.json();})
