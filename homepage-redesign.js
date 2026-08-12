@@ -512,30 +512,16 @@ function renderCase(section,items){
   section.shell.appendChild(caseItems.length?productRow(caseItems):el('div','mp-empty','Premium inventory will appear here automatically.'));
 }
 
-function addNewsletter(){
-  if(document.querySelector('.mp-newsletter'))return;
-  var footer=document.querySelector('.footer-section,.Footer,.footer');
-  if(!footer)return;
-  var section=el('section','mp-newsletter');
-  var shell=el('div','mp-shell mp-newsletter-grid');
-  var copy=el('div');copy.appendChild(el('span','mp-section-kicker','The good kind of inbox problem'));
-  copy.appendChild(el('h2','mp-section-title','Get pocketed.'));
-  copy.appendChild(el('p','mp-section-copy','Drops, pulls, new books and other important shit.'));
-  shell.appendChild(copy);shell.appendChild(link('Join the fan club →','/fan-club','mp-button'));
-  section.appendChild(shell);footer.before(section);
-}
-
 function addStorefrontReveal(){
   if(document.querySelector('.mp-storefront-reveal'))return;
-  var newsletter=document.querySelector('.mp-newsletter');
   var footer=document.querySelector('.footer-section,.Footer,.footer');
-  var anchor=newsletter||footer;if(!anchor)return;
+  var anchor=footer;if(!anchor)return;
   var section=el('section','mp-storefront-reveal');
   var shell=el('div','mp-shell mp-storefront-reveal-shell');
   var copy=el('div','mp-storefront-reveal-copy');
   copy.appendChild(el('span','mp-live-status','The lights will come back on'));
   copy.appendChild(el('h2','mp-storefront-reveal-title','See you at the next show.'));
-  copy.appendChild(el('p','mp-broadcast-text','Until then, the storefront stays still while the schedule keeps moving.'));
+  copy.appendChild(el('p','mp-broadcast-text','Our next live show and in-person stop are waiting in the Pocket calendar.'));
   copy.appendChild(link('Check the Pocket calendar ↑','#pocket-calendar','mp-button mp-button--ghost'));
   shell.appendChild(copy);section.appendChild(shell);anchor.before(section);
 }
@@ -562,7 +548,6 @@ function init(){
   buildCategories(categories,[]);
   var sections=buildDynamicSections(categories);
   loadSchedule(sections.happening,broadcast);
-  addNewsletter();
   addStorefrontReveal();
   fetch(API_BASE+'/api/inventory',{headers:{Accept:'application/json'}})
     .then(function(response){if(!response.ok)throw new Error('Inventory unavailable');return response.json();})
