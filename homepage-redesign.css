@@ -49,6 +49,7 @@
 
 .mp-home-redesign .woh-hero {
   display: block;
+  height: auto !important;
   min-height: auto;
   background: var(--mp-hero);
   color: var(--mp-hero-copy);
@@ -675,7 +676,7 @@
 @media (max-width: 640px) {
   .mp-broadcast { min-height: calc(100svh - var(--nav-height, 64px)); }
   .mp-broadcast-shell { min-height: calc(100svh - var(--nav-height, 64px)); padding-bottom: 40px; padding-top: 48px; }
-  .mp-storefront-backdrop { object-position: 22% center !important; }
+  .mp-storefront-backdrop { object-position: left center !important; }
   .mp-broadcast--offair + .woh-hero { border-radius: 22px 22px 0 0; margin-top: 0; }
   .mp-broadcast-title { font-size: clamp(42px, 13vw, 62px); }
   .mp-shell { padding: 54px 16px; }
