@@ -127,9 +127,20 @@ function replacePromoMessage(){
 }
 
 function buildBroadcastStage(hero){
+  var backdrop=document.querySelector('.image-8');
+  if(!backdrop){
+    backdrop=el('img','image-8');
+    var pageContent=document.querySelector('.page-content');
+    if(pageContent&&pageContent.parentNode)pageContent.parentNode.insertBefore(backdrop,pageContent);
+  }
+  backdrop.classList.add('mp-storefront-backdrop');
+  backdrop.src=OFF_AIR_IMAGE;
+  backdrop.removeAttribute('srcset');
+  backdrop.removeAttribute('sizes');
+  backdrop.alt='The Mana Pocket storefront after dark';
+  backdrop.setAttribute('aria-hidden','true');
   var stage=el('section','mp-broadcast mp-broadcast--offair');stage.id='pocket-live';
   var media=el('div','mp-broadcast-media');
-  var image=el('img');image.src=OFF_AIR_IMAGE;image.alt='The Mana Pocket storefront after dark';image.fetchPriority='high';media.appendChild(image);
   var shade=el('div','mp-broadcast-shade');media.appendChild(shade);
   var shell=el('div','mp-shell mp-broadcast-shell');
   var copy=el('div','mp-broadcast-copy');
@@ -286,20 +297,86 @@ function buildDynamicSections(categoryMount){
 
 function renderSchedule(section,data){
   var grid=section&&section.shell.querySelector('[data-mp-schedule-grid]');if(!grid)return;grid.innerHTML='';
+  var dated=[];
+  var undated=[];
   var entries=[];
   if(data&&data.nextLive)entries.push(data.nextLive);
   (data&&Array.isArray(data.appearances)?data.appearances:[]).forEach(function(item){entries.push(item);});
-  if(!entries.length)entries=[{kicker:'Calendar update',title:'New dates are coming.',when:'Schedule in progress',copy:'We are locking in the next online show and in-person stops now.',href:'/updates',cta:'Follow the updates →'}];
+  (data&&Array.isArray(data.events)?data.events:[]).forEach(function(item){entries.push(item);});
   entries.forEach(function(item){
-    var card=link('',item.href||'/updates','mp-happening-card');
-    card.appendChild(el('span','mp-card-kicker',item.kicker));
-    card.appendChild(el('h3','mp-happening-title',item.title));
-    if(item.when)card.appendChild(el('strong','mp-happening-when',item.when));
-    if(item.location)card.appendChild(el('span','mp-happening-location',item.location));
-    card.appendChild(el('p','mp-happening-copy',item.copy));
-    card.appendChild(el('span','mp-text-link',item.cta));
-    grid.appendChild(card);
+    if(item&&/^\d{4}-\d{2}-\d{2}$/.test(item.date||''))dated.push(item);else if(item)undated.push(item);
   });
+
+  var calendar=el('div','mp-calendar');
+  var calendarHead=el('div','mp-calendar-head');
+  var monthTitle=el('h3','mp-calendar-month');
+  var monthControls=el('div','mp-calendar-controls');
+  var previous=el('button','mp-calendar-nav','‹');previous.type='button';previous.setAttribute('aria-label','Previous month');
+  var next=el('button','mp-calendar-nav','›');next.type='button';next.setAttribute('aria-label','Next month');
+  monthControls.appendChild(previous);monthControls.appendChild(next);calendarHead.appendChild(monthTitle);calendarHead.appendChild(monthControls);
+  var weekdays=el('div','mp-calendar-weekdays');
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(function(day){weekdays.appendChild(el('span','',day));});
+  var days=el('div','mp-calendar-days');
+  calendar.appendChild(calendarHead);calendar.appendChild(weekdays);calendar.appendChild(days);
+
+  var agenda=el('aside','mp-calendar-agenda');
+  var agendaLabel=el('span','mp-card-kicker','Selected day');
+  var agendaTitle=el('h3','mp-calendar-agenda-title');
+  var agendaItems=el('div','mp-calendar-agenda-items');
+  agenda.appendChild(agendaLabel);agenda.appendChild(agendaTitle);agenda.appendChild(agendaItems);
+  var layout=el('div','mp-calendar-layout');layout.appendChild(calendar);layout.appendChild(agenda);grid.appendChild(layout);
+
+  var today=new Date();today.setHours(0,0,0,0);
+  var cursor=new Date(today.getFullYear(),today.getMonth(),1);
+  var selected=new Date(today);
+  function keyFor(date){return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');}
+  function eventsFor(date){var key=keyFor(date);return dated.filter(function(item){return item.date===key;});}
+  function renderAgenda(date){
+    agendaTitle.textContent=new Intl.DateTimeFormat('en-US',{weekday:'long',month:'long',day:'numeric'}).format(date);
+    agendaItems.innerHTML='';
+    var events=eventsFor(date);
+    if(!events.length){agendaItems.appendChild(el('p','mp-calendar-empty','Nothing is booked for this day yet. Confirmed appearances and live shows will appear here.'));return;}
+    events.forEach(function(item){agendaItems.appendChild(scheduleCard(item,'mp-calendar-event'));});
+  }
+  function renderMonth(){
+    monthTitle.textContent=new Intl.DateTimeFormat('en-US',{month:'long',year:'numeric'}).format(cursor);
+    days.innerHTML='';
+    var first=new Date(cursor.getFullYear(),cursor.getMonth(),1);
+    var total=new Date(cursor.getFullYear(),cursor.getMonth()+1,0).getDate();
+    for(var blank=0;blank<first.getDay();blank++)days.appendChild(el('span','mp-calendar-day mp-calendar-day--blank'));
+    for(var day=1;day<=total;day++){
+      (function(date){
+        var button=el('button','mp-calendar-day');button.type='button';button.appendChild(el('span','mp-calendar-date',String(date.getDate())));
+        var events=eventsFor(date);
+        if(events.length){button.classList.add('mp-calendar-day--event');button.appendChild(el('span','mp-calendar-dot',events.length===1?events[0].title:events.length+' events'));}
+        if(keyFor(date)===keyFor(today))button.classList.add('mp-calendar-day--today');
+        if(keyFor(date)===keyFor(selected))button.classList.add('mp-calendar-day--selected');
+        button.setAttribute('aria-label',new Intl.DateTimeFormat('en-US',{month:'long',day:'numeric',year:'numeric'}).format(date)+(events.length?' · '+events.length+' scheduled':' · nothing scheduled'));
+        button.addEventListener('click',function(){selected=new Date(date);renderMonth();renderAgenda(selected);});days.appendChild(button);
+      })(new Date(cursor.getFullYear(),cursor.getMonth(),day));
+    }
+  }
+  previous.addEventListener('click',function(){cursor=new Date(cursor.getFullYear(),cursor.getMonth()-1,1);selected=new Date(cursor);renderMonth();renderAgenda(selected);});
+  next.addEventListener('click',function(){cursor=new Date(cursor.getFullYear(),cursor.getMonth()+1,1);selected=new Date(cursor);renderMonth();renderAgenda(selected);});
+  renderMonth();renderAgenda(selected);
+
+  if(!undated.length)undated=[{kicker:'Calendar update',title:'New dates are coming.',when:'Schedule in progress',copy:'We are locking in the next online show and in-person stops now.',href:'/updates',cta:'Follow the updates →'}];
+  var notices=el('div','mp-calendar-notices');
+  notices.appendChild(el('h3','mp-calendar-notices-title','Upcoming & ongoing'));
+  var noticeGrid=el('div','mp-calendar-notice-grid');
+  undated.forEach(function(item){noticeGrid.appendChild(scheduleCard(item,'mp-happening-card'));});
+  notices.appendChild(noticeGrid);grid.appendChild(notices);
+}
+
+function scheduleCard(item,className){
+  var card=link('',item.href||'/updates',className||'mp-happening-card');
+  card.appendChild(el('span','mp-card-kicker',item.kicker));
+  card.appendChild(el('h3','mp-happening-title',item.title));
+  if(item.when)card.appendChild(el('strong','mp-happening-when',item.when));
+  if(item.location)card.appendChild(el('span','mp-happening-location',item.location));
+  if(item.copy)card.appendChild(el('p','mp-happening-copy',item.copy));
+  if(item.cta)card.appendChild(el('span','mp-text-link',item.cta));
+  return card;
 }
 
 function loadSchedule(section,stage){
@@ -400,6 +477,21 @@ function addNewsletter(){
   section.appendChild(shell);footer.before(section);
 }
 
+function addStorefrontReveal(){
+  if(document.querySelector('.mp-storefront-reveal'))return;
+  var newsletter=document.querySelector('.mp-newsletter');
+  var footer=document.querySelector('.footer-section,.Footer,.footer');
+  var anchor=newsletter||footer;if(!anchor)return;
+  var section=el('section','mp-storefront-reveal');
+  var shell=el('div','mp-shell mp-storefront-reveal-shell');
+  var copy=el('div','mp-storefront-reveal-copy');
+  copy.appendChild(el('span','mp-live-status','The lights will come back on'));
+  copy.appendChild(el('h2','mp-storefront-reveal-title','See you at the next show.'));
+  copy.appendChild(el('p','mp-broadcast-text','Until then, the storefront stays still while the schedule keeps moving.'));
+  copy.appendChild(link('Check the Pocket calendar ↑','#pocket-calendar','mp-button mp-button--ghost'));
+  shell.appendChild(copy);section.appendChild(shell);anchor.before(section);
+}
+
 function showInventoryError(sections){
   [sections.fresh,sections.pulled,sections.caseSection].forEach(function(section){
     var loading=section.shell.querySelector('.mp-loading');
@@ -423,6 +515,7 @@ function init(){
   var sections=buildDynamicSections(categories);
   loadSchedule(sections.happening,broadcast);
   addNewsletter();
+  addStorefrontReveal();
   fetch(API_BASE+'/api/inventory',{headers:{Accept:'application/json'}})
     .then(function(response){if(!response.ok)throw new Error('Inventory unavailable');return response.json();})
     .then(function(payload){
