@@ -45,6 +45,8 @@
   z-index: 0 !important;
 }
 
+[data-mp-event-source] { display: none !important; }
+
 .mp-home-redesign .woh-hero {
   display: block;
   min-height: auto;

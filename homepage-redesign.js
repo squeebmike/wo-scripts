@@ -300,7 +300,7 @@ function renderSchedule(section,data){
   var dated=[];
   var undated=[];
   var entries=[];
-  if(data&&data.nextLive)entries.push(data.nextLive);
+  if(data&&data.nextLive&&!(Array.isArray(data.events)))entries.push(data.nextLive);
   (data&&Array.isArray(data.appearances)?data.appearances:[]).forEach(function(item){entries.push(item);});
   (data&&Array.isArray(data.events)?data.events:[]).forEach(function(item){entries.push(item);});
   entries.forEach(function(item){
@@ -360,7 +360,8 @@ function renderSchedule(section,data){
   next.addEventListener('click',function(){cursor=new Date(cursor.getFullYear(),cursor.getMonth()+1,1);selected=new Date(cursor);renderMonth();renderAgenda(selected);});
   renderMonth();renderAgenda(selected);
 
-  if(!undated.length)undated=[{kicker:'Calendar update',title:'New dates are coming.',when:'Schedule in progress',copy:'We are locking in the next online show and in-person stops now.',href:'/updates',cta:'Follow the updates →'}];
+  if(!undated.length&&!dated.length)undated=[{kicker:'Calendar update',title:'New dates are coming.',when:'Schedule in progress',copy:'Add and publish an event in Webflow under CMS → Pocket Events and it will appear here automatically.'}];
+  if(!undated.length)return;
   var notices=el('div','mp-calendar-notices');
   notices.appendChild(el('h3','mp-calendar-notices-title','Upcoming & ongoing'));
   var noticeGrid=el('div','mp-calendar-notice-grid');
@@ -369,7 +370,7 @@ function renderSchedule(section,data){
 }
 
 function scheduleCard(item,className){
-  var card=link('',item.href||'/updates',className||'mp-happening-card');
+  var card=item.href?link('',item.href,className||'mp-happening-card'):el('article',className||'mp-happening-card');
   card.appendChild(el('span','mp-card-kicker',item.kicker));
   card.appendChild(el('h3','mp-happening-title',item.title));
   if(item.when)card.appendChild(el('strong','mp-happening-when',item.when));
@@ -379,7 +380,54 @@ function scheduleCard(item,className){
   return card;
 }
 
+function readCmsSchedule(){
+  var source=document.querySelector('[data-mp-event-source]');
+  if(!source)return null;
+  var now=new Date();
+  function field(item,name){var node=item.querySelector('[data-event-field="'+name+'"]');return String(node&&node.textContent||'').trim();}
+  function parseDate(value){var date=new Date(value);return isNaN(date.getTime())?null:date;}
+  function dateKey(date){return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');}
+  function timeLabel(start,end){
+    var datePart=new Intl.DateTimeFormat('en-US',{weekday:'short',month:'short',day:'numeric'}).format(start);
+    var timePart=new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(start);
+    if(end)timePart+='–'+new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(end);
+    return datePart+' · '+timePart;
+  }
+  var events=Array.prototype.map.call(source.querySelectorAll('.w-dyn-item'),function(item){
+    var start=parseDate(field(item,'start'));if(!start)return null;
+    var end=parseDate(field(item,'end'));
+    var type=field(item,'type');
+    var online=/online|live/i.test(type);
+    var href=field(item,'url');
+    return{
+      date:dateKey(start),
+      start:start,
+      end:end,
+      kicker:online?'Online live show':'In-person show',
+      title:field(item,'title')||'The Mana Pocket event',
+      when:timeLabel(start,end),
+      location:field(item,'location'),
+      copy:field(item,'description'),
+      href:href||'',
+      cta:href?(online?'Watch or view show →':'View event details →'):'',
+      online:online
+    };
+  }).filter(Boolean).sort(function(a,b){return a.start-b.start;});
+  var liveEvent=events.find(function(event){return event.online&&event.start<=now&&(!event.end||event.end>=now);});
+  var nextLive=events.find(function(event){return event.online&&event.start>now;});
+  return{
+    live:Boolean(liveEvent),
+    liveTitle:liveEvent&&liveEvent.title,
+    liveDescription:liveEvent&&[liveEvent.when,liveEvent.location].filter(Boolean).join(' · '),
+    liveUrl:liveEvent&&liveEvent.href,
+    nextLive:nextLive&&{title:nextLive.title,when:nextLive.when,url:nextLive.href},
+    events:events
+  };
+}
+
 function loadSchedule(section,stage){
+  var cmsSchedule=readCmsSchedule();
+  if(cmsSchedule){renderBroadcast(stage,cmsSchedule);renderSchedule(section,cmsSchedule);return;}
   fetch(SCHEDULE_URL+(SCHEDULE_URL.indexOf('?')===-1?'?':'&')+'v='+Math.floor(Date.now()/300000),{headers:{Accept:'application/json'}})
     .then(function(response){if(!response.ok)throw new Error('Schedule unavailable');return response.json();})
     .then(function(data){renderBroadcast(stage,data);renderSchedule(section,data);})
