@@ -66,10 +66,12 @@
 .mp-page-card-viewer .content-wrapper.bluebg.mtg { background: var(--mp-polish-page) !important; height: auto !important; margin: 0 !important; max-width: none !important; min-height: calc(100svh - 64px) !important; padding: clamp(28px, 5vw, 72px) 0 !important; width: 100% !important; }
 .mp-page-card-viewer .swiper-section,
 .mp-page-card-viewer .container.w-container { height: auto !important; margin: 0 auto !important; max-width: none !important; padding: 0 !important; width: 100% !important; }
+.mp-page-card-viewer #embedBlock1,
+.mp-page-card-viewer .html-embed-6.mtgswiper { box-sizing: border-box !important; display: block !important; max-width: none !important; padding: 0 !important; width: 100% !important; }
 .mp-page-card-viewer .wposb-root,
 .mp-page-card-viewer .womtg-root { color: var(--mp-polish-text) !important; font-family: Exo, system-ui, sans-serif !important; }
 .mp-page-card-viewer .wposb-wrap,
-.mp-page-card-viewer .womtg-wrap { margin: 0 auto !important; max-width: 1440px !important; padding: 0 clamp(16px, 5vw, 64px) !important; }
+.mp-page-card-viewer .womtg-wrap { box-sizing: border-box !important; margin: 0 auto !important; max-width: 1440px !important; padding: 0 clamp(16px, 5vw, 64px) !important; width: 100% !important; }
 .mp-page-card-viewer .wposb-set-row,
 .mp-page-card-viewer .womtg-set-row { background: var(--mp-polish-panel) !important; border-color: var(--mp-polish-line) !important; border-radius: 18px !important; box-shadow: 0 16px 44px var(--mp-polish-shadow); gap: 12px !important; margin-bottom: 20px !important; padding: 14px !important; position: sticky; top: 74px; z-index: 20; }
 .mp-page-card-viewer :is(.wposb-set-row,.womtg-set-row) :is(select,input) { border-color: var(--mp-polish-strong) !important; border-radius: 12px !important; font-size: 16px !important; min-width: 0 !important; }
