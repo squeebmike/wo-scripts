@@ -584,6 +584,109 @@ function init(){
   document.querySelectorAll('[data-wo-theme],[data-theme-trigger],[data-wo-open]').forEach(function(el){
     el.addEventListener('click',openModal);
   });
+  if(!applied)showThemeNudge();
+}
+
+function showThemeNudge(){
+  try{if(sessionStorage.getItem('wo-theme-nudge-dismissed'))return;}catch(e){}
+  window.setTimeout(function(){
+    if(document.getElementById('mp-theme-nudge'))return;
+    var nudge=document.createElement('aside');nudge.id='mp-theme-nudge';nudge.setAttribute('aria-label','Choose your site theme');
+    nudge.innerHTML='<strong>Make The Pocket yours.</strong><span>Pick a team, Pokémon, or MTG theme.</span><div><button type="button" data-mp-pick-theme>Pick a theme</button><button type="button" data-mp-dismiss-theme aria-label="Dismiss theme suggestion">Not now</button></div>';
+    document.body.appendChild(nudge);
+    function dismiss(){nudge.remove();try{sessionStorage.setItem('wo-theme-nudge-dismissed','1');}catch(e){}}
+    nudge.querySelector('[data-mp-pick-theme]').addEventListener('click',function(){dismiss();openModal();});
+    nudge.querySelector('[data-mp-dismiss-theme]').addEventListener('click',dismiss);
+  },1600);
+}
+
+function enhanceCart(){
+  function mount(){
+    if(!document.body||document.getElementById('mp-floating-cart'))return;
+    var button=document.createElement('button');button.id='mp-floating-cart';button.type='button';button.setAttribute('aria-label','Open cart');
+    button.innerHTML='<span aria-hidden="true">🛒</span><strong>Cart</strong><b data-mp-floating-count>0</b>';
+    button.addEventListener('click',function(){if(window.WO&&typeof WO.openCart==='function')WO.openCart();});
+    document.body.appendChild(button);
+    function sync(){
+      var count=0;
+      try{if(window.WO&&typeof WO.getCart==='function')count=WO.getCart().reduce(function(total,item){return total+Math.max(1,parseInt(item.qty,10)||1);},0);}catch(e){}
+      if(!count){var badge=document.getElementById('wo-cart-badge');count=Math.max(0,parseInt(badge&&badge.textContent,10)||0);}
+      button.querySelector('[data-mp-floating-count]').textContent=count;
+      button.classList.toggle('is-visible',count>0);
+      button.tabIndex=count>0?0:-1;
+    }
+    sync();
+    var badge=document.getElementById('wo-cart-badge');if(badge)new MutationObserver(sync).observe(badge,{childList:true,subtree:true,characterData:true});
+    document.addEventListener('click',function(){window.setTimeout(sync,60);});
+  }
+  if(document.body)mount();else document.addEventListener('DOMContentLoaded',mount,{once:true});
+}
+
+function polishNavigation(){
+  function mount(){
+    var combined=document.querySelector('#navbarID a[href="/shop?cat=tcg"]');
+    if(combined&&!document.querySelector('#navbarID a[href="/shop?cat=mtg"]')){
+      var pokemon=combined;var magic=combined.cloneNode(true);
+      pokemon.href='/shop?cat=pokemon';pokemon.textContent='Pokémon';
+      magic.href='/shop?cat=mtg';magic.textContent='Magic: The Gathering';pokemon.after(magic);
+    }
+  }
+  if(document.body)mount();else document.addEventListener('DOMContentLoaded',mount,{once:true});
+}
+
+function polishShopInventory(){
+  var path=location.pathname.replace(/\/$/,'')||'/';if(path!=='/shop')return;
+  function canonical(value){
+    value=String(value||'').toLowerCase();
+    if(value==='tcg')return'tcg';
+    if(/pokemon|pokémon/.test(value))return'pokemon';
+    if(/magic|mtg/.test(value))return'mtg';
+    if(/sport/.test(value))return'sports-cards';
+    if(/comic/.test(value))return'comics';
+    if(/collectible|figure|toy|apparel/.test(value))return'collectibles';
+    if(/suppl|sleeve|binder|toploader|playmat/.test(value))return'supplies';
+    return'all';
+  }
+  function mount(){
+    var host=document.getElementById('wo-live-shop');var select=host&&host.querySelector('.wo-store-control-field');var cards=host&&host.querySelectorAll('.wo-live-card');
+    if(!select||!cards||!cards.length)return false;if(select.dataset.mpExactCategories)return true;
+    select.dataset.mpExactCategories='true';
+    select.innerHTML='<option value="all">All categories</option><option value="pokemon">Pokémon</option><option value="mtg">Magic: The Gathering</option><option value="sports-cards">Sports Cards</option><option value="comics">Comics</option><option value="collectibles">Collectibles</option><option value="supplies">Supplies</option>';
+    var params=new URLSearchParams(location.search);var requested=canonical(params.get('cat'));var search=host.querySelector('.wo-store-search-field');
+    if(requested!=='all')select.value=requested;
+    function apply(){
+      var chosen=select.value;var query=String(search&&search.value||'').trim().toLowerCase();
+      Array.prototype.forEach.call(host.querySelectorAll('.wo-live-card'),function(card){
+        var kind=canonical(card.getAttribute('data-category'));var name=String(card.textContent||'').toLowerCase();
+        var categoryMatch=chosen==='all'||(chosen==='tcg'&&(kind==='pokemon'||kind==='mtg'))||kind===chosen;
+        card.style.display=categoryMatch&&(!query||name.indexOf(query)!==-1)?'':'none';
+      });
+    }
+    select.addEventListener('change',function(){window.setTimeout(apply,0);});if(search)search.addEventListener('input',function(){window.setTimeout(apply,0);});apply();
+    var itemId=params.get('item');
+    if(itemId){
+      var carrier=Array.prototype.find.call(host.querySelectorAll('.wo-d-slug'),function(el){return el.textContent.trim()===itemId;});
+      var card=carrier&&carrier.closest('.wo-live-card');
+      if(card){select.value='all';apply();window.setTimeout(function(){card.scrollIntoView({block:'center'});card.click();},180);}
+    }
+    return true;
+  }
+  if(mount())return;var observer=new MutationObserver(function(){if(mount())observer.disconnect();});observer.observe(document.documentElement,{childList:true,subtree:true});
+}
+
+function polishFanClub(){
+  var path=location.pathname.replace(/\/$/,'')||'/';if(path!=='/fan-club')return;
+  function mount(){
+    var cards=document.querySelectorAll('.wo-tier-grid .wo-tier-card');if(cards.length<2)return;
+    var supporter=cards[0],patron=cards[1];var sp=supporter.querySelector('p'),pp=patron.querySelector('p');
+    if(sp)sp.textContent='A simple way to help make the next pages, issue, and release happen.';
+    if(pp)pp.textContent='Go deeper behind the scenes and get first notice when special editions drop.';
+    function perks(card,items){if(card.querySelector('.mp-tier-perks'))return;var list=document.createElement('ul');list.className='mp-tier-perks';items.forEach(function(text){var li=document.createElement('li');li.textContent=text;list.appendChild(li);});var p=card.querySelector('p');if(p)p.after(list);}
+    perks(supporter,['Early pages and development notes','Members-only behind-the-scenes updates','Vote in occasional art and cover polls']);
+    perks(patron,['Everything in Supporter','Quarterly digital extras','Priority alerts for signed and limited releases']);
+    var sb=supporter.querySelector('[data-wo-fanclub-tier]');var pb=patron.querySelector('[data-wo-fanclub-tier]');if(sb)sb.textContent='Join the Fan Club';if(pb)pb.textContent='Become a Patron';
+  }
+  if(document.body)mount();else document.addEventListener('DOMContentLoaded',mount,{once:true});
 }
 
 function loadHomepageRedesign(){
@@ -596,12 +699,11 @@ function loadHomepageRedesign(){
 function loadSitePolish(){
   if(!WO_SCRIPT_SRC)return;
   var path=location.pathname.replace(/\/$/,'')||'/';
-  var classes=[];
+  var classes=['mp-site-polish'];
   if(path==='/fan-club')classes.push('mp-page-fan-club');
   if(path==='/pokemon-new-releases')classes.push('mp-page-card-viewer','mp-page-pokemon-viewer');
   if(path==='/mtg-new-releases')classes.push('mp-page-card-viewer','mp-page-mtg-viewer');
   if(path==='/checklists'||path.indexOf('/card-checklists/')===0)classes.push('mp-page-checklists');
-  if(!classes.length)return;
   function mount(){
     if(!document.body)return;
     classes.forEach(function(className){document.body.classList.add(className);});
@@ -617,5 +719,9 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 else{init();}
 loadSitePolish();
 loadHomepageRedesign();
+enhanceCart();
+polishNavigation();
+polishShopInventory();
+polishFanClub();
 
 })();

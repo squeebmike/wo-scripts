@@ -40,8 +40,14 @@ function categorySlug(item){
   if(/sport|baseball|basketball|football|hockey/.test(category))return'sports-cards';
   if(/comic/.test(category))return'comics';
   if(/collectible|figure|toy/.test(category))return'collectibles';
-  if(/pokemon|pokémon|magic|mtg|tcg/.test(category))return'tcg';
+  if(/pokemon|pokémon/.test(category))return'pokemon';
+  if(/magic|mtg/.test(category))return'mtg';
+  if(/supply|sleeve|binder|toploader|playmat/.test(category))return'supplies';
   return'all';
+}
+
+function productHref(item){
+  return item&&item.id?'/shop?item='+encodeURIComponent(item.id):'/shop';
 }
 
 function money(value){
@@ -65,13 +71,15 @@ function sectionHead(kicker,title,copy,href,cta){
 
 function productCard(item){
   var card=el('article','mp-product-card');
+  var href=productHref(item);
   if(validImage(item)){
+    var imageLink=link('',href,'mp-product-image-link');
     var image=el('img','mp-product-image');
     image.src=item.image;
     image.alt=item.name||'Collectible';
     image.loading='lazy';
     image.decoding='async';
-    card.appendChild(image);
+    imageLink.appendChild(image);card.appendChild(imageLink);
   }else{
     var blank=el('div','mp-product-image');
     blank.setAttribute('aria-hidden','true');
@@ -79,7 +87,9 @@ function productCard(item){
   }
   var body=el('div','mp-product-body');
   body.appendChild(el('span','mp-card-kicker',item.category||'In the pocket'));
-  body.appendChild(el('h3','mp-product-name',item.name||'Inventory item'));
+  var title=el('h3','mp-product-name');
+  title.appendChild(link(item.name||'Inventory item',href,'mp-product-name-link'));
+  body.appendChild(title);
   var details=meta(item);
   if(details)body.appendChild(el('p','mp-product-meta',details));
   body.appendChild(el('div','mp-product-price',money(item.price)));
@@ -156,10 +166,12 @@ function fillHero(items){
 }
 
 var CATEGORY_CONFIG=[
-  {slug:'tcg',label:'Pokémon + TCG',meta:'Singles · sealed · Magic',href:'/shop?cat=tcg'},
+  {slug:'pokemon',label:'Pokémon',meta:'Singles · sealed · promos',href:'/shop?cat=pokemon'},
+  {slug:'mtg',label:'Magic: The Gathering',meta:'Singles · sealed · decks',href:'/shop?cat=mtg'},
   {slug:'sports-cards',label:'Sports',meta:'Baseball · basketball · football',href:'/shop?cat=sports-cards'},
   {slug:'comics',label:'Comics',meta:'Keys · variants · signed books',href:'/shop?cat=comics'},
-  {slug:'collectibles',label:'Collectibles',meta:'Slabs · figures · weird stuff',href:'/shop'}
+  {slug:'collectibles',label:'Collectibles',meta:'Figures · apparel · weird stuff',href:'/shop?cat=collectibles'},
+  {slug:'supplies',label:'Supplies',meta:'Sleeves · binders · protection',href:'/shop?cat=supplies'}
 ];
 
 function buildCategories(mount,items){
@@ -258,7 +270,7 @@ function renderPulled(section,items){
     body.appendChild(el('span','mp-card-kicker',index===0?'Featured pull':'Related from the case'));
     body.appendChild(el('h3','mp-feature-title',item.name));
     body.appendChild(el('p','mp-feature-copy',[item.category,meta(item),money(item.price)].filter(Boolean).join(' · ')));
-    body.appendChild(link('Find it in the shop →','/shop','mp-text-link'));
+    body.appendChild(link('Find it in the shop →',productHref(item),'mp-text-link'));
     card.appendChild(media);card.appendChild(body);
     grid.appendChild(card);
   });
