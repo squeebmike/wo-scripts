@@ -623,15 +623,73 @@ function enhanceCart(){
 }
 
 function polishNavigation(){
+  var SHOP_LINKS=[
+    {label:'All',href:'/shop',icon:'▦'},
+    {label:'Pokémon',href:'/shop?cat=pokemon',icon:'◉'},
+    {label:'MTG',href:'/shop?cat=mtg',icon:'✦'},
+    {label:'Comics',href:'/shop?cat=comics',icon:'▤'},
+    {label:'Supplies',href:'/shop?cat=supplies',icon:'▣'}
+  ];
+  function decorate(link,label,icon){
+    if(!link)return;
+    link.innerHTML='';
+    var image=document.createElement('span');image.className='mp-nav-icon';image.setAttribute('aria-hidden','true');image.textContent=icon;
+    var text=document.createElement('span');text.className='mp-nav-label';text.textContent=label;
+    link.appendChild(image);link.appendChild(text);
+  }
   function mount(){
-    var combined=document.querySelector('#navbarID a[href="/shop?cat=tcg"]');
-    if(combined&&!document.querySelector('#navbarID a[href="/shop?cat=mtg"]')){
-      var pokemon=combined;var magic=combined.cloneNode(true);
-      pokemon.href='/shop?cat=pokemon';pokemon.textContent='Pokémon';
-      magic.href='/shop?cat=mtg';magic.textContent='Magic: The Gathering';pokemon.after(magic);
+    var nav=document.getElementById('navbarID');if(!nav)return;
+    var toggles=nav.querySelectorAll('.navbar6_dropdown-toggle,.w-dropdown-toggle');
+    var shopDropdown=null;
+    Array.prototype.some.call(toggles,function(toggle){if(/shop/i.test(toggle.textContent)){shopDropdown=toggle.closest('.w-dropdown');return true;}return false;});
+    var list=shopDropdown&&shopDropdown.querySelector('.navbar6_dropdown-list,.w-dropdown-list');
+    if(list&&!list.dataset.mpRetooled){
+      var template=list.querySelector('a');
+      list.innerHTML='';
+      SHOP_LINKS.forEach(function(item){
+        var link=template?template.cloneNode(false):document.createElement('a');
+        if(!link.className)link.className='navbar6_dropdown-link w-dropdown-link';
+        link.href=item.href;decorate(link,item.label,item.icon);list.appendChild(link);
+      });
+      list.dataset.mpRetooled='true';
     }
+    var home=Array.prototype.find.call(nav.querySelectorAll('a'),function(link){return link.getAttribute('href')==='/';});decorate(home,'Home','⌂');
+    Array.prototype.forEach.call(nav.querySelectorAll('.navbar6_dropdown-link,.w-dropdown-link'),function(link){
+      if(link.querySelector('.mp-nav-icon'))return;
+      var label=link.textContent.trim();var icon=/pokemon/i.test(label)?'◉':/mtg|magic/i.test(label)?'✦':/publish/i.test(label)?'▤':/fan club/i.test(label)?'★':'•';decorate(link,label,icon);
+    });
   }
   if(document.body)mount();else document.addEventListener('DOMContentLoaded',mount,{once:true});
+}
+
+function polishCommerceDialogs(){
+  function fixDrawer(drawer){
+    if(!drawer||drawer.dataset.mpDrawerFixed)return;
+    drawer.dataset.mpDrawerFixed='true';
+    function correctClosedPosition(){
+      var right=parseFloat(drawer.style.right||'0');
+      var target=-(drawer.getBoundingClientRect().width+24);
+      if(right<0&&Math.abs(right-target)>1)drawer.style.right=target+'px';
+    }
+    correctClosedPosition();
+    new MutationObserver(correctClosedPosition).observe(drawer,{attributes:true,attributeFilter:['style']});
+    var checkout=drawer.querySelector('#wo-cart-checkout');if(checkout)checkout.textContent='Secure checkout →';
+  }
+  function scan(){
+    fixDrawer(document.getElementById('wo-cart-drawer'));
+    var detail=document.getElementById('wo-live-detail-overlay');
+    if(detail&&!detail.dataset.mpCloseReady){
+      detail.dataset.mpCloseReady='true';
+      var close=detail.querySelector('[data-wo-close-detail]');if(close){close.title='Close product details';close.textContent='×';}
+    }
+  }
+  if(document.body){scan();new MutationObserver(scan).observe(document.body,{childList:true,subtree:true});}
+  else document.addEventListener('DOMContentLoaded',function(){scan();new MutationObserver(scan).observe(document.body,{childList:true,subtree:true});},{once:true});
+  document.addEventListener('keydown',function(event){
+    if(event.key!=='Escape')return;
+    var detail=document.getElementById('wo-live-detail-overlay');if(detail){detail.remove();return;}
+    var close=document.getElementById('wo-cart-close');var drawer=document.getElementById('wo-cart-drawer');if(close&&drawer&&parseFloat(drawer.style.right||'0')===0)close.click();
+  });
 }
 
 function polishShopInventory(){
@@ -651,7 +709,7 @@ function polishShopInventory(){
     var host=document.getElementById('wo-live-shop');var select=host&&host.querySelector('.wo-store-control-field');var cards=host&&host.querySelectorAll('.wo-live-card');
     if(!select||!cards||!cards.length)return false;if(select.dataset.mpExactCategories)return true;
     select.dataset.mpExactCategories='true';
-    select.innerHTML='<option value="all">All categories</option><option value="pokemon">Pokémon</option><option value="mtg">Magic: The Gathering</option><option value="sports-cards">Sports Cards</option><option value="comics">Comics</option><option value="collectibles">Collectibles</option><option value="supplies">Supplies</option>';
+    select.innerHTML='<option value="all">All</option><option value="pokemon">Pokémon</option><option value="mtg">MTG</option><option value="comics">Comics</option><option value="supplies">Supplies</option>';
     var params=new URLSearchParams(location.search);var requested=canonical(params.get('cat'));var search=host.querySelector('.wo-store-search-field');
     if(requested!=='all')select.value=requested;
     function apply(){
@@ -721,6 +779,7 @@ loadSitePolish();
 loadHomepageRedesign();
 enhanceCart();
 polishNavigation();
+polishCommerceDialogs();
 polishShopInventory();
 polishFanClub();
 

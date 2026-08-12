@@ -526,6 +526,13 @@ function addStorefrontReveal(){
   shell.appendChild(copy);section.appendChild(shell);anchor.before(section);
 }
 
+function moveLegacyShowcaseToFooter(){
+  var footer=document.querySelector('.footer-section,.Footer,.footer');
+  var grid=document.querySelector('.instagram-grid');
+  var section=grid&&grid.closest('.section-3');
+  if(footer&&section)footer.before(section);
+}
+
 function showInventoryError(sections){
   [sections.fresh,sections.pulled,sections.caseSection].forEach(function(section){
     var loading=section.shell.querySelector('.mp-loading');
@@ -549,6 +556,7 @@ function init(){
   var sections=buildDynamicSections(categories);
   loadSchedule(sections.happening,broadcast);
   addStorefrontReveal();
+  moveLegacyShowcaseToFooter();
   fetch(API_BASE+'/api/inventory',{headers:{Accept:'application/json'}})
     .then(function(response){if(!response.ok)throw new Error('Inventory unavailable');return response.json();})
     .then(function(payload){
