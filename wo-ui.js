@@ -593,8 +593,29 @@ function loadHomepageRedesign(){
   script.src=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'homepage-redesign.js');
   document.head.appendChild(script);
 }
+function loadSitePolish(){
+  if(!WO_SCRIPT_SRC)return;
+  var path=location.pathname.replace(/\/$/,'')||'/';
+  var classes=[];
+  if(path==='/fan-club')classes.push('mp-page-fan-club');
+  if(path==='/pokemon-new-releases')classes.push('mp-page-card-viewer','mp-page-pokemon-viewer');
+  if(path==='/mtg-new-releases')classes.push('mp-page-card-viewer','mp-page-mtg-viewer');
+  if(path==='/checklists'||path.indexOf('/card-checklists/')===0)classes.push('mp-page-checklists');
+  if(!classes.length)return;
+  function mount(){
+    if(!document.body)return;
+    classes.forEach(function(className){document.body.classList.add(className);});
+    if(document.querySelector('link[data-mp-site-polish]'))return;
+    var link=document.createElement('link');
+    link.rel='stylesheet';link.setAttribute('data-mp-site-polish','');
+    link.href=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'site-polish.css');
+    document.head.appendChild(link);
+  }
+  if(document.body)mount();else document.addEventListener('DOMContentLoaded',mount,{once:true});
+}
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}
 else{init();}
+loadSitePolish();
 loadHomepageRedesign();
 
 })();

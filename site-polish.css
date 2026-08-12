@@ -1,0 +1,115 @@
+:root {
+  --mp-polish-page: var(--wo-bg, #0b1b22);
+  --mp-polish-panel: var(--wo-surface, #102b34);
+  --mp-polish-panel-alt: var(--wo-surface-alt, #163944);
+  --mp-polish-text: var(--wo-text, #f8f7f0);
+  --mp-polish-soft: var(--wo-text-sub, rgba(248,247,240,.72));
+  --mp-polish-line: var(--wo-border, rgba(255,255,255,.14));
+  --mp-polish-strong: var(--wo-border-strong, rgba(255,255,255,.28));
+  --mp-polish-action: var(--wo-button, #8edb12);
+  --mp-polish-action-copy: var(--wo-on-button, #071207);
+  --mp-polish-shadow: var(--wo-shadow, rgba(0,0,0,.35));
+}
+
+.mp-page-fan-club,
+.mp-page-card-viewer,
+.mp-page-checklists { background: var(--mp-polish-page); color: var(--mp-polish-text); overflow-x: clip; }
+
+/* Fan Club */
+.mp-page-fan-club > .section {
+  background: transparent !important;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: clamp(54px, 8vw, 110px) clamp(16px, 5vw, 64px) !important;
+}
+.mp-page-fan-club > .section:nth-of-type(even) { background: var(--mp-polish-panel-alt) !important; }
+.mp-page-fan-club .wrapper-intro { margin: 0 auto clamp(28px, 5vw, 54px) !important; max-width: 820px !important; width: 100% !important; }
+.mp-page-fan-club .wrapper-intro h1,
+.mp-page-fan-club .wrapper-intro h2 {
+  color: var(--mp-polish-text) !important;
+  font-family: Exo, system-ui, sans-serif !important;
+  font-size: clamp(40px, 7vw, 88px) !important;
+  letter-spacing: -.055em !important;
+  line-height: .92 !important;
+  margin: 0 0 18px !important;
+  text-wrap: balance;
+}
+.mp-page-fan-club .wrapper-intro p { color: var(--mp-polish-soft) !important; font-size: clamp(16px, 1.8vw, 20px) !important; line-height: 1.55 !important; margin: 0 auto !important; max-width: 720px; }
+.mp-page-fan-club .wo-tier-grid { display: grid !important; gap: clamp(16px, 3vw, 28px) !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; margin: 0 auto !important; max-width: 1040px !important; width: 100% !important; }
+.mp-page-fan-club .wo-tier-card {
+  background: var(--mp-polish-panel) !important;
+  border: 1px solid var(--mp-polish-line) !important;
+  border-radius: 22px !important;
+  box-shadow: 0 20px 56px var(--mp-polish-shadow);
+  color: var(--mp-polish-text) !important;
+  display: flex !important;
+  flex-direction: column;
+  gap: 14px;
+  height: auto !important;
+  margin: 0 auto !important;
+  max-width: 720px !important;
+  min-width: 0;
+  padding: clamp(24px, 4vw, 42px) !important;
+  width: 100% !important;
+}
+.mp-page-fan-club .wo-tier-card h3 { color: var(--mp-polish-text) !important; font-size: clamp(28px, 4vw, 46px) !important; margin: 0 !important; }
+.mp-page-fan-club .wo-tier-card p { color: var(--mp-polish-soft) !important; line-height: 1.55 !important; }
+.mp-page-fan-club .wo-email-input,
+.mp-page-fan-club .wo-amount-input { background: var(--mp-polish-page) !important; border: 1px solid var(--mp-polish-strong) !important; border-radius: 12px !important; color: var(--mp-polish-text) !important; font-size: 16px !important; height: 50px !important; min-width: 0 !important; width: 100% !important; }
+.mp-page-fan-club .wo-amount-row { align-items: center; display: grid !important; gap: 8px; grid-template-columns: auto minmax(0, 1fr) auto; }
+.mp-page-fan-club .wo-tier-button,
+.mp-page-fan-club .wo-pledge-preset-btn { background: var(--mp-polish-action) !important; border-radius: 999px !important; color: var(--mp-polish-action-copy) !important; font-weight: 900 !important; min-height: 48px; text-align: center; }
+.mp-page-fan-club .wo-pledge-presets { display: grid !important; gap: 10px !important; grid-template-columns: repeat(3, 1fr); }
+
+/* Pokémon and MTG set viewers */
+.mp-page-card-viewer .page-wrapper { height: auto !important; min-height: 0 !important; padding: 0 !important; }
+.mp-page-card-viewer .content-wrapper.bluebg.mtg { background: var(--mp-polish-page) !important; height: auto !important; margin: 0 !important; max-width: none !important; min-height: calc(100svh - 64px) !important; padding: clamp(28px, 5vw, 72px) 0 !important; width: 100% !important; }
+.mp-page-card-viewer .swiper-section,
+.mp-page-card-viewer .container.w-container { height: auto !important; margin: 0 auto !important; max-width: none !important; padding: 0 !important; width: 100% !important; }
+.mp-page-card-viewer .wposb-root,
+.mp-page-card-viewer .womtg-root { color: var(--mp-polish-text) !important; font-family: Exo, system-ui, sans-serif !important; }
+.mp-page-card-viewer .wposb-wrap,
+.mp-page-card-viewer .womtg-wrap { margin: 0 auto !important; max-width: 1440px !important; padding: 0 clamp(16px, 5vw, 64px) !important; }
+.mp-page-card-viewer .wposb-set-row,
+.mp-page-card-viewer .womtg-set-row { background: var(--mp-polish-panel) !important; border-color: var(--mp-polish-line) !important; border-radius: 18px !important; box-shadow: 0 16px 44px var(--mp-polish-shadow); gap: 12px !important; margin-bottom: 20px !important; padding: 14px !important; position: sticky; top: 74px; z-index: 20; }
+.mp-page-card-viewer :is(.wposb-set-row,.womtg-set-row) :is(select,input) { border-color: var(--mp-polish-strong) !important; border-radius: 12px !important; font-size: 16px !important; min-width: 0 !important; }
+.mp-page-card-viewer :is(.wposb-cards-area,.womtg-cards-area) { gap: clamp(12px, 2vw, 20px) !important; grid-template-columns: repeat(auto-fill, minmax(clamp(150px, 19vw, 260px), 1fr)) !important; }
+.mp-page-card-viewer :is(.wposb-card,.womtg-card) { border-color: var(--mp-polish-line) !important; border-radius: 16px !important; box-shadow: 0 14px 38px var(--mp-polish-shadow); min-width: 0; }
+.mp-page-card-viewer :is(.wposb-card-img-wrap,.womtg-card-img-wrap) { max-height: min(52svh, 460px); }
+.mp-page-card-viewer :is(.wposb-card-name,.womtg-card-name) { font-size: 14px !important; overflow-wrap: anywhere; }
+.mp-page-card-viewer :is(.wposb-tbl-wrap,.womtg-tbl-wrap) { max-width: 100%; overflow: auto; }
+
+/* Checklist landing and detail viewers */
+.mp-page-checklists > .shop-hero-section + .shop-hero-section { display: none !important; }
+.mp-page-checklists > .shop-hero-section { background: var(--mp-polish-panel-alt) !important; height: auto !important; min-height: 0 !important; padding: clamp(48px, 7vw, 92px) clamp(16px, 5vw, 64px) !important; }
+.mp-page-checklists .shop-hero-title { color: var(--mp-polish-text) !important; font-size: clamp(40px, 7vw, 84px) !important; letter-spacing: -.055em !important; line-height: .92 !important; }
+.mp-page-checklists .paragraph-detials-large { color: var(--mp-polish-soft) !important; font-size: clamp(16px, 1.8vw, 20px) !important; line-height: 1.5 !important; }
+.mp-page-checklists .filter-bar { display: flex !important; flex-wrap: wrap !important; gap: 10px !important; justify-content: center; }
+.mp-page-checklists .filter-bar .btn { flex: 0 1 auto; margin: 0 !important; min-height: 44px; }
+.mp-page-checklists .checklist-grid { display: grid !important; gap: clamp(14px, 2.5vw, 24px) !important; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)) !important; height: auto !important; margin: 0 auto !important; max-width: 1440px !important; min-height: 0 !important; padding: clamp(40px, 6vw, 80px) clamp(16px, 5vw, 64px) !important; width: 100% !important; }
+.mp-page-checklists .checklist-card { background: var(--mp-polish-panel) !important; border: 1px solid var(--mp-polish-line) !important; border-radius: 18px !important; box-shadow: 0 16px 42px var(--mp-polish-shadow); color: var(--mp-polish-text) !important; height: auto !important; min-height: 220px; min-width: 0; padding: clamp(22px, 3vw, 32px) !important; }
+.mp-page-checklists .checklist-card__title { color: var(--mp-polish-text) !important; font-size: clamp(22px, 2.5vw, 32px) !important; overflow-wrap: anywhere; }
+.mp-page-checklists .checklist-card__meta,
+.mp-page-checklists .checklist-count { color: var(--mp-polish-soft) !important; }
+.mp-page-checklists :is(table,.table-wrapper,[class*="table"]) { max-width: 100%; }
+.mp-page-checklists :is(.table-wrapper,[class*="table-wrap"]) { overflow-x: auto; }
+
+@media (max-width: 700px) {
+  .mp-page-fan-club .wo-tier-grid { grid-template-columns: 1fr !important; }
+  .mp-page-card-viewer .content-wrapper.bluebg.mtg { padding-top: 22px !important; }
+  .mp-page-card-viewer .wposb-set-row,
+  .mp-page-card-viewer .womtg-set-row { position: static; }
+  .mp-page-card-viewer :is(.wposb-set-row,.womtg-set-row) :is(select,input) { flex-basis: 100% !important; width: 100% !important; }
+  .mp-page-card-viewer :is(.wposb-cards-area,.womtg-cards-area) { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .mp-page-checklists .filter-bar { flex-wrap: nowrap !important; justify-content: flex-start; overflow-x: auto; padding-bottom: 8px; }
+  .mp-page-checklists .filter-bar .btn { flex: 0 0 auto; }
+}
+
+@media (max-width: 430px) {
+  .mp-page-card-viewer :is(.wposb-cards-area,.womtg-cards-area) { grid-template-columns: 1fr !important; }
+  .mp-page-fan-club .wo-amount-row { grid-template-columns: auto minmax(0, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-page-fan-club *, .mp-page-card-viewer *, .mp-page-checklists * { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}

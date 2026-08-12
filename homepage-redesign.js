@@ -233,23 +233,63 @@ function renderFresh(section,items){
 
 function renderPulled(section,items){
   var old=section.shell.querySelector('.mp-loading');if(old)old.remove();
-  var candidates=items.filter(function(item){return validImage(item)&&!item.isSealed;}).sort(function(a,b){return Number(b.price||0)-Number(a.price||0);}).slice(0,2);
+  function editorialScore(item){
+    var words=[item.name,item.category,item.set,item.variant].join(' ').toLowerCase();
+    var score=Number(item.price||0);
+    if(/single|card|comic|original art|sketch|signed|graded|slab|rare|variant/.test(words))score+=160;
+    if(/box|bundle|display|collection|deck|pack|sealed|case/.test(words))score-=220;
+    if(item.isSealed===true||String(item.isSealed).toLowerCase()==='true')score-=260;
+    return score;
+  }
+  var candidates=items.filter(validImage).sort(function(a,b){return editorialScore(b)-editorialScore(a);}).slice(0,2);
   var grid=el('div','mp-pull-grid');
   candidates.forEach(function(item,index){
     var card=el('article','mp-feature');
-    var image=el('img');image.src=item.image;image.alt=item.name||'Featured card';image.loading='lazy';card.appendChild(image);
-    card.appendChild(el('span','mp-card-kicker',index===0?'Featured pull':'Related from the case'));
-    card.appendChild(el('h3','mp-feature-title',item.name));
-    card.appendChild(el('p','mp-feature-copy',[item.category,meta(item),money(item.price)].filter(Boolean).join(' · ')));
-    card.appendChild(link('Find it in the shop →','/shop','mp-text-link'));
+    var media=el('div','mp-feature-media');
+    var image=el('img');image.src=item.image;image.alt=item.name||'Featured card';image.loading='lazy';media.appendChild(image);
+    var body=el('div','mp-feature-body');
+    body.appendChild(el('span','mp-card-kicker',index===0?'Featured pull':'Related from the case'));
+    body.appendChild(el('h3','mp-feature-title',item.name));
+    body.appendChild(el('p','mp-feature-copy',[item.category,meta(item),money(item.price)].filter(Boolean).join(' · ')));
+    body.appendChild(link('Find it in the shop →','/shop','mp-text-link'));
+    card.appendChild(media);card.appendChild(body);
     grid.appendChild(card);
   });
-  var social=link('','https://whatnot.com/invite/walkoffsportscards','mp-feature');
-  social.appendChild(el('span','mp-card-kicker','Live pulls'));
-  social.appendChild(el('h3','mp-feature-title','Watch the next one happen.'));
-  social.appendChild(el('p','mp-feature-copy','Follow The Mana Pocket for live sales, breaks, and the hits worth yelling about.'));
-  social.appendChild(el('span','mp-text-link','Watch on Whatnot →'));
+  var social=link('','https://whatnot.com/invite/walkoffsportscards','mp-feature mp-feature--social');
+  var socialBody=el('div','mp-feature-body');
+  socialBody.appendChild(el('span','mp-card-kicker','Live pulls'));
+  socialBody.appendChild(el('h3','mp-feature-title','Watch the next one happen.'));
+  socialBody.appendChild(el('p','mp-feature-copy','Follow The Mana Pocket for live sales, breaks, and the hits worth yelling about.'));
+  socialBody.appendChild(el('span','mp-text-link','Watch on Whatnot →'));
+  social.appendChild(socialBody);
   grid.appendChild(social);section.shell.appendChild(grid);
+}
+
+function isArtItem(item){
+  var words=[item.name,item.category,item.set,item.variant].join(' ').toLowerCase();
+  return /original art|original drawing|art print|artist print|poster|sketch|commission/.test(words);
+}
+
+function renderOriginalArt(items){
+  var section=document.querySelector('.art-section-bg');
+  var inner=section&&section.querySelector('.art-section-inner');
+  if(!section||!inner||inner.querySelector('.mp-art-showcase'))return;
+  section.classList.add('mp-art-live');
+  var showcase=el('div','mp-art-showcase');
+  var artItems=items.filter(function(item){return validImage(item)&&isArtItem(item);}).slice(0,3);
+  if(artItems.length){
+    showcase.appendChild(el('span','mp-section-kicker','Available now'));
+    var grid=el('div','mp-art-grid');
+    artItems.forEach(function(item){grid.appendChild(productCard(item));});
+    showcase.appendChild(grid);
+  }else{
+    showcase.classList.add('mp-art-showcase--fallback');
+    showcase.appendChild(el('span','mp-section-kicker','From Shawn Warner'));
+    showcase.appendChild(el('h3','mp-art-fallback-title','Originals, prints, and work in progress.'));
+    showcase.appendChild(el('p','mp-section-copy','See current work and available releases in the art gallery.'));
+    showcase.appendChild(link('Browse the gallery →','/shawnwarnerart','mp-text-link'));
+  }
+  inner.appendChild(showcase);
 }
 
 function isCaseItem(item){
@@ -305,6 +345,7 @@ function init(){
       renderFresh(sections.fresh,items);
       renderPulled(sections.pulled,items);
       renderCase(sections.caseSection,items);
+      renderOriginalArt(items);
     })
     .catch(function(){showInventoryError(sections);});
 }
