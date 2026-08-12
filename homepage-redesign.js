@@ -135,7 +135,14 @@ function buildHero(mount){
 function fillHero(items){
   var heroImages=[];
   if(CONFIG.heroImage)heroImages.push({image:CONFIG.heroImage,name:CONFIG.heroImageAlt||'The Mana Pocket'});
-  items.filter(validImage).forEach(function(item){if(heroImages.length<3)heroImages.push(item);});
+  var candidates=items.filter(validImage);
+  var featured=candidates.filter(function(item){
+    return !/hat|cap|shirt|apparel|playmat|sleeve|binder|toploader|supply/i.test([item.name,item.category].join(' '));
+  });
+  featured.concat(candidates).forEach(function(item){
+    if(heroImages.length>=3||heroImages.some(function(existing){return existing.image===item.image;}))return;
+    heroImages.push(item);
+  });
   var slots=[document.querySelector('[data-mp-hero-main]')].concat(Array.prototype.slice.call(document.querySelectorAll('[data-mp-hero-mini]')));
   slots.forEach(function(slot,index){
     if(!slot||!heroImages[index])return;
