@@ -623,22 +623,25 @@ function enhanceCart(){
 }
 
 function polishNavigation(){
+  var BRAND_LOGO='https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/6a7277b68122bcc9cf4797bf_themanapocket.avif';
   var SHOP_LINKS=[
-    {label:'All',href:'/shop',icon:'▦'},
-    {label:'Pokémon',href:'/shop?cat=pokemon',icon:'◉'},
-    {label:'MTG',href:'/shop?cat=mtg',icon:'✦'},
-    {label:'Comics',href:'/shop?cat=comics',icon:'▤'},
-    {label:'Supplies',href:'/shop?cat=supplies',icon:'▣'}
+    {label:'All',href:'/shop',image:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/6a7ce98ab3d4819b7565620e_the_mana_pocket_patch_1024x1024.png'},
+    {label:'Pokémon',href:'/shop?cat=pokemon',image:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/689f7d4e323d21e1f5fd4f0a_7f0af31d1c71d4f418c4a40e5c7b01af_ChatGPT%20Image%20Aug%2015%2C%202025%2C%2011_21_43%20AM.avif'},
+    {label:'MTG',href:'/shop?cat=mtg',image:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/68a0baf7223f7db62edacddc_spiderman-mtg.avif'},
+    {label:'Comics',href:'/shop?cat=comics',image:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/68a0b6a91a953b87bd662a27_walk-off-comics.avif'},
+    {label:'Supplies',href:'/shop?cat=supplies',image:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/660ba51ad445f22b83625c86_Walk-off-sportscards-toploader.webp'}
   ];
-  function decorate(link,label,icon){
+  function decorate(link,label,imageSrc){
     if(!link)return;
     link.innerHTML='';
-    var image=document.createElement('span');image.className='mp-nav-icon';image.setAttribute('aria-hidden','true');image.textContent=icon;
+    var image=document.createElement('img');image.className='mp-nav-icon';image.alt='';image.src=imageSrc||BRAND_LOGO;
     var text=document.createElement('span');text.className='mp-nav-label';text.textContent=label;
     link.appendChild(image);link.appendChild(text);
   }
   function mount(){
     var nav=document.getElementById('navbarID');if(!nav)return;
+    var brand=nav.querySelector('.w-nav-brand');
+    if(brand){brand.innerHTML='';brand.setAttribute('aria-label','The Mana Pocket home');var brandImage=document.createElement('img');brandImage.className='mp-nav-brand-image';brandImage.src=BRAND_LOGO;brandImage.alt='The Mana Pocket';brand.appendChild(brandImage);}
     var toggles=nav.querySelectorAll('.navbar6_dropdown-toggle,.w-dropdown-toggle');
     var shopDropdown=null;
     Array.prototype.some.call(toggles,function(toggle){if(/shop/i.test(toggle.textContent)){shopDropdown=toggle.closest('.w-dropdown');return true;}return false;});
@@ -649,14 +652,14 @@ function polishNavigation(){
       SHOP_LINKS.forEach(function(item){
         var link=template?template.cloneNode(false):document.createElement('a');
         if(!link.className)link.className='navbar6_dropdown-link w-dropdown-link';
-        link.href=item.href;decorate(link,item.label,item.icon);list.appendChild(link);
+        link.href=item.href;decorate(link,item.label,item.image);list.appendChild(link);
       });
       list.dataset.mpRetooled='true';
     }
-    var home=Array.prototype.find.call(nav.querySelectorAll('a'),function(link){return link.getAttribute('href')==='/';});decorate(home,'Home','⌂');
+    var home=Array.prototype.find.call(nav.querySelectorAll('a:not(.w-nav-brand)'),function(link){return link.getAttribute('href')==='/';});decorate(home,'Home',BRAND_LOGO);
     Array.prototype.forEach.call(nav.querySelectorAll('.navbar6_dropdown-link,.w-dropdown-link'),function(link){
       if(link.querySelector('.mp-nav-icon'))return;
-      var label=link.textContent.trim();var icon=/pokemon/i.test(label)?'◉':/mtg|magic/i.test(label)?'✦':/publish/i.test(label)?'▤':/fan club/i.test(label)?'★':'•';decorate(link,label,icon);
+      var label=link.textContent.trim();var image=/pokemon/i.test(label)?SHOP_LINKS[1].image:/mtg|magic/i.test(label)?SHOP_LINKS[2].image:/publish|comic/i.test(label)?SHOP_LINKS[3].image:BRAND_LOGO;decorate(link,label,image);
     });
   }
   if(document.body)mount();else document.addEventListener('DOMContentLoaded',mount,{once:true});

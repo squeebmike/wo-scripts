@@ -26,9 +26,13 @@
 #navbarID .navbar6_menu-left,
 #navbarID .navbar6_menu-right {
   align-items: center !important;
-  justify-content: center !important;
 }
-#navbarID .navbar6_menu { margin-inline: auto !important; }
+#navbarID .navbar6_container { justify-content: space-between !important; }
+#navbarID .navbar6_menu { flex: 1 1 auto; justify-content: center !important; margin-inline: auto !important; }
+#navbarID .navbar6_menu-left { justify-content: center !important; }
+#navbarID .navbar6_menu-right { justify-content: flex-end !important; }
+#navbarID .w-nav-brand { align-items: center !important; display: flex !important; flex: 0 0 auto; justify-content: flex-start !important; min-height: 64px; min-width: clamp(112px, 13vw, 170px); }
+.mp-nav-brand-image { display: block; height: clamp(52px, 6vw, 72px); object-fit: contain; object-position: left center; width: clamp(108px, 12vw, 160px); }
 #navbarID :is(.navbar6_link,.navbar6_dropdown-toggle,.navbar6_dropdown-link) {
   align-items: center;
   display: flex;
@@ -36,7 +40,7 @@
   justify-content: center;
   text-align: center;
 }
-.mp-nav-icon { align-items: center; display: inline-flex; flex: 0 0 24px; font-size: 19px; height: 24px; justify-content: center; line-height: 1; width: 24px; }
+.mp-nav-icon { background: var(--mp-polish-panel); border: 1px solid var(--mp-polish-line); border-radius: 8px; display: block; flex: 0 0 34px; height: 34px; object-fit: cover; width: 34px; }
 .mp-nav-label { min-width: 0; }
 #mp-floating-cart {
   align-items: center;
@@ -187,6 +191,9 @@
 }
 
 @media (max-width: 991px) {
+  #navbarID .navbar6_container { justify-content: space-between !important; }
+  #navbarID .w-nav-brand { min-width: 112px; }
+  .mp-nav-brand-image { height: 56px; width: 118px; }
   #navbarID .navbar6_menu.w--open { align-items: center !important; background: var(--wo-nav-bg) !important; border: 0 !important; box-shadow: none !important; box-sizing: border-box; color: var(--wo-on-nav) !important; display: flex !important; flex-direction: column; margin-inline: auto !important; max-width: 760px; outline: 0 !important; overflow-x: hidden !important; padding: 16px clamp(14px, 4vw, 26px) 24px !important; width: 100% !important; }
   #navbarID .navbar6_menu-left { align-items: center !important; display: flex !important; flex-direction: column !important; gap: 8px; width: 100% !important; }
   #navbarID .navbar6_menu-right { align-items: center !important; display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; gap: 10px; justify-content: center !important; width: 100% !important; }
