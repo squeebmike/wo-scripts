@@ -684,7 +684,7 @@
   .mp-broadcast { min-height: calc(100svh - var(--nav-height, 64px)); }
   .mp-broadcast-shell { min-height: calc(100svh - var(--nav-height, 64px)); padding-bottom: 40px; padding-top: 48px; }
   .mp-storefront-backdrop { object-position: left center !important; }
-  .mp-broadcast { background-attachment: scroll; background-position: 36% center; }
+  .mp-broadcast { background-attachment: fixed !important; background-position: 36% center; }
   .mp-broadcast-shade { background: linear-gradient(0deg, var(--mp-hero), transparent 52%); opacity: .24; }
   .mp-broadcast--offair + .woh-hero { border-radius: 22px 22px 0 0; margin-top: 0; }
   .mp-broadcast-title { font-size: clamp(42px, 13vw, 62px); }
