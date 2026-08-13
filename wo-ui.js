@@ -754,9 +754,8 @@ function polishNavigation(){
   }
   function buildDesktopShop(list,items){
     if(!list)return;list.innerHTML='';list.classList.add('mp-counter-menu','mp-counter-menu--shop');list.id='mp-shop-counter-menu';
-    var header=document.createElement('div');header.className='mp-counter-head';header.innerHTML='<span>THE GLASS CASE</span><strong>What are you hunting?</strong>';list.appendChild(header);
+    var header=document.createElement('div');header.className='mp-counter-head';header.innerHTML='<strong>What are you hunting?</strong>';list.appendChild(header);
     var grid=document.createElement('div');grid.className='mp-counter-grid';SHOP_LINKS.forEach(function(item){grid.appendChild(buildShopZone(item,items,false));});list.appendChild(grid);
-    var rail=document.createElement('div');rail.className='mp-counter-rail';rail.setAttribute('aria-hidden','true');rail.innerHTML='<span>CASE 01</span><i></i><b>\u25cf</b>';list.appendChild(rail);
   }
   function buildDesktopCool(list,items){
     if(!list)return;list.innerHTML='';list.classList.add('mp-counter-menu','mp-counter-menu--cool');list.id='mp-cool-counter-menu';
@@ -767,16 +766,10 @@ function polishNavigation(){
       var copy=document.createElement('span');copy.className='mp-counter-copy';var strong=document.createElement('strong');strong.textContent=item.label;copy.appendChild(strong);var meta=document.createElement('span');meta.textContent=item.meta;copy.appendChild(meta);link.appendChild(copy);grid.appendChild(link);
     });list.appendChild(grid);
   }
-  function searchForm(className){
-    var form=document.createElement('form');form.className=className;form.action='/shop';form.method='get';form.setAttribute('role','search');
-    var label=document.createElement('label');label.className='mp-sr-only';label.textContent='Search the shop';var input=document.createElement('input');input.type='search';input.name='q';input.placeholder='Search the shop';input.autocomplete='off';label.appendChild(input);form.appendChild(label);
-    var button=document.createElement('button');button.type='submit';button.setAttribute('aria-label','Search the shop');button.innerHTML='<span aria-hidden="true">\u2315</span><span>Search</span>';form.appendChild(button);return form;
-  }
   function buildMobileDrawer(nav,menu,coolItems,items){
     var old=menu.querySelector('[data-mp-mobile-drawer]');if(old)old.remove();
     var drawer=document.createElement('div');drawer.className='mp-mobile-drawer';drawer.setAttribute('data-mp-mobile-drawer','');drawer.setAttribute('aria-label','The Counter navigation');
     var head=document.createElement('div');head.className='mp-mobile-drawer-head';var logo=document.createElement('img');logo.src=BRAND_LOGO;logo.alt='The Mana Pocket';head.appendChild(logo);var headCopy=document.createElement('div');headCopy.innerHTML='<span>THE COUNTER</span><strong>What are you hunting?</strong>';head.appendChild(headCopy);var close=document.createElement('button');close.type='button';close.className='mp-mobile-drawer-close';close.setAttribute('aria-label','Close navigation');close.textContent='\u00d7';head.appendChild(close);drawer.appendChild(head);
-    drawer.appendChild(searchForm('mp-mobile-search'));
     var caseGrid=document.createElement('div');caseGrid.className='mp-mobile-case-grid';SHOP_LINKS.filter(function(item){return item.slug!=='all';}).forEach(function(item){caseGrid.appendChild(buildShopZone(item,items,true));});drawer.appendChild(caseGrid);
     var all=document.createElement('a');all.className='mp-mobile-view-all';all.href=SHOP_LINKS[0].href;all.textContent='View everything in the shop \u2192';drawer.appendChild(all);
     var coolTitle=document.createElement('h2');coolTitle.textContent='Cool stuff at the register';drawer.appendChild(coolTitle);
@@ -800,7 +793,7 @@ function polishNavigation(){
     var brand=nav.querySelector('.w-nav-brand');if(brand){brand.innerHTML='';brand.setAttribute('aria-label','The Mana Pocket home');var brandImage=document.createElement('img');brandImage.className='mp-nav-brand-image';brandImage.src=BRAND_LOGO;brandImage.alt='The Mana Pocket';brand.appendChild(brandImage);}
     var dropdowns=Array.prototype.slice.call(nav.querySelectorAll('.navbar6_menu-dropdown,.w-dropdown'));var shopDropdown=dropdowns.find(function(dropdown){var toggle=dropdown.querySelector('.w-dropdown-toggle');return/shop/i.test(toggle&&toggle.textContent||'');});var coolDropdown=dropdowns.find(function(dropdown){var toggle=dropdown.querySelector('.w-dropdown-toggle');return/cool stuff/i.test(toggle&&toggle.textContent||'');});
     var coolItems=preserveRoutes(coolDropdown,COOL_LINKS);var shopItems=preserveRoutes(shopDropdown,SHOP_LINKS);SHOP_LINKS=shopItems;var shopList=shopDropdown&&shopDropdown.querySelector('.w-dropdown-list');var coolList=coolDropdown&&coolDropdown.querySelector('.w-dropdown-list');buildDesktopShop(shopList,[]);buildDesktopCool(coolList,coolItems);
-    var menu=nav.querySelector('.w-nav-menu');if(menu){var right=menu.querySelector('.navbar6_menu-right');if(right&&!right.querySelector('.mp-desktop-search'))right.insertBefore(searchForm('mp-desktop-search'),right.firstChild);buildMobileDrawer(nav,menu,coolItems,[]);}
+    var menu=nav.querySelector('.w-nav-menu');if(menu)buildMobileDrawer(nav,menu,coolItems,[]);
     wireDropdown(shopDropdown,'shop');wireDropdown(coolDropdown,'cool');
     getManaPocketInventory().then(function(items){buildDesktopShop(shopList,items);buildDesktopCool(coolList,coolItems);if(menu)buildMobileDrawer(nav,menu,coolItems,items);}).catch(function(){});
     document.addEventListener('keydown',function(event){if(event.key!=='Escape')return;dropdowns.forEach(function(dropdown){var toggle=dropdown.querySelector('.w-dropdown-toggle');var list=dropdown.querySelector('.w-dropdown-list');dropdown.dataset.mpClickOpen='false';if(toggle&&list&&list.classList.contains('w--open')){list.classList.remove('w--open');toggle.classList.remove('w--open');toggle.setAttribute('aria-expanded','false');toggle.focus();}});var menuButton=nav.querySelector('.w-nav-button.w--open');if(menuButton)menuButton.click();document.body.classList.remove('mp-mobile-nav-open');});

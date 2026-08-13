@@ -141,6 +141,7 @@ function buildBroadcastStage(hero){
   backdrop.setAttribute('aria-hidden','true');
   var stage=el('section','mp-broadcast mp-broadcast--offair');stage.id='pocket-live';
   var media=el('div','mp-broadcast-media');
+  media.appendChild(backdrop);
   var shade=el('div','mp-broadcast-shade');media.appendChild(shade);
   var shell=el('div','mp-shell mp-broadcast-shell');
   var copy=el('div','mp-broadcast-copy');
