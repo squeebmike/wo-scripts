@@ -239,13 +239,15 @@
   color: var(--wo-text) !important;
   display: none;
   left: 0 !important;
-  max-height: calc(100dvh - var(--nav-height, 82px) - 16px) !important;
+  max-height: calc(100dvh - var(--nav-height, 82px) - 6px) !important;
   max-width: none !important;
   overflow: auto !important;
   padding: clamp(20px, 2.3vw, 34px) !important;
   position: fixed !important;
   right: 0 !important;
-  top: var(--nav-height, 82px) !important;
+  /* Tuck the drawer under the fixed nav so the pointer never crosses a
+     hover dead zone between the toggle and the glass counter. */
+  top: calc(var(--nav-height, 82px) - 10px) !important;
   width: 100vw !important;
   z-index: 9997 !important;
 }
