@@ -196,7 +196,8 @@
   #navbarID .navbar6_container { justify-content: space-between !important; }
   #navbarID .w-nav-brand { min-width: 112px; }
   .mp-nav-brand-image { height: 56px; width: 118px; }
-  #navbarID .navbar6_menu.w--open { align-items: center !important; background: var(--wo-nav-bg) !important; border: 0 !important; box-shadow: none !important; box-sizing: border-box; color: var(--wo-on-nav) !important; display: flex !important; flex-direction: column; margin-inline: auto !important; max-width: 760px; outline: 0 !important; overflow-x: hidden !important; padding: 16px clamp(14px, 4vw, 26px) 24px !important; width: 100% !important; }
+  #navbarID .navbar6_menu { display: none !important; inset: auto; position: static; }
+  #navbarID .navbar6_menu[data-nav-menu-open] { align-items: center !important; background: var(--wo-nav-bg) !important; border: 0 !important; box-shadow: none !important; box-sizing: border-box; color: var(--wo-on-nav) !important; display: flex !important; flex-direction: column; margin-inline: auto !important; max-width: 760px; outline: 0 !important; overflow-x: hidden !important; padding: 16px clamp(14px, 4vw, 26px) 24px !important; width: 100% !important; }
   #navbarID .navbar6_menu-left { align-items: center !important; display: flex !important; flex-direction: column !important; gap: 8px; width: 100% !important; }
   #navbarID .navbar6_menu-left { left: auto; position: static; translate: none; }
   #navbarID .navbar6_menu-right { align-items: center !important; display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; gap: 10px; justify-content: center !important; width: 100% !important; }
