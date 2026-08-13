@@ -290,6 +290,15 @@
   padding: 0;
 }
 
+/* These blocks live outside .page-content, whose stacking context sits at 10.
+   Lift the opaque showcase and receipt above it so the fixed storefront can
+   show through the deliberate reveal, but never through the content/footer. */
+.mp-home-redesign .section-3,
+.mp-home-redesign .footer-section,
+.mp-home-redesign .footer {
+  z-index: 12;
+}
+
 /* The nostalgia story is normal page content, not another storefront reveal.
    Keep its theme background fully opaque above the fixed opening image. */
 .mp-home-redesign .mp-editorial {
