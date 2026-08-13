@@ -623,7 +623,7 @@ function enhanceCart(){
 }
 
 function polishNavigation(){
-  var BRAND_LOGO='https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/6a7277b68122bcc9cf4797bf_themanapocket.avif';
+  var BRAND_LOGO='https://cdn.prod.website-files.com/65b15ee0228d06647ca7e4ce/6a7a2363da766fb28cde6a6d_the_mana_pocket_patch_1024.avif';
   var SHOP_LINKS=[
     {label:'All',href:'/shop',image:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/6a7ce98ab3d4819b7565620e_the_mana_pocket_patch_1024x1024.png'},
     {label:'Pokémon',href:'/shop?cat=pokemon',image:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/689f7d4e323d21e1f5fd4f0a_7f0af31d1c71d4f418c4a40e5c7b01af_ChatGPT%20Image%20Aug%2015%2C%202025%2C%2011_21_43%20AM.avif'},
