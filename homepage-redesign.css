@@ -299,6 +299,18 @@
   z-index: 12;
 }
 
+/* Webflow's original-art and publishing blocks sit after .page-content.
+   The fixed storefront lives inside page-content's z-10 context, so these
+   siblings must be lifted above it or the photo visually paints over their
+   ShatterKid and Bone Grice content. */
+.mp-home-redesign .page-wrapper-2 > .art-section-bg,
+.mp-home-redesign .page-wrapper-2 > .hp-pub-section,
+.mp-home-redesign .page-wrapper-2 > .w-dyn-list {
+  isolation: isolate;
+  position: relative;
+  z-index: 12;
+}
+
 /* The nostalgia story is normal page content, not another storefront reveal.
    Keep its theme background fully opaque above the fixed opening image. */
 .mp-home-redesign .mp-editorial {
@@ -670,7 +682,9 @@
   min-height: min(760px, 78svh);
   overflow: hidden;
   position: relative;
-  z-index: 1;
+  /* Above page-content's fixed image, while its transparent background still
+     reveals that image. This keeps the show copy readable and clickable. */
+  z-index: 11;
 }
 .mp-storefront-reveal::before { background: linear-gradient(180deg, var(--mp-hero), transparent 34%, transparent 68%, var(--mp-hero)); content: ''; inset: 0; opacity: .72; pointer-events: none; position: absolute; }
 .mp-storefront-reveal-shell { align-items: end; display: flex; min-height: min(760px, 78svh); padding-bottom: clamp(54px, 8vw, 100px); }
