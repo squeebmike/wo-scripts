@@ -82,6 +82,7 @@
 .mp-broadcast-title { color: inherit !important; font-family: Exo, system-ui, sans-serif; font-size: clamp(48px, 7vw, 108px); font-weight: 950; letter-spacing: -.065em; line-height: .86; margin: 0; max-width: 980px; text-transform: uppercase; }
 .mp-broadcast-text { color: inherit !important; font-size: clamp(17px, 1.7vw, 22px); line-height: 1.5; margin: 24px 0 0; max-width: 660px; opacity: .82; }
 .mp-broadcast--offair + .woh-hero { border-radius: 34px 34px 0 0; box-shadow: 0 -26px 64px var(--mp-shadow); margin-top: 0; z-index: 3; }
+.mp-broadcast--inperson + .woh-hero { border-radius: 34px 34px 0 0; box-shadow: 0 -26px 64px var(--mp-shadow); margin-top: 0; z-index: 3; }
 .mp-broadcast--live { min-height: 0; }
 .mp-broadcast--live .mp-broadcast-media { display: none; }
 .mp-broadcast--live .mp-broadcast-shell { align-items: center; display: grid; gap: clamp(28px, 5vw, 70px); grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); min-height: 0; padding-block: clamp(46px, 7vw, 96px); }

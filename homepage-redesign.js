@@ -33,6 +33,60 @@ function link(text,href,className){
   return node;
 }
 
+function mapsHref(event){
+  if(event&&event.mapsUrl)return event.mapsUrl;
+  var location=String(event&&event.location||'').trim();
+  return location?'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(location):'';
+}
+
+function embedHref(url){
+  url=String(url||'').trim();if(!url)return'';
+  var match=url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|live\/|shorts\/|embed\/))([\w-]{6,})/i);
+  if(match)return'https://www.youtube.com/embed/'+match[1]+'?autoplay=1';
+  return/\/embed\//i.test(url)?url:'';
+}
+
+function isOnlineEvent(event){
+  return Boolean(event&&(event.online===true||/online|livestream|whatnot|youtube|twitch/i.test([event.type,event.kicker].join(' '))));
+}
+
+function eventMoment(event,kind){
+  if(!event)return null;
+  var value=kind==='start'?(event.start||event.startsAt||event.startDate):(event.end||event.endsAt||event.endDate);
+  if(!value&&kind==='start'&&event.date)value=event.date+(event.time?'T'+event.time:'T00:00:00');
+  var date=value instanceof Date?new Date(value):new Date(value||'');
+  return isNaN(date.getTime())?null:date;
+}
+
+function isEventActive(event,now){
+  var start=eventMoment(event,'start');if(!start||start>now)return false;
+  var end=eventMoment(event,'end');
+  if(event.allDay){start.setHours(0,0,0,0);if(end)end.setHours(23,59,59,999);}
+  if(!end){end=new Date(start);if(event.date&&!event.time)end.setHours(23,59,59,999);else end.setHours(end.getHours()+6);}
+  return end>=now;
+}
+
+function prepareSchedule(data){
+  data=data&&typeof data==='object'?data:{};
+  var events=[];
+  (Array.isArray(data.events)?data.events:[]).forEach(function(event){events.push(event);});
+  (Array.isArray(data.appearances)?data.appearances:[]).forEach(function(event){if(events.indexOf(event)===-1)events.push(event);});
+  var active=data.activeEvent||events.find(function(event){return isEventActive(event,new Date());});
+  if(active){
+    active.online=isOnlineEvent(active);
+    data.activeEvent=active;
+    if(active.online){
+      data.live=true;
+      data.liveTitle=active.title||data.liveTitle;
+      data.liveDescription=active.copy||active.description||[active.when,active.location].filter(Boolean).join(' · ')||data.liveDescription;
+      data.liveUrl=active.href||active.url||data.liveUrl;
+      data.embedUrl=active.embedUrl||active.embed||embedHref(active.href||active.url)||data.embedUrl||embedHref(data.liveUrl);
+    }
+  }
+  if(data.live&&!data.embedUrl)data.embedUrl=embedHref(data.liveUrl);
+  return data;
+}
+
 function validImage(item){
   return item&&typeof item.image==='string'&&/^https?:\/\//i.test(item.image);
 }
@@ -155,8 +209,11 @@ function buildBroadcastStage(hero){
 
 function renderBroadcast(stage,data){
   if(!stage)return;
+  data=prepareSchedule(data);
+  var active=data&&data.activeEvent;
   var live=Boolean(data&&data.live);
-  stage.classList.toggle('mp-broadcast--live',live);stage.classList.toggle('mp-broadcast--offair',!live);
+  var inPerson=Boolean(active&&!isOnlineEvent(active));
+  stage.classList.toggle('mp-broadcast--live',live);stage.classList.toggle('mp-broadcast--inperson',inPerson);stage.classList.toggle('mp-broadcast--offair',!live&&!inPerson);
   var shell=stage.querySelector('.mp-broadcast-shell');if(!shell)return;
   shell.innerHTML='';
   if(live){
@@ -171,6 +228,16 @@ function renderBroadcast(stage,data){
     if(data.liveDescription)liveCopy.appendChild(el('p','mp-broadcast-text',data.liveDescription));
     liveCopy.appendChild(link('Watch and shop live →',data.liveUrl||'https://www.whatnot.com/user/walkoffsportscards','mp-button'));
     shell.appendChild(viewer);shell.appendChild(liveCopy);
+  }else if(inPerson){
+    var eventCopy=el('div','mp-broadcast-copy');
+    eventCopy.appendChild(el('span','mp-live-status mp-live-status--on','In person · Happening now'));
+    eventCopy.appendChild(el('h2','mp-broadcast-title',active.title||'Come find The Mana Pocket.'));
+    var details=[active.when,active.location,active.copy||active.description].filter(Boolean).join(' · ');
+    if(details)eventCopy.appendChild(el('p','mp-broadcast-text',details));
+    var eventActions=el('div','mp-actions');
+    var map=mapsHref(active);if(map){var mapLink=link('Open in Maps →',map,'mp-button');mapLink.target='_blank';mapLink.rel='noopener';eventActions.appendChild(mapLink);}
+    eventActions.appendChild(link('See the full schedule ↓','#pocket-calendar','mp-button mp-button--ghost'));
+    eventCopy.appendChild(eventActions);shell.appendChild(eventCopy);
   }else{
     var copy=el('div','mp-broadcast-copy');copy.appendChild(el('span','mp-live-status','Off air · The lights are out'));
     copy.appendChild(el('h2','mp-broadcast-title','The shop is dark. For now.'));
@@ -389,39 +456,50 @@ function readCmsSchedule(){
   function field(item,name){var node=item.querySelector('[data-event-field="'+name+'"]');return String(node&&node.textContent||'').trim();}
   function parseDate(value){var date=new Date(value);return isNaN(date.getTime())?null:date;}
   function dateKey(date){return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');}
-  function timeLabel(start,end){
+  function timeLabel(start,end,allDay){
     var datePart=new Intl.DateTimeFormat('en-US',{weekday:'short',month:'short',day:'numeric'}).format(start);
+    if(allDay)return datePart+' · All day';
     var timePart=new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(start);
     if(end)timePart+='–'+new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(end);
     return datePart+' · '+timePart;
   }
   var events=Array.prototype.map.call(source.querySelectorAll('.w-dyn-item'),function(item){
-    var start=parseDate(field(item,'start'));if(!start)return null;
-    var end=parseDate(field(item,'end'));
+    var startValue=field(item,'start');var endValue=field(item,'end');
+    var start=parseDate(startValue);if(!start)return null;
+    var end=parseDate(endValue);
+    var allDay=!/\d{1,2}:\d{2}|\b(?:am|pm)\b/i.test(startValue+' '+endValue);
     var type=field(item,'type');
     var online=/online|live/i.test(type);
     var href=field(item,'url');
+    var embedUrl=field(item,'embed-url')||field(item,'embed');
+    var mapsUrl=field(item,'maps-url')||field(item,'map-url');
     return{
       date:dateKey(start),
       start:start,
       end:end,
+      allDay:allDay,
       kicker:online?'Online live show':'In-person show',
       title:field(item,'title')||'The Mana Pocket event',
-      when:timeLabel(start,end),
+      when:timeLabel(start,end,allDay),
       location:field(item,'location'),
       copy:field(item,'description'),
       href:href||'',
+      embedUrl:embedUrl||embedHref(href),
+      mapsUrl:mapsUrl,
       cta:href?(online?'Watch or view show →':'View event details →'):'',
       online:online
     };
   }).filter(Boolean).sort(function(a,b){return a.start-b.start;});
-  var liveEvent=events.find(function(event){return event.online&&event.start<=now&&(!event.end||event.end>=now);});
+  var activeEvent=events.find(function(event){return isEventActive(event,now);});
+  var liveEvent=activeEvent&&activeEvent.online?activeEvent:null;
   var nextLive=events.find(function(event){return event.online&&event.start>now;});
   return{
     live:Boolean(liveEvent),
     liveTitle:liveEvent&&liveEvent.title,
     liveDescription:liveEvent&&[liveEvent.when,liveEvent.location].filter(Boolean).join(' · '),
     liveUrl:liveEvent&&liveEvent.href,
+    embedUrl:liveEvent&&liveEvent.embedUrl,
+    activeEvent:activeEvent,
     nextLive:nextLive&&{title:nextLive.title,when:nextLive.when,url:nextLive.href},
     events:events
   };
@@ -429,10 +507,10 @@ function readCmsSchedule(){
 
 function loadSchedule(section,stage){
   var cmsSchedule=readCmsSchedule();
-  if(cmsSchedule){renderBroadcast(stage,cmsSchedule);renderSchedule(section,cmsSchedule);return;}
+  if(cmsSchedule){cmsSchedule=prepareSchedule(cmsSchedule);renderBroadcast(stage,cmsSchedule);renderSchedule(section,cmsSchedule);return;}
   fetch(SCHEDULE_URL+(SCHEDULE_URL.indexOf('?')===-1?'?':'&')+'v='+Math.floor(Date.now()/300000),{headers:{Accept:'application/json'}})
     .then(function(response){if(!response.ok)throw new Error('Schedule unavailable');return response.json();})
-    .then(function(data){renderBroadcast(stage,data);renderSchedule(section,data);})
+    .then(function(data){data=prepareSchedule(data);renderBroadcast(stage,data);renderSchedule(section,data);})
     .catch(function(){renderBroadcast(stage,{});renderSchedule(section,{});});
 }
 
