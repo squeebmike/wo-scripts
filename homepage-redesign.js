@@ -46,6 +46,11 @@ function embedHref(url){
   return/\/embed\//i.test(url)?url:'';
 }
 
+function videoOrientation(value){
+  value=String(value||'').trim().toLowerCase();
+  return/portrait|vertical|9\s*[:x/]\s*16/.test(value)?'portrait':'landscape';
+}
+
 function isOnlineEvent(event){
   return Boolean(event&&(event.online===true||/online|livestream|whatnot|youtube|twitch/i.test([event.type,event.kicker].join(' '))));
 }
@@ -81,9 +86,11 @@ function prepareSchedule(data){
       data.liveDescription=active.copy||active.description||[active.when,active.location].filter(Boolean).join(' · ')||data.liveDescription;
       data.liveUrl=active.href||active.url||data.liveUrl;
       data.embedUrl=active.embedUrl||active.embed||embedHref(active.href||active.url)||data.embedUrl||embedHref(data.liveUrl);
+      data.videoOrientation=videoOrientation(active.videoOrientation||active.orientation||data.videoOrientation);
     }
   }
   if(data.live&&!data.embedUrl)data.embedUrl=embedHref(data.liveUrl);
+  data.videoOrientation=videoOrientation(data.videoOrientation);
   return data;
 }
 
@@ -214,10 +221,11 @@ function renderBroadcast(stage,data){
   var live=Boolean(data&&data.live);
   var inPerson=Boolean(active&&!isOnlineEvent(active));
   stage.classList.toggle('mp-broadcast--live',live);stage.classList.toggle('mp-broadcast--inperson',inPerson);stage.classList.toggle('mp-broadcast--offair',!live&&!inPerson);
+  stage.classList.toggle('mp-broadcast--portrait',live&&data.videoOrientation==='portrait');stage.classList.toggle('mp-broadcast--landscape',live&&data.videoOrientation!=='portrait');
   var shell=stage.querySelector('.mp-broadcast-shell');if(!shell)return;
   shell.innerHTML='';
   if(live){
-    var viewer=el('div','mp-live-viewer');
+    var viewer=el('div','mp-live-viewer mp-live-viewer--'+data.videoOrientation);
     if(data.embedUrl){
       var frame=document.createElement('iframe');frame.src=data.embedUrl;frame.title=data.liveTitle||'The Mana Pocket live show';frame.allow='autoplay; encrypted-media; picture-in-picture';frame.allowFullscreen=true;viewer.appendChild(frame);
     }else{
@@ -226,7 +234,7 @@ function renderBroadcast(stage,data){
     var liveCopy=el('div','mp-broadcast-copy');liveCopy.appendChild(el('span','mp-live-status mp-live-status--on','Live now'));
     liveCopy.appendChild(el('h2','mp-broadcast-title',data.liveTitle||'We are live at The Mana Pocket.'));
     if(data.liveDescription)liveCopy.appendChild(el('p','mp-broadcast-text',data.liveDescription));
-    liveCopy.appendChild(link('Watch and shop live →',data.liveUrl||'https://www.whatnot.com/user/walkoffsportscards','mp-button'));
+    var liveLink=link('Watch and shop live →',data.liveUrl||'https://www.whatnot.com/user/walkoffsportscards','mp-button');liveLink.target='_blank';liveLink.rel='noopener';liveCopy.appendChild(liveLink);
     shell.appendChild(viewer);shell.appendChild(liveCopy);
   }else if(inPerson){
     var eventCopy=el('div','mp-broadcast-copy');
@@ -473,6 +481,7 @@ function readCmsSchedule(){
     var href=field(item,'url');
     var embedUrl=field(item,'embed-url')||field(item,'embed');
     var mapsUrl=field(item,'maps-url')||field(item,'map-url');
+    var orientation=field(item,'video-orientation')||field(item,'orientation')||field(item,'video-layout');
     return{
       date:dateKey(start),
       start:start,
@@ -485,6 +494,7 @@ function readCmsSchedule(){
       copy:field(item,'description'),
       href:href||'',
       embedUrl:embedUrl||embedHref(href),
+      videoOrientation:videoOrientation(orientation),
       mapsUrl:mapsUrl,
       cta:href?(online?'Watch or view show →':'View event details →'):'',
       online:online
@@ -499,19 +509,21 @@ function readCmsSchedule(){
     liveDescription:liveEvent&&[liveEvent.when,liveEvent.location].filter(Boolean).join(' · '),
     liveUrl:liveEvent&&liveEvent.href,
     embedUrl:liveEvent&&liveEvent.embedUrl,
+    videoOrientation:liveEvent&&liveEvent.videoOrientation,
     activeEvent:activeEvent,
     nextLive:nextLive&&{title:nextLive.title,when:nextLive.when,url:nextLive.href},
     events:events
   };
 }
 
-function loadSchedule(section,stage){
+function loadSchedule(section,stage,reveal){
+  function renderAll(data){data=prepareSchedule(data);renderBroadcast(stage,data);renderSchedule(section,data);updateStorefrontReveal(reveal,data);}
   var cmsSchedule=readCmsSchedule();
-  if(cmsSchedule){cmsSchedule=prepareSchedule(cmsSchedule);renderBroadcast(stage,cmsSchedule);renderSchedule(section,cmsSchedule);return;}
+  if(cmsSchedule){renderAll(cmsSchedule);return;}
   fetch(SCHEDULE_URL+(SCHEDULE_URL.indexOf('?')===-1?'?':'&')+'v='+Math.floor(Date.now()/300000),{headers:{Accept:'application/json'}})
     .then(function(response){if(!response.ok)throw new Error('Schedule unavailable');return response.json();})
-    .then(function(data){data=prepareSchedule(data);renderBroadcast(stage,data);renderSchedule(section,data);})
-    .catch(function(){renderBroadcast(stage,{});renderSchedule(section,{});});
+    .then(renderAll)
+    .catch(function(){renderAll({});});
 }
 
 function renderFresh(section,items){
@@ -593,7 +605,7 @@ function renderCase(section,items){
 }
 
 function addStorefrontReveal(){
-  if(document.querySelector('.mp-storefront-reveal'))return;
+  var existing=document.querySelector('.mp-storefront-reveal');if(existing)return existing;
   var footer=document.querySelector('.footer-section,.Footer,.footer');
   var anchor=footer;if(!anchor)return;
   var section=el('section','mp-storefront-reveal');
@@ -603,7 +615,35 @@ function addStorefrontReveal(){
   copy.appendChild(el('h2','mp-storefront-reveal-title','See you at the next show.'));
   copy.appendChild(el('p','mp-broadcast-text','Our next live show and in-person stop are waiting in the Pocket calendar.'));
   copy.appendChild(link('Check the Pocket calendar ↑','#pocket-calendar','mp-button mp-button--ghost'));
-  shell.appendChild(copy);section.appendChild(shell);anchor.before(section);
+  shell.appendChild(copy);section.appendChild(shell);anchor.before(section);return section;
+}
+
+function updateStorefrontReveal(section,data){
+  if(!section)return;
+  data=prepareSchedule(data);
+  var copy=section.querySelector('.mp-storefront-reveal-copy');if(!copy)return;
+  copy.innerHTML='';
+  var active=data.activeEvent;
+  if(data.live){
+    copy.appendChild(el('span','mp-live-status mp-live-status--on','Live now'));
+    copy.appendChild(el('h2','mp-storefront-reveal-title','We are live. Jump back in.'));
+    copy.appendChild(el('p','mp-broadcast-text',data.embedUrl?'The live player is waiting at the top of the page.':'The show is live now — open it to watch, shop, and join us.'));
+    if(data.embedUrl){
+      copy.appendChild(link('Back to the live player ↑','#pocket-live','mp-button mp-button--ghost'));
+    }else{
+      var watchLink=link('Watch and shop live →',data.liveUrl||'https://www.whatnot.com/user/walkoffsportscards','mp-button');watchLink.target='_blank';watchLink.rel='noopener';copy.appendChild(watchLink);
+    }
+  }else if(active&&!isOnlineEvent(active)){
+    copy.appendChild(el('span','mp-live-status mp-live-status--on','Live in person now'));
+    copy.appendChild(el('h2','mp-storefront-reveal-title','Come find us today.'));
+    copy.appendChild(el('p','mp-broadcast-text',[active.title,active.location].filter(Boolean).join(' · ')));
+    copy.appendChild(link('Back to today’s show ↑','#pocket-live','mp-button mp-button--ghost'));
+  }else{
+    copy.appendChild(el('span','mp-live-status','The lights will come back on'));
+    copy.appendChild(el('h2','mp-storefront-reveal-title','See you at the next show.'));
+    copy.appendChild(el('p','mp-broadcast-text','Our next live show and in-person stop are waiting in the Pocket calendar.'));
+    copy.appendChild(link('Check the Pocket calendar ↑','#pocket-calendar','mp-button mp-button--ghost'));
+  }
 }
 
 function moveLegacyShowcaseToFooter(){
@@ -634,8 +674,8 @@ function init(){
   buildHero(hero);
   buildCategories(categories,[]);
   var sections=buildDynamicSections(categories);
-  loadSchedule(sections.happening,broadcast);
-  addStorefrontReveal();
+  var storefrontReveal=addStorefrontReveal();
+  loadSchedule(sections.happening,broadcast,storefrontReveal);
   moveLegacyShowcaseToFooter();
   var inventoryRequest=window.ManaPocketInventory&&typeof window.ManaPocketInventory.get==='function'?window.ManaPocketInventory.get():fetch(API_BASE+'/api/inventory',{headers:{Accept:'application/json'}}).then(function(response){if(!response.ok)throw new Error('Inventory unavailable');return response.json();}).then(function(payload){return(payload&&Array.isArray(payload.items)?payload.items:[]).filter(function(item){return item&&item.id&&Number(item.quantity||0)>0;});});
   inventoryRequest
