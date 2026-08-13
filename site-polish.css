@@ -228,6 +228,17 @@
 .mp-sr-only { height: 1px; margin: -1px; overflow: hidden; position: absolute; width: 1px; clip: rect(0 0 0 0); }
 #navbarID { overflow: visible !important; }
 #navbarID .navbar6_menu-dropdown { position: static !important; }
+@media (min-width: 992px) {
+  #navbarID .navbar6_menu-dropdown { position: relative !important; }
+  #navbarID .navbar6_menu-dropdown::after {
+    content: '';
+    height: 20px;
+    left: -8px;
+    position: absolute;
+    right: -8px;
+    top: 100%;
+  }
+}
 #navbarID .navbar6_menu-left > .navbar6_link { font-weight: 800; }
 #navbarID .navbar6_dropdown-toggle { font-weight: 900; letter-spacing: .02em; text-transform: uppercase; }
 #navbarID .navbar6_dropdown-list.mp-counter-menu {
