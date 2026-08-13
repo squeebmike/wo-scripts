@@ -267,6 +267,19 @@
   border-block: 1px solid var(--mp-line-strong);
 }
 
+/* Keep the fixed storefront confined behind the opening scene. Every content
+   block that follows it needs its own opaque stacking layer so product cards,
+   artwork, and footer content cannot be washed out by the fixed image. */
+.mp-home-redesign .promo-strip,
+.mp-home-redesign .woh-cats,
+.mp-home-redesign .mp-section,
+.mp-home-redesign .section-3,
+.mp-home-redesign .footer-section {
+  isolation: isolate;
+  position: relative;
+  z-index: 4;
+}
+
 .mp-home-redesign .woh-cats,
 .mp-section {
   background: var(--mp-page);
