@@ -662,6 +662,16 @@ function polishNavigation(){
       if(link.querySelector('.mp-nav-icon'))return;
       var label=link.textContent.trim();var image=/pokemon/i.test(label)?NAV_ART.pokemon:/mtg|magic/i.test(label)?NAV_ART.mtg:/publish/i.test(label)?NAV_ART.publishing:/comic/i.test(label)?NAV_ART.comics:BRAND_LOGO;decorate(link,label,image);
     });
+    if(!nav.dataset.mpScrollClose){
+      nav.dataset.mpScrollClose='true';
+      var lastScrollY=window.scrollY;
+      window.addEventListener('scroll',function(){
+        var nextScrollY=window.scrollY;
+        var menuButton=nav.querySelector('.w-nav-button.w--open');
+        if(window.innerWidth<=991&&menuButton&&Math.abs(nextScrollY-lastScrollY)>8)menuButton.click();
+        lastScrollY=nextScrollY;
+      },{passive:true});
+    }
   }
   if(document.body)mount();else document.addEventListener('DOMContentLoaded',mount,{once:true});
 }
