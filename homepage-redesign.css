@@ -273,6 +273,7 @@
 .mp-home-redesign .promo-strip,
 .mp-home-redesign .woh-cats,
 .mp-home-redesign .mp-section,
+.mp-home-redesign .mp-editorial,
 .mp-home-redesign .section-3,
 .mp-home-redesign .footer-section,
 .mp-home-redesign .footer,
@@ -287,6 +288,12 @@
   background: var(--mp-page);
   color: var(--mp-copy);
   padding: 0;
+}
+
+/* The nostalgia story is normal page content, not another storefront reveal.
+   Keep its theme background fully opaque above the fixed opening image. */
+.mp-home-redesign .mp-editorial {
+  background: var(--mp-hero);
 }
 
 .mp-section--alt { background: var(--mp-panel-alt); }
