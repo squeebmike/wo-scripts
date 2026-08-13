@@ -668,7 +668,10 @@ function polishNavigation(){
       window.addEventListener('scroll',function(){
         var nextScrollY=window.scrollY;
         var menuButton=nav.querySelector('.w-nav-button.w--open');
-        if(window.innerWidth<=991&&menuButton&&Math.abs(nextScrollY-lastScrollY)>8)menuButton.click();
+        if(window.innerWidth<=991&&menuButton&&Math.abs(nextScrollY-lastScrollY)>8){
+          menuButton.click();
+          if(nextScrollY>lastScrollY)nav.classList.add('is-hidden');
+        }
         lastScrollY=nextScrollY;
       },{passive:true});
     }
