@@ -29,7 +29,7 @@
 }
 #navbarID .navbar6_container { justify-content: space-between !important; position: relative; }
 #navbarID .navbar6_menu { flex: 1 1 auto; justify-content: flex-end !important; margin-inline: auto 0 !important; }
-#navbarID .navbar6_menu-left { justify-content: center !important; left: 50%; position: absolute; transform: translateX(-50%); }
+#navbarID .navbar6_menu-left { justify-content: center !important; left: 50%; position: absolute; translate: -50% 0; }
 #navbarID .navbar6_menu-right { justify-content: flex-end !important; }
 #navbarID .w-nav-brand { align-items: center !important; display: flex !important; flex: 0 0 auto; justify-content: flex-start !important; min-height: 64px; min-width: clamp(112px, 13vw, 170px); }
 .mp-nav-brand-image { display: block; height: clamp(58px, 6vw, 76px); object-fit: contain; object-position: left center; width: clamp(128px, 14vw, 184px); }
@@ -196,7 +196,7 @@
   .mp-nav-brand-image { height: 56px; width: 118px; }
   #navbarID .navbar6_menu.w--open { align-items: center !important; background: var(--wo-nav-bg) !important; border: 0 !important; box-shadow: none !important; box-sizing: border-box; color: var(--wo-on-nav) !important; display: flex !important; flex-direction: column; margin-inline: auto !important; max-width: 760px; outline: 0 !important; overflow-x: hidden !important; padding: 16px clamp(14px, 4vw, 26px) 24px !important; width: 100% !important; }
   #navbarID .navbar6_menu-left { align-items: center !important; display: flex !important; flex-direction: column !important; gap: 8px; width: 100% !important; }
-  #navbarID .navbar6_menu-left { left: auto; position: static; transform: none; }
+  #navbarID .navbar6_menu-left { left: auto; position: static; translate: none; }
   #navbarID .navbar6_menu-right { align-items: center !important; display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; gap: 10px; justify-content: center !important; width: 100% !important; }
   #navbarID .navbar6_link, #navbarID .navbar6_dropdown-toggle { align-items: center; background: var(--wo-surface) !important; border: 1px solid var(--wo-border) !important; border-radius: 12px !important; box-sizing: border-box; color: var(--wo-text) !important; display: flex; justify-content: center; margin: 0 !important; min-height: 48px; padding: 10px 14px !important; width: 100% !important; }
   #navbarID .navbar6_dropdown-list { background: var(--wo-nav-bg) !important; border: 0 !important; max-width: 100% !important; position: static !important; width: 100% !important; }
