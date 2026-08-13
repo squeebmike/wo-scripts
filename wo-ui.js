@@ -623,20 +623,21 @@ function enhanceCart(){
 }
 
 function polishNavigation(){
-  var BRAND_LOGO='https://cdn.prod.website-files.com/65b15ee0228d06647ca7e4ce/6a7a2363da766fb28cde6a6d_the_mana_pocket_patch_1024.avif';
+  var BRAND_LOGO='https://cdn.prod.website-files.com/65b15ee0228d06647ca7e4ce/6a7ce98ab3d4819b7565620e_the_mana_pocket_patch_1024x1024.png';
+  var NAV_ART={pokemon:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/689e2e9b0b61d05b57a6a18c_528101.png',mtg:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/689e2f59be5af6c64cb995fa_kUGrOfO52dHzh1dVagvNC_g5oxgbj54hRC1yXYglWEqJqFUOkY27B1TwR8BNlwA2eXgrS5w6DceZLxF0vRxkmA.webp',publishing:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/689e2ec0304edc5e3eeb23fc_17901866.png',comics:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/689e2e890d0df61202404a9c_4683513.png'};
   var SHOP_LINKS=[
     {label:'All',href:'/shop',image:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/6a7ce98ab3d4819b7565620e_the_mana_pocket_patch_1024x1024.png'},
-    {label:'Pokémon',href:'/shop?cat=pokemon',image:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/689f7d4e323d21e1f5fd4f0a_7f0af31d1c71d4f418c4a40e5c7b01af_ChatGPT%20Image%20Aug%2015%2C%202025%2C%2011_21_43%20AM.avif'},
-    {label:'MTG',href:'/shop?cat=mtg',image:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/68a0baf7223f7db62edacddc_spiderman-mtg.avif'},
-    {label:'Comics',href:'/shop?cat=comics',image:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/68a0b6a91a953b87bd662a27_walk-off-comics.avif'},
+    {label:'Pokémon',href:'/shop?cat=pokemon',image:NAV_ART.pokemon},
+    {label:'MTG',href:'/shop?cat=mtg',image:NAV_ART.mtg},
+    {label:'Comics',href:'/shop?cat=comics',image:NAV_ART.comics},
     {label:'Supplies',href:'/shop?cat=supplies',image:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/660ba51ad445f22b83625c86_Walk-off-sportscards-toploader.webp'}
   ];
   function decorate(link,label,imageSrc){
     if(!link)return;
     link.innerHTML='';
-    var image=document.createElement('img');image.className='mp-nav-icon';image.alt='';image.src=imageSrc||BRAND_LOGO;
     var text=document.createElement('span');text.className='mp-nav-label';text.textContent=label;
-    link.appendChild(image);link.appendChild(text);
+    if(imageSrc){var image=document.createElement('img');image.className='mp-nav-icon';image.alt='';image.src=imageSrc;link.appendChild(image);}
+    link.appendChild(text);
   }
   function mount(){
     var nav=document.getElementById('navbarID');if(!nav)return;
@@ -656,10 +657,10 @@ function polishNavigation(){
       });
       list.dataset.mpRetooled='true';
     }
-    var home=Array.prototype.find.call(nav.querySelectorAll('a:not(.w-nav-brand)'),function(link){return link.getAttribute('href')==='/';});decorate(home,'Home',BRAND_LOGO);
+    var home=Array.prototype.find.call(nav.querySelectorAll('a:not(.w-nav-brand)'),function(link){return link.getAttribute('href')==='/';});decorate(home,'Home');
     Array.prototype.forEach.call(nav.querySelectorAll('.navbar6_dropdown-link,.w-dropdown-link'),function(link){
       if(link.querySelector('.mp-nav-icon'))return;
-      var label=link.textContent.trim();var image=/pokemon/i.test(label)?SHOP_LINKS[1].image:/mtg|magic/i.test(label)?SHOP_LINKS[2].image:/publish|comic/i.test(label)?SHOP_LINKS[3].image:BRAND_LOGO;decorate(link,label,image);
+      var label=link.textContent.trim();var image=/pokemon/i.test(label)?NAV_ART.pokemon:/mtg|magic/i.test(label)?NAV_ART.mtg:/publish/i.test(label)?NAV_ART.publishing:/comic/i.test(label)?NAV_ART.comics:BRAND_LOGO;decorate(link,label,image);
     });
   }
   if(document.body)mount();else document.addEventListener('DOMContentLoaded',mount,{once:true});
