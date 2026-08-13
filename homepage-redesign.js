@@ -327,8 +327,9 @@ function renderSchedule(section,data){
   var layout=el('div','mp-calendar-layout');layout.appendChild(calendar);layout.appendChild(agenda);grid.appendChild(layout);
 
   var today=new Date();today.setHours(0,0,0,0);
-  var cursor=new Date(today.getFullYear(),today.getMonth(),1);
-  var selected=new Date(today);
+  var nextScheduled=dated.map(function(item){var date=new Date(item.date+'T00:00:00');return isNaN(date.getTime())?null:date;}).filter(function(date){return date&&date>=today;}).sort(function(a,b){return a-b;})[0];
+  var selected=nextScheduled?new Date(nextScheduled):new Date(today);
+  var cursor=new Date(selected.getFullYear(),selected.getMonth(),1);
   function keyFor(date){return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');}
   function eventsFor(date){var key=keyFor(date);return dated.filter(function(item){return item.date===key;});}
   function renderAgenda(date){
