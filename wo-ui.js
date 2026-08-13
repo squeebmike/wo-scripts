@@ -656,9 +656,6 @@ function setupTawkChat(){
       if(typeof api.showWidget==='function')api.showWidget();
       api.maximize();
       button.classList.add('is-open');
-      window.setTimeout(function(){
-        if(button&&typeof api.isChatMaximized==='function')button.classList.toggle('is-open',!!api.isChatMaximized());
-      },180);
       pendingOpen=false;
     }else{
       pendingOpen=true;
@@ -691,10 +688,6 @@ function setupTawkChat(){
   chain('onChatMaximized',function(){button&&button.classList.add('is-open');});
   chain('onChatMinimized',function(){button&&button.classList.remove('is-open');window.setTimeout(hideNativeBubble,40);});
   chain('onChatEnded',function(){button&&button.classList.remove('is-open');window.setTimeout(hideNativeBubble,40);});
-  chain('onChatHidden',function(){
-    if(!button)return;
-    if(typeof api.isChatMaximized!=='function'||!api.isChatMaximized())button.classList.remove('is-open');
-  });
   if(document.body)mount();else document.addEventListener('DOMContentLoaded',mount,{once:true});
 }
 
