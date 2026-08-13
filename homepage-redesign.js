@@ -558,10 +558,9 @@ function init(){
   loadSchedule(sections.happening,broadcast);
   addStorefrontReveal();
   moveLegacyShowcaseToFooter();
-  fetch(API_BASE+'/api/inventory',{headers:{Accept:'application/json'}})
-    .then(function(response){if(!response.ok)throw new Error('Inventory unavailable');return response.json();})
-    .then(function(payload){
-      var items=(payload&&Array.isArray(payload.items)?payload.items:[]).filter(function(item){return item&&item.id&&Number(item.quantity||0)>0;});
+  var inventoryRequest=window.ManaPocketInventory&&typeof window.ManaPocketInventory.get==='function'?window.ManaPocketInventory.get():fetch(API_BASE+'/api/inventory',{headers:{Accept:'application/json'}}).then(function(response){if(!response.ok)throw new Error('Inventory unavailable');return response.json();}).then(function(payload){return(payload&&Array.isArray(payload.items)?payload.items:[]).filter(function(item){return item&&item.id&&Number(item.quantity||0)>0;});});
+  inventoryRequest
+    .then(function(items){
       fillHero(items);
       buildCategories(categories,items);
       renderFresh(sections.fresh,items);
