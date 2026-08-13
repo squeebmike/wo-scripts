@@ -637,6 +637,60 @@ function enhanceCart(){
   if(document.body)mount();else document.addEventListener('DOMContentLoaded',mount,{once:true});
 }
 
+function setupTawkChat(){
+  var api=window.Tawk_API=window.Tawk_API||{};
+  var pendingOpen=false;
+  var button;
+  var status;
+  function updateStatus(value){
+    value=String(value||'').toLowerCase();
+    if(!status)return;
+    status.textContent=value==='online'?'WE’RE ONLINE':value==='away'?'WE’LL REPLY SOON':'LEAVE A MESSAGE';
+    button.classList.toggle('is-online',value==='online');
+  }
+  function hideNativeBubble(){
+    if(typeof api.hideWidget==='function')api.hideWidget();
+  }
+  function openChat(){
+    if(typeof api.maximize==='function'){
+      if(typeof api.showWidget==='function')api.showWidget();
+      api.maximize();
+      button.classList.add('is-open');
+      pendingOpen=false;
+    }else{
+      pendingOpen=true;
+      status.textContent='CONNECTING…';
+    }
+  }
+  function chain(name,handler){
+    var previous=api[name];
+    api[name]=function(){
+      if(typeof previous==='function')previous.apply(api,arguments);
+      handler.apply(api,arguments);
+    };
+  }
+  function mount(){
+    if(!document.body||document.getElementById('mp-chat-launcher'))return;
+    document.body.classList.add('mp-chat-enabled');
+    button=document.createElement('button');
+    button.id='mp-chat-launcher';button.type='button';button.setAttribute('aria-label','Chat with The Mana Pocket');button.setAttribute('aria-haspopup','dialog');
+    button.innerHTML='<span class="mp-chat-signal" aria-hidden="true"><i></i></span><span class="mp-chat-copy"><strong>CHAT WITH THE POCKET</strong><small data-mp-chat-status>LEAVE A MESSAGE</small></span>';
+    status=button.querySelector('[data-mp-chat-status]');
+    button.addEventListener('click',openChat);
+    document.body.appendChild(button);
+  }
+  chain('onLoad',function(){
+    hideNativeBubble();
+    updateStatus(typeof api.getStatus==='function'?api.getStatus():'offline');
+    if(pendingOpen)window.setTimeout(openChat,40);
+  });
+  chain('onStatusChange',updateStatus);
+  chain('onChatMinimized',function(){button&&button.classList.remove('is-open');window.setTimeout(hideNativeBubble,40);});
+  chain('onChatEnded',function(){button&&button.classList.remove('is-open');window.setTimeout(hideNativeBubble,40);});
+  chain('onChatHidden',function(){button&&button.classList.remove('is-open');});
+  if(document.body)mount();else document.addEventListener('DOMContentLoaded',mount,{once:true});
+}
+
 function polishNavigationLegacy(){
   var BRAND_LOGO='https://cdn.prod.website-files.com/65b15ee0228d06647ca7e4ce/6a7ce98ab3d4819b7565620e_the_mana_pocket_patch_1024x1024.png';
   var NAV_ART={pokemon:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/689e2e9b0b61d05b57a6a18c_528101.png',mtg:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/689e2f59be5af6c64cb995fa_kUGrOfO52dHzh1dVagvNC_g5oxgbj54hRC1yXYglWEqJqFUOkY27B1TwR8BNlwA2eXgrS5w6DceZLxF0vRxkmA.webp',publishing:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/689e2ec0304edc5e3eeb23fc_17901866.png',comics:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/689e2e890d0df61202404a9c_4683513.png'};
@@ -937,6 +991,7 @@ else{init();}
 loadSitePolish();
 loadHomepageRedesign();
 enhanceCart();
+setupTawkChat();
 polishNavigation();
 buildReceiptFooter();
 polishCommerceDialogs();
