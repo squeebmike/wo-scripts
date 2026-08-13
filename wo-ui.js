@@ -396,6 +396,10 @@ WO.applyTheme=function(team,colorway){
   '.w-commerce-commercecartlineitem{border-color:'+p.bdr+' !important;}'+
   '.footer,.footer-section,.Footer,.SemiFooter{background:'+p.footBg+' !important;}'+
   '.footer *,.footer-section *,.Footer *,.SemiFooter *{color:'+p.footTxt+' !important;}'+
+  '.section-3.no-padding{background:'+p.footBg+' !important;}'+
+  '.section-3.no-padding .instagram-grid{background:'+p.footBg+' !important;border-color:'+rgba(p.footTxt,.12)+' !important;}'+
+  '.section-3.no-padding .instagram-image.middle{background:'+p.surf+' !important;border-color:'+p.footHi+' !important;color:'+p.txt+' !important;}'+
+  '.section-3.no-padding .instagram-image.middle .button-text-wrapper,.section-3.no-padding .instagram-image.middle .button-text-wrapper *{color:'+p.txt+' !important;}'+
   '.footer a,.footer-link,.Footer a{color:'+rgba(p.footTxt,.62)+' !important;}'+
   '.footer a:hover,.footer-link:hover{color:'+p.footHi+' !important;}'+
   'hr,.footer hr,.Footer hr{border-color:'+rgba(p.footTxt,.12)+' !important;}'+
