@@ -81,6 +81,12 @@
 .mp-live-status--on::before { animation: mp-live-pulse 1.5s ease-out infinite; box-shadow: 0 0 0 0 currentColor; }
 .mp-broadcast-title { color: inherit !important; font-family: Exo, system-ui, sans-serif; font-size: clamp(48px, 7vw, 108px); font-weight: 950; letter-spacing: -.065em; line-height: .86; margin: 0; max-width: 980px; text-transform: uppercase; }
 .mp-broadcast-text { color: inherit !important; font-size: clamp(17px, 1.7vw, 22px); line-height: 1.5; margin: 24px 0 0; max-width: 660px; opacity: .82; }
+.mp-next-shows { display: grid; gap: 10px; margin: 22px 0 0; max-width: 760px; }
+.mp-next-show { backdrop-filter: blur(12px); background: color-mix(in srgb, var(--mp-hero) 72%, transparent); border: 1px solid color-mix(in srgb, var(--mp-highlight) 34%, transparent); border-radius: 15px; display: grid; gap: 3px; padding: 13px 16px; }
+.mp-next-show-label { color: var(--mp-highlight) !important; font-size: 10px; font-weight: 950; letter-spacing: .13em; text-transform: uppercase; }
+.mp-next-show-title { color: inherit !important; font-size: clamp(15px, 1.5vw, 19px); line-height: 1.25; }
+.mp-next-show-details,
+.mp-next-show-empty { color: inherit !important; font-size: 14px; line-height: 1.4; opacity: .78; white-space: pre-line; }
 .mp-broadcast--offair + .woh-hero { border-radius: 34px 34px 0 0; box-shadow: 0 -26px 64px var(--mp-shadow); margin-top: 0; z-index: 3; }
 .mp-broadcast--inperson + .woh-hero { border-radius: 34px 34px 0 0; box-shadow: 0 -26px 64px var(--mp-shadow); margin-top: 0; z-index: 3; }
 .mp-broadcast--live { min-height: 0; }
@@ -734,6 +740,10 @@
   .mp-broadcast-shade { background: linear-gradient(0deg, var(--mp-hero), transparent 52%); opacity: .24; }
   .mp-broadcast--offair + .woh-hero { border-radius: 22px 22px 0 0; margin-top: 0; }
   .mp-broadcast-title { font-size: clamp(42px, 13vw, 62px); }
+  .mp-next-shows { gap: 8px; margin-top: 18px; }
+  .mp-next-show { padding: 11px 13px; }
+  .mp-next-show-details,
+  .mp-next-show-empty { font-size: 13px; }
   .mp-shell { padding: 54px 16px; }
   .mp-hero-grid { min-height: 100svh; padding-bottom: 72px; padding-top: 72px; }
   .mp-hero-title { font-size: clamp(46px, 15vw, 68px); }

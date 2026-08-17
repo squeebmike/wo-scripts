@@ -21,6 +21,8 @@ var PN='Bulbasaur|Ivysaur|Venusaur|Charmander|Charmeleon|Charizard|Squirtle|Wart
 // No canvas/image sampling: palettes are converted into contrast-safe UI roles for readable Webflow theming.
 var LS='wo-v14-static-pokemon-contrast-palette'; // Keep the existing key so saved user selections carry forward into v15.
 var state={league:'nfl',colorway:'home',team:null};
+var MANA_LOGO='https://cdn.prod.website-files.com/65b15ee0228d06647ca7e4ce/6a7ce98ab3d4819b7565620e_the_mana_pocket_patch_1024x1024.png';
+var MANA_DEFAULT={k:'mana-pocket',n:'The Mana Pocket',hp:'#542879',ap:'#8bd450',brand:true};
 
 function clamp(v,min,max){return Math.min(max,Math.max(min,v));}
 function hex2rgb(h){
@@ -432,6 +434,7 @@ var overlay,sheet,grid,cwRow;
 var LABELS={nfl:'NFL',mlb:'MLB',nba:'NBA',nhl:'NHL',pokemon:'Pokémon',mtg:'MTG'};
 function isPokemon(){return state.league==='pokemon';}
 function logoUrl(league,k,colorway){
+  if(k==='mana-pocket')return MANA_LOGO;
   if(league==='pokemon'){
     var shiny=(colorway||state.colorway)==='away';
     return 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/'+(shiny?'shiny/':'')+k+'.png';
@@ -465,7 +468,7 @@ function updateNavBtn(team,colorway){
   if(!team)return;
   var p=resolvePalette(team,colorway);
   var src=logoUrl(state.league,team.k,colorway);
-  var name=team.n.length>13?team.n.substring(0,12)+'…':team.n;
+  var name=team.brand?'Pick a theme':(team.n.length>13?team.n.substring(0,12)+'…':team.n);
   if(isPokemon()&&(colorway||state.colorway)==='away')name='✨ '+name;
   document.querySelectorAll('[data-wo-theme],[data-theme-trigger],[data-wo-open]').forEach(function(btn){
     btn.style.cssText='all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:7px;padding:5px 13px 5px 6px;border-radius:100px;background:'+p.btn+';color:'+p.onBtn+';font-size:13px;font-weight:900;cursor:pointer;line-height:1;transition:opacity .2s,transform .2s;white-space:nowrap;box-shadow:0 0 0 1px '+rgba(p.hi,.28)+';';
@@ -589,12 +592,9 @@ function init(){
       applied=true;
     }
   }catch(e){}
-  if(!applied&&(location.pathname==='/'||location.pathname==='/index.html')){
-    state.league='nfl';state.colorway='home';state.team=findTeam('nfl','sea');
-    if(state.team){
-      WO.applyTheme(state.team,state.colorway);
-      document.querySelectorAll('[data-wo-theme],[data-theme-trigger],[data-wo-open]').forEach(function(btn){btn.textContent='🏆 My Team';});
-    }
+  if(!applied){
+    state.league='nfl';state.colorway='home';state.team=MANA_DEFAULT;
+    WO.applyTheme(state.team,state.colorway);
   }
   document.querySelectorAll('[data-wo-theme],[data-theme-trigger],[data-wo-open]').forEach(function(el){
     el.addEventListener('click',openModal);

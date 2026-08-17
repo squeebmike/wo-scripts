@@ -13,6 +13,32 @@
     "url": "https://www.whatnot.com/user/walkoffsportscards/shows",
     "cta": "Follow on Whatnot →"
   },
+  "events": [
+    {
+      "kicker": "In-person show",
+      "title": "Twin Oaks card Show 8/15/26",
+      "start": "2026-08-15T18:00:00.000Z",
+      "end": "2026-08-15T23:00:00.000Z",
+      "allDay": false,
+      "location": "The Commons at Federal Way\n1928 S Commons, Federal Way, WA 98003"
+    },
+    {
+      "kicker": "In-person show",
+      "title": "Twin Oaks Card Show 8/16/26",
+      "start": "2026-08-16T18:00:00.000Z",
+      "end": "2026-08-16T23:00:00.000Z",
+      "allDay": false,
+      "location": "The Commons at Federal Way\n1928 S Commons, Federal Way, WA 98003"
+    },
+    {
+      "kicker": "In-person show",
+      "title": "Collectors Choice Card Show 9/5/26",
+      "start": "2026-09-05T17:00:00.000Z",
+      "end": "2026-09-06T00:00:00.000Z",
+      "allDay": false,
+      "location": "Tacoma Convention Center\n1500 Commerce St, Tacoma, WA 98402"
+    }
+  ],
   "appearances": [
     {
       "kicker": "Most weekends",

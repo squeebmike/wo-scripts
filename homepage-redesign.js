@@ -76,7 +76,11 @@ function prepareSchedule(data){
   var events=[];
   (Array.isArray(data.events)?data.events:[]).forEach(function(event){events.push(event);});
   (Array.isArray(data.appearances)?data.appearances:[]).forEach(function(event){if(events.indexOf(event)===-1)events.push(event);});
-  var active=data.activeEvent||events.find(function(event){return isEventActive(event,new Date());});
+  var now=new Date();
+  var active=data.activeEvent&&isEventActive(data.activeEvent,now)?data.activeEvent:events.find(function(event){return isEventActive(event,now);});
+  var upcoming=events.filter(function(event){var start=eventMoment(event,'start');return start&&start>now;}).sort(function(a,b){return eventMoment(a,'start')-eventMoment(b,'start');});
+  data.nextLive=upcoming.find(function(event){return isOnlineEvent(event);})||data.nextLive||null;
+  data.nextInPerson=upcoming.find(function(event){return !isOnlineEvent(event);})||data.nextInPerson||null;
   if(active){
     active.online=isOnlineEvent(active);
     data.activeEvent=active;
@@ -249,9 +253,23 @@ function renderBroadcast(stage,data){
   }else{
     var copy=el('div','mp-broadcast-copy');copy.appendChild(el('span','mp-live-status','Off air · The lights are out'));
     copy.appendChild(el('h2','mp-broadcast-title','The shop is dark. For now.'));
-    var next=data&&data.nextLive;
-    copy.appendChild(el('p','mp-broadcast-text',next&&next.when?'Next online show: '+next.when+'.':'No online show is scheduled yet. Follow us and we will let you know when the lights come back on.'));
-    var actions=el('div','mp-actions');actions.appendChild(link('See the schedule ↓','#pocket-calendar','mp-button'));actions.appendChild(link('Follow on Whatnot',next&&next.url||'https://www.whatnot.com/user/walkoffsportscards/shows','mp-button mp-button--ghost'));copy.appendChild(actions);shell.appendChild(copy);
+    copy.appendChild(el('p','mp-broadcast-text','Here is the next place to find us—in person or online.'));
+    var nextShows=el('div','mp-next-shows');
+    function nextShowRow(labelText,event,emptyText){
+      var row=el('div','mp-next-show');
+      row.appendChild(el('span','mp-next-show-label',labelText));
+      if(event){
+        row.appendChild(el('strong','mp-next-show-title',event.title||'The Mana Pocket show'));
+        var details=[event.when,event.location].filter(Boolean).join(' · ');
+        if(details)row.appendChild(el('span','mp-next-show-details',details));
+      }else row.appendChild(el('span','mp-next-show-empty',emptyText));
+      return row;
+    }
+    var nextLive=data&&data.nextLive;var nextInPerson=data&&data.nextInPerson;
+    nextShows.appendChild(nextShowRow('Next in person',nextInPerson,'No in-person date is scheduled yet.'));
+    nextShows.appendChild(nextShowRow('Next online show',nextLive,'No online show is scheduled yet.'));
+    copy.appendChild(nextShows);
+    var actions=el('div','mp-actions');actions.appendChild(link('See the schedule ↓','#pocket-calendar','mp-button'));actions.appendChild(link('Follow on Whatnot',nextLive&&(nextLive.href||nextLive.url)||'https://www.whatnot.com/user/walkoffsportscards/shows','mp-button mp-button--ghost'));copy.appendChild(actions);shell.appendChild(copy);
   }
 }
 
@@ -461,7 +479,12 @@ function readCmsSchedule(){
   var source=document.querySelector('[data-mp-event-source]');
   if(!source)return null;
   var now=new Date();
-  function field(item,name){var node=item.querySelector('[data-event-field="'+name+'"]');return String(node&&node.textContent||'').trim();}
+  function fieldNode(item,name){return item.querySelector('[data-event-field="'+name+'"]');}
+  function field(item,name){var node=fieldNode(item,name);return String(node&&node.textContent||'').trim();}
+  function dateField(item,name){
+    var node=fieldNode(item,name);if(!node)return'';
+    return String(node.getAttribute('data-event-'+name+'-iso')||node.getAttribute('datetime')||node.textContent||'').trim();
+  }
   function parseDate(value){var date=new Date(value);return isNaN(date.getTime())?null:date;}
   function dateKey(date){return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');}
   function timeLabel(start,end,allDay){
@@ -472,7 +495,7 @@ function readCmsSchedule(){
     return datePart+' · '+timePart;
   }
   var events=Array.prototype.map.call(source.querySelectorAll('.w-dyn-item'),function(item){
-    var startValue=field(item,'start');var endValue=field(item,'end');
+    var startValue=dateField(item,'start');var endValue=dateField(item,'end');
     var start=parseDate(startValue);if(!start)return null;
     var end=parseDate(endValue);
     var allDay=!/\d{1,2}:\d{2}|\b(?:am|pm)\b/i.test(startValue+' '+endValue);
@@ -503,6 +526,7 @@ function readCmsSchedule(){
   var activeEvent=events.find(function(event){return isEventActive(event,now);});
   var liveEvent=activeEvent&&activeEvent.online?activeEvent:null;
   var nextLive=events.find(function(event){return event.online&&event.start>now;});
+  var nextInPerson=events.find(function(event){return !event.online&&event.start>now;});
   return{
     live:Boolean(liveEvent),
     liveTitle:liveEvent&&liveEvent.title,
@@ -511,19 +535,48 @@ function readCmsSchedule(){
     embedUrl:liveEvent&&liveEvent.embedUrl,
     videoOrientation:liveEvent&&liveEvent.videoOrientation,
     activeEvent:activeEvent,
-    nextLive:nextLive&&{title:nextLive.title,when:nextLive.when,url:nextLive.href},
+    nextLive:nextLive,
+    nextInPerson:nextInPerson,
     events:events
   };
+}
+
+function mergeCmsSchedule(cmsSchedule,fileSchedule){
+  if(!cmsSchedule)return fileSchedule;
+  fileSchedule=fileSchedule&&typeof fileSchedule==='object'?fileSchedule:{};
+  var precise=(Array.isArray(fileSchedule.events)?fileSchedule.events:[]).concat(Array.isArray(fileSchedule.appearances)?fileSchedule.appearances:[]);
+  function clean(value){return String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
+  function dateOnly(event){var date=eventMoment(event,'start');return date?date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0'):String(event&&event.date||'');}
+  function match(event){
+    var title=clean(event.title),date=dateOnly(event);
+    return precise.find(function(candidate){return dateOnly(candidate)===date&&(clean(candidate.title)===title||clean(candidate.title).indexOf(title)>-1||title.indexOf(clean(candidate.title))>-1);});
+  }
+  cmsSchedule.events=(cmsSchedule.events||[]).map(function(event){
+    var exact=match(event);if(!exact)return event;
+    ['start','end','startsAt','endsAt','allDay'].forEach(function(key){if(exact[key]!==undefined)event[key]=exact[key];});
+    var start=eventMoment(event,'start'),end=eventMoment(event,'end');
+    if(start){
+      event.date=start.getFullYear()+'-'+String(start.getMonth()+1).padStart(2,'0')+'-'+String(start.getDate()).padStart(2,'0');
+      var datePart=new Intl.DateTimeFormat('en-US',{weekday:'short',month:'short',day:'numeric'}).format(start);
+      var timePart=new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(start);
+      if(end)timePart+='–'+new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(end);
+      event.when=datePart+' · '+timePart;
+    }
+    return event;
+  });
+  cmsSchedule.appearances=[];
+  cmsSchedule.activeEvent=cmsSchedule.events.find(function(event){return isEventActive(event,new Date());})||null;
+  cmsSchedule.nextLive=null;cmsSchedule.nextInPerson=null;
+  return cmsSchedule;
 }
 
 function loadSchedule(section,stage,reveal){
   function renderAll(data){data=prepareSchedule(data);renderBroadcast(stage,data);renderSchedule(section,data);updateStorefrontReveal(reveal,data);}
   var cmsSchedule=readCmsSchedule();
-  if(cmsSchedule){renderAll(cmsSchedule);return;}
   fetch(SCHEDULE_URL+(SCHEDULE_URL.indexOf('?')===-1?'?':'&')+'v='+Math.floor(Date.now()/300000),{headers:{Accept:'application/json'}})
     .then(function(response){if(!response.ok)throw new Error('Schedule unavailable');return response.json();})
-    .then(renderAll)
-    .catch(function(){renderAll({});});
+    .then(function(fileSchedule){renderAll(mergeCmsSchedule(cmsSchedule,fileSchedule));})
+    .catch(function(){renderAll(cmsSchedule||{});});
 }
 
 function renderFresh(section,items){
