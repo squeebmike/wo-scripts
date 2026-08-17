@@ -1006,6 +1006,11 @@ function loadPreorders(){
   var css=document.createElement('link');css.rel='stylesheet';css.setAttribute('data-mp-preorders-css','');css.href=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'preorders.css');document.head.appendChild(css);
   var script=document.createElement('script');script.async=true;script.setAttribute('data-mp-preorders','');script.src=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'preorders.js');document.head.appendChild(script);
 }
+function loadShopPreorders(){
+  if((location.pathname.replace(/\/$/,'')||'/')!=='/shop'||!WO_SCRIPT_SRC||document.querySelector('script[data-mp-shop-preorders]'))return;
+  var css=document.createElement('link');css.rel='stylesheet';css.setAttribute('data-mp-shop-preorders-css','');css.href=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'shop-preorders.css');document.head.appendChild(css);
+  var script=document.createElement('script');script.async=true;script.setAttribute('data-mp-shop-preorders','');script.src=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'shop-preorders.js');document.head.appendChild(script);
+}
 function loadSitePolish(){
   if(!WO_SCRIPT_SRC)return;
   var path=location.pathname.replace(/\/$/,'')||'/';
@@ -1030,6 +1035,7 @@ else{init();}
 loadSitePolish();
 loadHomepageRedesign();
 loadPreorders();
+loadShopPreorders();
 enhanceCart();
 setupTawkChat();
 polishNavigation();
