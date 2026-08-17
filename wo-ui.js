@@ -906,9 +906,8 @@ function polishCommerceDialogs(){
 }
 
 function disableLegacyFlatRateShipping(){
-  // The older wo-checkout Worker still contains guessed flat-rate shipping.
-  // Keep checkout honest until Shippo is connected: local pickup remains
-  // available, while the drawer no longer presents the estimate as a charge.
+  // The legacy drawer guesses shipping before it has an address. Keep the
+  // drawer honest; the replacement checkout gets a live carrier rate.
   function dollars(value){var match=String(value||'').match(/\$[\d,]+(?:\.\d{2})?/);return match?match[0]:'';}
   function fixDrawerTotals(){
     var totals=document.getElementById('wo-cart-totals');if(!totals)return;
@@ -919,21 +918,7 @@ function disableLegacyFlatRateShipping(){
     if(totalSpans.length>1&&totalSpans[0].textContent!=='Items subtotal')totalSpans[0].textContent='Items subtotal';
     if(totalSpans.length>1&&totalSpans[1].textContent!==subtotal)totalSpans[1].textContent=subtotal;
   }
-  function fixCheckout(){
-    var choices=document.getElementById('wo-co-fulfill-opts');if(!choices)return;
-    var shipping=choices.querySelector('[data-method="shipping"]');
-    if(shipping){
-      if(shipping.style.borderWidth==='2px'){
-        var pickup=choices.querySelector('[data-method="pickup_fedway"]');if(pickup)pickup.click();
-      }
-      shipping.remove();
-    }
-    if(!choices.querySelector('.mp-shipping-setup-note')){
-      var note=document.createElement('p');note.className='mp-shipping-setup-note';note.textContent='Need this shipped? Contact us for now. Live carrier rates are being connected.';choices.appendChild(note);
-    }
-    var fields=document.getElementById('wo-co-shipping-fields');if(fields)fields.style.display='none';
-  }
-  function scan(){fixDrawerTotals();fixCheckout();}
+  function scan(){fixDrawerTotals();}
   if(document.body){scan();new MutationObserver(scan).observe(document.body,{childList:true,subtree:true});}
   else document.addEventListener('DOMContentLoaded',function(){scan();new MutationObserver(scan).observe(document.body,{childList:true,subtree:true});},{once:true});
 }
@@ -1011,6 +996,12 @@ function loadShopPreorders(){
   var css=document.createElement('link');css.rel='stylesheet';css.setAttribute('data-mp-shop-preorders-css','');css.href=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'shop-preorders.css');document.head.appendChild(css);
   var script=document.createElement('script');script.async=true;script.setAttribute('data-mp-shop-preorders','');script.src=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'shop-preorders.js');document.head.appendChild(script);
 }
+function loadStorefrontCheckout(){
+  if(!WO_SCRIPT_SRC||document.querySelector('script[data-mp-storefront-checkout]'))return;
+  var script=document.createElement('script');script.async=true;script.setAttribute('data-mp-storefront-checkout','');
+  script.src=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'storefront-checkout.js');
+  document.head.appendChild(script);
+}
 function loadSitePolish(){
   if(!WO_SCRIPT_SRC)return;
   var path=location.pathname.replace(/\/$/,'')||'/';
@@ -1036,6 +1027,7 @@ loadSitePolish();
 loadHomepageRedesign();
 loadPreorders();
 loadShopPreorders();
+loadStorefrontCheckout();
 enhanceCart();
 setupTawkChat();
 polishNavigation();
