@@ -759,6 +759,7 @@ function polishNavigation(){
     {slug:'supplies',label:'Supplies',href:'/shop?cat=supplies',image:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/660ba51ad445f22b83625c86_Walk-off-sportscards-toploader.webp',meta:'Sleeves, binders & protection'}
   ];
   var COOL_LINKS=[
+    {slug:'preorders',label:'Comic Preorders',href:'/preorders',image:NAV_ART.comics,meta:'Pick exact covers before FOC'},
     {slug:'pokemon-viewer',label:'Pok\u00e9mon Card Viewer',href:'/pokemon-new-releases',image:NAV_ART.pokemon,meta:'Scan the latest sets'},
     {slug:'mtg-viewer',label:'MTG Card Viewer',href:'/mtg-new-releases',image:NAV_ART.mtg,meta:'Browse cards by release'},
     {slug:'publishing',label:'Walk-Off Publishing',href:'/publishing',image:NAV_ART.publishing,meta:'Comics from behind the counter'},
@@ -904,6 +905,39 @@ function polishCommerceDialogs(){
   });
 }
 
+function disableLegacyFlatRateShipping(){
+  // The older wo-checkout Worker still contains guessed flat-rate shipping.
+  // Keep checkout honest until Shippo is connected: local pickup remains
+  // available, while the drawer no longer presents the estimate as a charge.
+  function dollars(value){var match=String(value||'').match(/\$[\d,]+(?:\.\d{2})?/);return match?match[0]:'';}
+  function fixDrawerTotals(){
+    var totals=document.getElementById('wo-cart-totals');if(!totals)return;
+    var rows=totals.children;if(rows.length<3)return;
+    var subtotal=dollars(rows[0].textContent);if(!subtotal)return;
+    if(rows[1].textContent!=='Shipping available after address setup')rows[1].textContent='Shipping available after address setup';
+    var totalSpans=rows[2].querySelectorAll('span');
+    if(totalSpans.length>1&&totalSpans[0].textContent!=='Items subtotal')totalSpans[0].textContent='Items subtotal';
+    if(totalSpans.length>1&&totalSpans[1].textContent!==subtotal)totalSpans[1].textContent=subtotal;
+  }
+  function fixCheckout(){
+    var choices=document.getElementById('wo-co-fulfill-opts');if(!choices)return;
+    var shipping=choices.querySelector('[data-method="shipping"]');
+    if(shipping){
+      if(shipping.style.borderWidth==='2px'){
+        var pickup=choices.querySelector('[data-method="pickup_fedway"]');if(pickup)pickup.click();
+      }
+      shipping.remove();
+    }
+    if(!choices.querySelector('.mp-shipping-setup-note')){
+      var note=document.createElement('p');note.className='mp-shipping-setup-note';note.textContent='Need this shipped? Contact us for now. Live carrier rates are being connected.';choices.appendChild(note);
+    }
+    var fields=document.getElementById('wo-co-shipping-fields');if(fields)fields.style.display='none';
+  }
+  function scan(){fixDrawerTotals();fixCheckout();}
+  if(document.body){scan();new MutationObserver(scan).observe(document.body,{childList:true,subtree:true});}
+  else document.addEventListener('DOMContentLoaded',function(){scan();new MutationObserver(scan).observe(document.body,{childList:true,subtree:true});},{once:true});
+}
+
 function polishShopInventory(){
   var path=location.pathname.replace(/\/$/,'')||'/';if(path!=='/shop')return;
   function canonical(value){
@@ -967,6 +1001,11 @@ function loadHomepageRedesign(){
   script.src=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'homepage-redesign.js');
   document.head.appendChild(script);
 }
+function loadPreorders(){
+  if((location.pathname.replace(/\/$/,'')||'/')!=='/preorders'||!WO_SCRIPT_SRC||document.querySelector('script[data-mp-preorders]'))return;
+  var css=document.createElement('link');css.rel='stylesheet';css.setAttribute('data-mp-preorders-css','');css.href=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'preorders.css');document.head.appendChild(css);
+  var script=document.createElement('script');script.async=true;script.setAttribute('data-mp-preorders','');script.src=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'preorders.js');document.head.appendChild(script);
+}
 function loadSitePolish(){
   if(!WO_SCRIPT_SRC)return;
   var path=location.pathname.replace(/\/$/,'')||'/';
@@ -990,11 +1029,13 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 else{init();}
 loadSitePolish();
 loadHomepageRedesign();
+loadPreorders();
 enhanceCart();
 setupTawkChat();
 polishNavigation();
 buildReceiptFooter();
 polishCommerceDialogs();
+disableLegacyFlatRateShipping();
 polishShopInventory();
 polishFanClub();
 
