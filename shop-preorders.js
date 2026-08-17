@@ -12,12 +12,13 @@ function dateLabel(value){if(!value)return'Release date TBA';return'Releases '+n
 function cardHtml(family,sku){
   var name=(family.seriesName||family.title)+(family.issueNumber?' #'+family.issueNumber:'');
   var request=!!sku.waitlistOnly;
-  var url='/preorders?sku='+encodeURIComponent(sku.id)+(request?'&request=1':'&add=1');
-  var price=request?(sku.priceCents?money(sku.priceCents)+' if secured':'Price confirmed if secured'):money(sku.priceCents);
+  var pricePending=!request&&!sku.canPreorder;
+  var url='/preorders?sku='+encodeURIComponent(sku.id)+(request?'&request=1':(sku.canPreorder?'&add=1':''));
+  var price=request?(sku.priceRequired?'Price confirmed if secured':money(sku.priceCents)+' if secured'):(sku.priceRequired?'Price coming soon':money(sku.priceCents));
   var badges='<span>PREORDER</span>'+(sku.isFoil?'<span>FOIL</span>':'')+(sku.isIncentive?'<span>'+esc(sku.orderRequirement||'INCENTIVE')+'</span>':'');
   return '<article class="wo-live-card mp-shop-preorder-card" data-category="comics" data-preorder-sku="'+esc(sku.id)+'">'+
     '<a class="mp-shop-preorder-image" href="'+url+'">'+(sku.coverImageUrl?'<img loading="lazy" decoding="async" src="'+esc(sku.coverImageUrl)+'" alt="'+esc(name+' '+sku.variantLabel)+'">':'<span>Cover coming soon</span>')+'</a>'+
-    '<div class="mp-shop-preorder-body"><div class="mp-shop-preorder-badges">'+badges+'</div><h3>'+esc(name)+'</h3><p class="mp-shop-preorder-variant">'+esc(sku.variantLabel||'Cover A')+'</p><p class="mp-shop-preorder-artist">'+esc(sku.coverArtist?'Cover by '+sku.coverArtist:family.publisher||'Comic preorder')+'</p><p class="mp-shop-preorder-release">'+esc(dateLabel(sku.onSaleDate||family.onSaleDate))+'</p><strong class="mp-shop-preorder-price '+(request?'request':'')+'">'+price+'</strong><a class="mp-shop-preorder-action" href="'+url+'">'+(request?'Request this cover':'Preorder exact cover')+'</a></div></article>';
+    '<div class="mp-shop-preorder-body"><div class="mp-shop-preorder-badges">'+badges+'</div><h3>'+esc(name)+'</h3><p class="mp-shop-preorder-variant">'+esc(sku.variantLabel||'Cover A')+'</p><p class="mp-shop-preorder-artist">'+esc(sku.coverArtist?'Cover by '+sku.coverArtist:family.publisher||'Comic preorder')+'</p><p class="mp-shop-preorder-release">'+esc(dateLabel(sku.onSaleDate||family.onSaleDate))+'</p><strong class="mp-shop-preorder-price '+(request||pricePending?'request':'')+'">'+price+'</strong><a class="mp-shop-preorder-action" href="'+url+'">'+(request?'Request this cover':(pricePending?'View exact cover':'Preorder exact cover'))+'</a></div></article>';
 }
 
 function mount(catalog){
