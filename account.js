@@ -7,7 +7,25 @@ var SUPABASE_URL='https://vroknjrxubsqyexngwus.supabase.co';
 var SUPABASE_KEY='sb_publishable_wbpX2nL8l-4NbXtZNG_bjA_nabSYaJ5';
 // Same key preorders.js uses -- signing in on either page signs in on both.
 var SESSION_KEY='mp-foc-session-v1';
-var state={session:readJson(SESSION_KEY,null),tab:'overview',cache:{}};
+var state={session:readJson(SESSION_KEY,null),cache:{}};
+
+// One shared script drives every /account* page (real distinct URLs, not a
+// tabbed single page) -- which section renders is decided purely by
+// location.pathname. Keeps one auth/session/api implementation instead of
+// duplicating it across eight files, while still giving each area its own
+// bookmarkable URL like the site spec calls for.
+var SECTIONS=[
+  {path:'/account',key:'overview',label:'Overview',protected:true},
+  {path:'/account-orders',key:'orders',label:'Orders',protected:true},
+  {path:'/account-preorders',key:'preorders',label:'Comic Preorders',protected:true},
+  {path:'/account-consignments',key:'consignments',label:'Consignments',protected:true},
+  {path:'/account-wishlist',key:'wishlist',label:'Wishlist',protected:true},
+  {path:'/account-profile',key:'profile',label:'Account Settings',protected:true},
+  {path:'/login',key:'login',label:'Sign In',protected:false},
+  {path:'/signup',key:'signup',label:'Create Account',protected:false},
+];
+function currentPath(){return(location.pathname.replace(/\/$/,'')||'/');}
+function currentSection(){return SECTIONS.find(function(s){return s.path===currentPath();})||null;}
 
 function readJson(key,fallback){try{return JSON.parse(localStorage.getItem(key)||'null')||fallback;}catch(_){return fallback;}}
 function saveJson(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch(_){}}
@@ -58,6 +76,7 @@ async function refreshSession(){
 
 function mount(){
   if(document.getElementById('mp-acct-app'))return;
+  var section=currentSection();if(!section)return;
   document.body.classList.add('mp-page-account');
   if(!document.getElementById('navbarID')){
     var nav=document.createElement('nav');nav.className='mp-acct-nav';nav.setAttribute('aria-label','Main navigation');
@@ -68,44 +87,26 @@ function mount(){
   var app=document.createElement('main');app.id='mp-acct-app';
   var footer=document.querySelector('.footer-section,.Footer,.footer');
   if(footer)footer.parentNode.insertBefore(app,footer);else document.body.appendChild(app);
-  render();
+
+  if(section.protected&&!token()){
+    location.replace('/login?next='+encodeURIComponent(currentPath()));
+    return;
+  }
+  if(!section.protected&&token()&&(section.key==='login'||section.key==='signup')){
+    location.replace(nextParam()||'/account');
+    return;
+  }
+  if(section.key==='login')renderAuthPage(app,'signin');
+  else if(section.key==='signup')renderAuthPage(app,'signup');
+  else renderAccountShell(app,section);
 }
 
-function render(){
-  var app=document.getElementById('mp-acct-app');
-  if(!token()){renderSignedOut(app);return;}
-  renderShell(app);
+function nextParam(){
+  var value=new URLSearchParams(location.search).get('next');
+  return value&&value.charAt(0)==='/'?value:'';
 }
 
 function statusHtml(message,kind){return message?'<div class="mp-acct-status'+(kind?' '+kind:'')+'">'+esc(message)+'</div>':'';}
-
-function renderSignedOut(app){
-  app.innerHTML='<div class="mp-acct-shell mp-acct-shell-narrow">'+
-    '<div class="mp-acct-eyebrow">The Mana Pocket</div><h1 class="mp-acct-title">My Account</h1>'+
-    '<p class="mp-acct-intro">Sign in with the same account you use for comic preorders to see your orders, rewards, and store history.</p>'+
-    '<form class="mp-acct-auth" data-auth-form><input name="name" placeholder="Name (new collectors)"><input name="email" type="email" required placeholder="Email"><input name="password" type="password" minlength="8" required placeholder="Password · 8+ characters"><div data-auth-status></div><div class="mp-acct-actions"><button class="mp-acct-button ghost" type="button" data-sign-up>Create account</button><button class="mp-acct-button" type="submit">Sign in</button></div></form>'+
-  '</div>';
-  var form=app.querySelector('[data-auth-form]'),out=app.querySelector('[data-auth-status]');
-  async function perform(kind){
-    var data=new FormData(form),email=String(data.get('email')||'').trim(),password=String(data.get('password')||''),name=String(data.get('name')||'').trim();
-    if(!email||password.length<8){out.innerHTML=statusHtml('Enter an email and a password with at least 8 characters.','error');return;}
-    out.innerHTML=statusHtml('Working…');
-    try{
-      var session;
-      if(kind==='signup'){
-        var result=await auth('signup',{email:email,password:password,data:{full_name:name}});
-        if(!result.access_token){renderResend(out,'Check your email to confirm the account, then sign in.',email);return;}
-        session=result;
-      }else session=await auth('token?grant_type=password',{email:email,password:password});
-      setSession(session);render();
-    }catch(error){
-      if(/confirm/i.test(error.message))renderResend(out,error.message,email,'error');
-      else out.innerHTML=statusHtml(error.message,'error');
-    }
-  }
-  form.addEventListener('submit',function(event){event.preventDefault();perform('signin');});
-  app.querySelector('[data-sign-up]').addEventListener('click',function(){perform('signup');});
-}
 function renderResend(node,message,email,kind){
   node.innerHTML=statusHtml(message,kind||'success')+'<button class="mp-acct-button ghost" type="button" data-resend>Resend confirmation email</button>';
   var button=node.querySelector('[data-resend]');
@@ -117,42 +118,66 @@ function renderResend(node,message,email,kind){
   });
 }
 
-var TABS=[
-  {id:'overview',label:'Overview'},
-  {id:'orders',label:'Orders'},
-  {id:'preorders',label:'Comic Preorders'},
-  {id:'instore',label:'In-Store History'},
-  {id:'phone',label:'Link Phone'},
-  {id:'settings',label:'Account Settings'},
-];
+// One shared sign-in/sign-up page for both /login and /signup -- the mode
+// just decides which form is primary and which is the secondary "or" link,
+// since collectors mixing up the two URLs is the actual failure mode this
+// avoids (each still fully works for either action).
+function renderAuthPage(app,mode){
+  var isSignup=mode==='signup';
+  app.innerHTML='<div class="mp-acct-shell mp-acct-shell-narrow">'+
+    '<div class="mp-acct-eyebrow">The Mana Pocket</div><h1 class="mp-acct-title">'+(isSignup?'Create Account':'Sign In')+'</h1>'+
+    '<p class="mp-acct-intro">One account covers comic preorders, shop orders, rewards, and your in-store history.</p>'+
+    '<form class="mp-acct-auth" data-auth-form>'+
+      (isSignup?'<input name="name" placeholder="Name">':'')+
+      '<input name="email" type="email" required placeholder="Email">'+
+      '<input name="password" type="password" minlength="8" required placeholder="Password · 8+ characters">'+
+      '<div data-auth-status></div>'+
+      '<button class="mp-acct-button" type="submit">'+(isSignup?'Create account':'Sign in')+'</button>'+
+    '</form>'+
+    '<p class="mp-acct-switch">'+(isSignup?'Already have an account? <a href="/login">Sign in</a>':'New here? <a href="/signup">Create an account</a>')+'</p>'+
+  '</div>';
+  var form=app.querySelector('[data-auth-form]'),out=app.querySelector('[data-auth-status]');
+  form.addEventListener('submit',async function(event){
+    event.preventDefault();
+    var data=new FormData(form),email=String(data.get('email')||'').trim(),password=String(data.get('password')||''),name=String(data.get('name')||'').trim();
+    if(!email||password.length<8){out.innerHTML=statusHtml('Enter an email and a password with at least 8 characters.','error');return;}
+    out.innerHTML=statusHtml('Working…');
+    try{
+      var session;
+      if(isSignup){
+        var result=await auth('signup',{email:email,password:password,data:{full_name:name}});
+        if(!result.access_token){renderResend(out,'Check your email to confirm the account, then sign in.',email);return;}
+        session=result;
+      }else session=await auth('token?grant_type=password',{email:email,password:password});
+      setSession(session);
+      location.href=nextParam()||'/account';
+    }catch(error){
+      if(/confirm/i.test(error.message))renderResend(out,error.message,email,'error');
+      else out.innerHTML=statusHtml(error.message,'error');
+    }
+  });
+}
 
-function renderShell(app){
+function renderAccountShell(app,section){
   app.innerHTML='<div class="mp-acct-shell">'+
     '<div class="mp-acct-eyebrow">The Mana Pocket</div><h1 class="mp-acct-title">My Account</h1>'+
-    '<nav class="mp-acct-tabs" role="tablist">'+TABS.map(function(t){return'<button type="button" role="tab" data-tab="'+t.id+'" class="'+(state.tab===t.id?'active':'')+'">'+esc(t.label)+'</button>';}).join('')+'</nav>'+
+    '<nav class="mp-acct-tabs" role="navigation" aria-label="Account sections">'+SECTIONS.filter(function(s){return s.protected;}).map(function(s){return'<a href="'+s.path+'" class="'+(s.key===section.key?'active':'')+'">'+esc(s.label)+'</a>';}).join('')+'</nav>'+
     '<div id="mp-acct-panel" class="mp-acct-panel"><div class="mp-acct-loading">Loading…</div></div>'+
     '<div class="mp-acct-actions mp-acct-signout"><button class="mp-acct-button ghost" type="button" data-sign-out>Sign out</button></div>'+
   '</div>';
-  app.querySelectorAll('[data-tab]').forEach(function(button){
-    button.addEventListener('click',function(){
-      state.tab=button.dataset.tab;
-      app.querySelectorAll('[data-tab]').forEach(function(b){b.classList.toggle('active',b===button);});
-      loadTab(state.tab);
-    });
-  });
-  app.querySelector('[data-sign-out]').addEventListener('click',function(){setSession(null);state.cache={};render();});
-  loadTab(state.tab);
+  app.querySelector('[data-sign-out]').addEventListener('click',function(){setSession(null);location.href='/login';});
+  loadSection(section.key);
 }
 
 function panel(){return document.getElementById('mp-acct-panel');}
 
-function loadTab(tab){
-  if(tab==='overview')return loadOverview();
-  if(tab==='orders')return loadOrders();
-  if(tab==='preorders')return loadPreorders();
-  if(tab==='instore')return loadInStore();
-  if(tab==='phone')return renderPhoneTab();
-  if(tab==='settings')return renderSettingsTab();
+function loadSection(key){
+  if(key==='overview')return loadOverview();
+  if(key==='orders')return loadOrders();
+  if(key==='preorders')return loadPreorders();
+  if(key==='consignments')return loadConsignments();
+  if(key==='wishlist')return loadWishlist();
+  if(key==='profile')return renderProfile();
 }
 
 async function loadOverview(){
@@ -168,17 +193,9 @@ async function loadOverview(){
     '</div>'+
     (summary.giftCards&&summary.giftCards.length?'<h3 class="mp-acct-subhead">Gift cards</h3><div class="mp-acct-list">'+summary.giftCards.map(function(g){return'<div class="mp-acct-row"><span>•••• '+esc(String(g.code).slice(-4))+'</span><strong>'+money(g.balance)+'</strong></div>';}).join('')+'</div>':'')+
     (summary.linked?
-      '<div class="mp-acct-note">Linked to '+esc(c.phone||'')+' — rewards and in-store purchases on that phone number show up automatically.</div>'
-      :'<div class="mp-acct-note warn">Your phone number is not linked yet, so in-store purchases and trade-in credit from register visits will not show here. <button class="mp-acct-button ghost" type="button" data-goto-phone>Link my phone</button></div>');
-    var gotoPhone=host.querySelector('[data-goto-phone]');
-    if(gotoPhone)gotoPhone.addEventListener('click',function(){selectTab('phone');});
+      '<div class="mp-acct-note">Linked to '+esc(c.phone||'')+' — rewards, consignments, want list, and in-store purchases on that phone number show up automatically.</div>'
+      :'<div class="mp-acct-note warn">Your phone number is not linked yet, so in-store purchases, consignments, want list, and trade credit will not show here. <a class="mp-acct-button ghost" href="/account-profile">Link my phone</a></div>');
   }catch(error){host.innerHTML=statusHtml(error.message,'error');}
-}
-
-function selectTab(tab){
-  state.tab=tab;
-  document.querySelectorAll('[data-tab]').forEach(function(b){b.classList.toggle('active',b.dataset.tab===tab);});
-  loadTab(tab);
 }
 
 async function loadOrders(){
@@ -214,26 +231,76 @@ function preorderCardHtml(order){
   '</article>';
 }
 
-async function loadInStore(){
-  var host=panel();host.innerHTML='<div class="mp-acct-loading">Loading your in-store history…</div>';
+async function loadConsignments(){
+  var host=panel();host.innerHTML='<div class="mp-acct-loading">Loading your consignments…</div>';
   try{
-    var result=state.cache.instore||await api('/public/account/in-store?store_id='+encodeURIComponent(STORE_ID));
-    state.cache.instore=result;
-    if(!result.linked){host.innerHTML='<div class="mp-acct-note warn">Link your phone number to see purchases made at the register. <button class="mp-acct-button ghost" type="button" data-goto-phone>Link my phone</button></div>';host.querySelector('[data-goto-phone]').addEventListener('click',function(){selectTab('phone');});return;}
-    var purchases=result.purchases||[];
-    host.innerHTML=purchases.length?purchases.map(function(sale){return '<article class="mp-acct-order"><header><div><h3>'+money(sale.total)+'</h3><span class="mp-acct-sub">'+esc(dateLabel(sale.completed_at||sale.created_at,true))+'</span></div></header>'+
-      (sale.items&&sale.items.length?'<div class="mp-acct-items">'+sale.items.map(function(item){return'<div class="mp-acct-item-line"><span>'+esc(item.title)+(item.quantity>1?' ×'+item.quantity:'')+'</span><span>'+money(item.unit_price)+'</span></div>';}).join('')+'</div>':'')+
-    '</article>';}).join(''):'<div class="mp-acct-empty">No in-store purchases found on this phone number yet.</div>';
+    var result=state.cache.consignments||await api('/public/account/consignments?store_id='+encodeURIComponent(STORE_ID));
+    state.cache.consignments=result;
+    if(!result.linked){host.innerHTML='<div class="mp-acct-note warn">We could not match a consignor record to your account yet. If you consign items with us, <a href="/account-profile">link your phone number</a> or contact the store to confirm the email/phone on file matches your account.</div>';return;}
+    var items=result.items||[];
+    host.innerHTML=(result.consignor?'<div class="mp-acct-note">Consigning as '+esc(result.consignor.name)+' · store keeps '+Number(result.consignor.storeSplitPercent||0)+'% on sale.</div>':'')+
+    (items.length?items.map(consignmentRowHtml).join(''):'<div class="mp-acct-empty">No consigned items on file yet.</div>');
   }catch(error){host.innerHTML=statusHtml(error.message,'error');}
 }
+function consignmentRowHtml(item){
+  return '<article class="mp-acct-order"><header><div><h3>'+esc(item.item_name)+'</h3><span class="mp-acct-sub">'+esc(item.inventory_sku||'')+' · added '+esc(dateLabel(item.added_at))+'</span></div><span class="mp-acct-status-pill">'+esc(String(item.status||'').replace(/_/g,' '))+'</span></header>'+
+    '<div class="mp-acct-row"><span>List price</span><strong>'+money(item.list_price)+'</strong></div>'+
+    (item.status==='sold'?'<div class="mp-acct-row"><span>Sold for</span><strong>'+money(item.sale_price)+'</strong></div><div class="mp-acct-row"><span>Payout</span><strong>'+(item.paid_out?'Paid '+esc(dateLabel(item.paid_out_at)):'Pending')+'</strong></div>':'')+
+  '</article>';
+}
 
-function renderPhoneTab(){
+async function loadWishlist(){
+  var host=panel();host.innerHTML='<div class="mp-acct-loading">Loading your want list…</div>';
+  try{
+    var result=state.cache.wishlist||await api('/public/account/wishlist?store_id='+encodeURIComponent(STORE_ID));
+    state.cache.wishlist=result;
+    var items=result.items||[];
+    host.innerHTML=items.length?'<p class="mp-acct-intro">Items you have asked the store to keep an eye out for. Call or stop by to add more — self-service adding is coming soon.</p>'+items.map(wishlistRowHtml).join(''):'<div class="mp-acct-empty">Nothing on your want list yet. Ask the store to add a card, comic, or set you are hunting for.</div>';
+  }catch(error){host.innerHTML=statusHtml(error.message,'error');}
+}
+function wishlistRowHtml(item){
+  return '<article class="mp-acct-order"><header><div><h3>'+esc(item.item)+'</h3>'+(item.notes?'<span class="mp-acct-sub">'+esc(item.notes)+'</span>':'')+'</div><span class="mp-acct-status-pill">'+esc(item.status||'active')+'</span></header>'+
+    (item.maxprice?'<div class="mp-acct-row"><span>Up to</span><strong>'+money(item.maxprice)+'</strong></div>':'')+
+  '</article>';
+}
+
+function renderProfile(){
   var host=panel();
+  var email=state.session&&state.session.user&&state.session.user.email||'';
   var linkedPhone=state.cache.summary&&state.cache.summary.customer&&state.cache.summary.customer.phone;
-  host.innerHTML='<p class="mp-acct-intro">Linking your phone number connects the rewards and store credit a cashier attaches to your phone number at the register to this account, and lets your in-store purchase history show up here.</p>'+
-    (linkedPhone?'<div class="mp-acct-note">Currently linked to '+esc(linkedPhone)+'. Verifying a new number below will move the link to that number instead.</div>':'')+
+  host.innerHTML='<h3 class="mp-acct-subhead">Change email</h3>'+
+    '<form class="mp-acct-auth" data-email-form><input name="email" type="email" required placeholder="New email" value="'+esc(email)+'"><div class="mp-acct-actions"><button class="mp-acct-button" type="submit">Update email</button></div><div data-email-status></div></form>'+
+    '<h3 class="mp-acct-subhead">Change password</h3>'+
+    '<form class="mp-acct-auth" data-password-form><input name="password" type="password" minlength="8" required placeholder="New password · 8+ characters"><div class="mp-acct-actions"><button class="mp-acct-button" type="submit">Update password</button></div><div data-password-status></div></form>'+
+    '<h3 class="mp-acct-subhead">Link my phone</h3>'+
+    '<p class="mp-acct-intro">Connects the rewards and store credit a cashier attaches to your phone number at the register to this account, and unlocks your in-store history, consignments, and want list here.</p>'+
+    (linkedPhone?'<div class="mp-acct-note">Currently linked to '+esc(linkedPhone)+'. Verifying a new number below moves the link to that number instead.</div>':'')+
     '<form class="mp-acct-auth" data-phone-form><input name="phone" type="tel" required placeholder="Phone number"><div class="mp-acct-actions"><button class="mp-acct-button" type="submit">Send code</button></div><div data-phone-status></div></form>'+
     '<form class="mp-acct-auth" data-code-form hidden><input name="code" inputmode="numeric" maxlength="6" required placeholder="6-digit code"><div class="mp-acct-actions"><button class="mp-acct-button" type="submit">Confirm</button></div><div data-code-status></div></form>';
+
+  var emailForm=host.querySelector('[data-email-form]'),emailOut=host.querySelector('[data-email-status]');
+  emailForm.addEventListener('submit',async function(event){
+    event.preventDefault();
+    var newEmail=String(new FormData(emailForm).get('email')||'').trim();
+    emailOut.innerHTML=statusHtml('Saving…');
+    try{
+      await updateUser({email:newEmail});
+      emailOut.innerHTML=statusHtml('Check '+newEmail+' for a link to confirm the change. Your sign-in email stays the same until you click it.','success');
+    }catch(error){emailOut.innerHTML=statusHtml(error.message,'error');}
+  });
+
+  var passwordForm=host.querySelector('[data-password-form]'),passwordOut=host.querySelector('[data-password-status]');
+  passwordForm.addEventListener('submit',async function(event){
+    event.preventDefault();
+    var newPassword=String(new FormData(passwordForm).get('password')||'');
+    passwordOut.innerHTML=statusHtml('Saving…');
+    try{
+      await updateUser({password:newPassword});
+      passwordOut.innerHTML=statusHtml('Password updated.','success');
+      passwordForm.reset();
+    }catch(error){passwordOut.innerHTML=statusHtml(error.message,'error');}
+  });
+
   var phoneForm=host.querySelector('[data-phone-form]'),codeForm=host.querySelector('[data-code-form]'),phoneOut=host.querySelector('[data-phone-status]'),codeOut=host.querySelector('[data-code-status]');
   var phoneValue='';
   phoneForm.addEventListener('submit',async function(event){
@@ -252,39 +319,9 @@ function renderPhoneTab(){
     codeOut.innerHTML=statusHtml('Confirming…');
     try{
       var summary=await api('/public/account/phone/confirm-verify',{method:'POST',body:JSON.stringify({storeId:STORE_ID,phone:phoneValue,code:code})});
-      state.cache.summary=summary;state.cache.instore=null;
-      codeOut.innerHTML=statusHtml('Phone linked! Your rewards and in-store history are now connected.','success');
+      state.cache={summary:summary};
+      codeOut.innerHTML=statusHtml('Phone linked! Your rewards, in-store history, consignments, and want list are now connected.','success');
     }catch(error){codeOut.innerHTML=statusHtml(error.message,'error');}
-  });
-}
-
-function renderSettingsTab(){
-  var host=panel();
-  var email=state.session&&state.session.user&&state.session.user.email||'';
-  host.innerHTML='<h3 class="mp-acct-subhead">Change email</h3>'+
-    '<form class="mp-acct-auth" data-email-form><input name="email" type="email" required placeholder="New email" value="'+esc(email)+'"><div class="mp-acct-actions"><button class="mp-acct-button" type="submit">Update email</button></div><div data-email-status></div></form>'+
-    '<h3 class="mp-acct-subhead">Change password</h3>'+
-    '<form class="mp-acct-auth" data-password-form><input name="password" type="password" minlength="8" required placeholder="New password · 8+ characters"><div class="mp-acct-actions"><button class="mp-acct-button" type="submit">Update password</button></div><div data-password-status></div></form>';
-  var emailForm=host.querySelector('[data-email-form]'),emailOut=host.querySelector('[data-email-status]');
-  emailForm.addEventListener('submit',async function(event){
-    event.preventDefault();
-    var newEmail=String(new FormData(emailForm).get('email')||'').trim();
-    emailOut.innerHTML=statusHtml('Saving…');
-    try{
-      await updateUser({email:newEmail});
-      emailOut.innerHTML=statusHtml('Check '+newEmail+' for a link to confirm the change. Your sign-in email stays the same until you click it.','success');
-    }catch(error){emailOut.innerHTML=statusHtml(error.message,'error');}
-  });
-  var passwordForm=host.querySelector('[data-password-form]'),passwordOut=host.querySelector('[data-password-status]');
-  passwordForm.addEventListener('submit',async function(event){
-    event.preventDefault();
-    var newPassword=String(new FormData(passwordForm).get('password')||'');
-    passwordOut.innerHTML=statusHtml('Saving…');
-    try{
-      await updateUser({password:newPassword});
-      passwordOut.innerHTML=statusHtml('Password updated.','success');
-      passwordForm.reset();
-    }catch(error){passwordOut.innerHTML=statusHtml(error.message,'error');}
   });
 }
 

@@ -1,6 +1,8 @@
 (function(){
   'use strict';
-  if((location.pathname.replace(/\/$/,'')||'/')!=='/account'||document.querySelector('script[data-mp-account]'))return;
+  var PATHS=['/account','/account-orders','/account-preorders','/account-consignments','/account-wishlist','/account-profile','/login','/signup'];
+  var path=location.pathname.replace(/\/$/,'')||'/';
+  if(PATHS.indexOf(path)===-1||document.querySelector('script[data-mp-account]'))return;
   var current=document.currentScript&&document.currentScript.src||'';
   var base=current.replace(/account-loader\.js(?:\?.*)?$/,'');
   var css=document.createElement('link');
