@@ -964,20 +964,9 @@ function polishShopInventory(){
   if(mount())return;var observer=new MutationObserver(function(){if(mount())observer.disconnect();});observer.observe(document.documentElement,{childList:true,subtree:true});
 }
 
-function polishFanClub(){
-  var path=location.pathname.replace(/\/$/,'')||'/';if(path!=='/fan-club')return;
-  function mount(){
-    var cards=document.querySelectorAll('.wo-tier-grid .wo-tier-card');if(cards.length<2)return;
-    var supporter=cards[0],patron=cards[1];var sp=supporter.querySelector('p'),pp=patron.querySelector('p');
-    if(sp)sp.textContent='A simple way to help make the next pages, issue, and release happen.';
-    if(pp)pp.textContent='Go deeper behind the scenes and get first notice when special editions drop.';
-    function perks(card,items){if(card.querySelector('.mp-tier-perks'))return;var list=document.createElement('ul');list.className='mp-tier-perks';items.forEach(function(text){var li=document.createElement('li');li.textContent=text;list.appendChild(li);});var p=card.querySelector('p');if(p)p.after(list);}
-    perks(supporter,['Early pages and development notes','Members-only behind-the-scenes updates','Vote in occasional art and cover polls']);
-    perks(patron,['Everything in Supporter','Quarterly digital extras','Priority alerts for signed and limited releases']);
-    var sb=supporter.querySelector('[data-wo-fanclub-tier]');var pb=patron.querySelector('[data-wo-fanclub-tier]');if(sb)sb.textContent='Join the Fan Club';if(pb)pb.textContent='Become a Patron';
-  }
-  if(document.body)mount();else document.addEventListener('DOMContentLoaded',mount,{once:true});
-}
+// Fan-club page decoration and signup wiring now live in fan-club.js,
+// loaded only on /fan-club via that page's own freeform code -- this used
+// to target a two-tier paid-pledge layout that no longer exists.
 
 function loadHomepageRedesign(){
   if((location.pathname!=='/'&&location.pathname!=='/index.html')||!WO_SCRIPT_SRC||document.querySelector('script[data-mp-home-redesign]'))return;
@@ -1035,6 +1024,5 @@ buildReceiptFooter();
 polishCommerceDialogs();
 disableLegacyFlatRateShipping();
 polishShopInventory();
-polishFanClub();
 
 })();

@@ -157,7 +157,7 @@ body.mp-chat-enabled #mp-floating-cart { bottom: calc(max(18px, env(safe-area-in
   text-wrap: balance;
 }
 .mp-page-fan-club .wrapper-intro p { color: var(--mp-polish-soft) !important; font-size: clamp(16px, 1.8vw, 20px) !important; line-height: 1.55 !important; margin: 0 auto !important; max-width: 720px; }
-.mp-page-fan-club .wo-tier-grid { display: grid !important; gap: clamp(16px, 3vw, 28px) !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; margin: 0 auto !important; max-width: 1040px !important; width: 100% !important; }
+.mp-page-fan-club .wo-tier-grid { display: grid !important; gap: clamp(16px, 3vw, 28px) !important; grid-template-columns: 1fr !important; margin: 0 auto !important; max-width: 520px !important; width: 100% !important; }
 .mp-page-fan-club .wo-tier-card {
   background: var(--mp-polish-panel) !important;
   border: 1px solid var(--mp-polish-line) !important;
@@ -177,12 +177,11 @@ body.mp-chat-enabled #mp-floating-cart { bottom: calc(max(18px, env(safe-area-in
 .mp-page-fan-club .wo-tier-card h3 { color: var(--mp-polish-text) !important; font-size: clamp(28px, 4vw, 46px) !important; margin: 0 !important; }
 .mp-page-fan-club .wo-tier-card p { color: var(--mp-polish-soft) !important; line-height: 1.55 !important; }
 .mp-page-fan-club .mp-tier-perks { color: var(--mp-polish-text); display: grid; gap: 9px; line-height: 1.35; margin: 0 0 8px; padding-left: 22px; }
-.mp-page-fan-club .wo-email-input,
-.mp-page-fan-club .wo-amount-input { background: var(--mp-polish-page) !important; border: 1px solid var(--mp-polish-strong) !important; border-radius: 12px !important; color: var(--mp-polish-text) !important; font-size: 16px !important; height: 50px !important; min-width: 0 !important; width: 100% !important; }
-.mp-page-fan-club .wo-amount-row { align-items: center; display: grid !important; gap: 8px; grid-template-columns: auto minmax(0, 1fr) auto; }
-.mp-page-fan-club .wo-tier-button,
-.mp-page-fan-club .wo-pledge-preset-btn { background: var(--mp-polish-action) !important; border-radius: 999px !important; color: var(--mp-polish-action-copy) !important; font-weight: 900 !important; min-height: 48px; text-align: center; }
-.mp-page-fan-club .wo-pledge-presets { display: grid !important; gap: 10px !important; grid-template-columns: repeat(3, 1fr); }
+.mp-page-fan-club .wo-email-input { background: var(--mp-polish-page) !important; border: 1px solid var(--mp-polish-strong) !important; border-radius: 12px !important; color: var(--mp-polish-text) !important; font-size: 16px !important; height: 50px !important; min-width: 0 !important; width: 100% !important; }
+.mp-page-fan-club .wo-tier-button { background: var(--mp-polish-action) !important; border-radius: 999px !important; color: var(--mp-polish-action-copy) !important; font-weight: 900 !important; min-height: 48px; text-align: center; }
+.mp-page-fan-club .mp-fanclub-status { color: var(--mp-polish-soft); font-size: 13px; margin-top: 4px; min-height: 18px; }
+.mp-page-fan-club .mp-fanclub-status.success { color: var(--mp-polish-action); }
+.mp-page-fan-club .mp-fanclub-status.error { color: #ff6a6a; }
 
 /* Pokémon and MTG set viewers */
 .mp-page-card-viewer .page-wrapper { height: auto !important; min-height: 0 !important; padding: 0 !important; }
@@ -220,7 +219,6 @@ body.mp-chat-enabled #mp-floating-cart { bottom: calc(max(18px, env(safe-area-in
 .mp-page-checklists :is(.table-wrapper,[class*="table-wrap"]) { overflow-x: auto; }
 
 @media (max-width: 700px) {
-  .mp-page-fan-club .wo-tier-grid { grid-template-columns: 1fr !important; }
   .mp-page-card-viewer .content-wrapper.bluebg.mtg { padding-top: 22px !important; }
   .mp-page-card-viewer .wposb-set-row,
   .mp-page-card-viewer .womtg-set-row { position: static; }
@@ -250,7 +248,6 @@ body.mp-chat-enabled #mp-floating-cart { bottom: calc(max(18px, env(safe-area-in
 
 @media (max-width: 430px) {
   .mp-page-card-viewer :is(.wposb-cards-area,.womtg-cards-area) { grid-template-columns: 1fr !important; }
-  .mp-page-fan-club .wo-amount-row { grid-template-columns: auto minmax(0, 1fr); }
   #wo-cart-items > div { grid-template-columns: 82px minmax(0, 1fr); padding: 11px !important; }
   #wo-cart-items > div > img { height: 82px !important; width: 82px !important; }
   #mp-theme-nudge { bottom: 82px; }
