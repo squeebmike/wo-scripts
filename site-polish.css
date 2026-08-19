@@ -42,6 +42,24 @@
 }
 .mp-nav-icon { background: transparent; border: 0; border-radius: 8px; display: block; flex: 0 0 34px; height: 34px; object-fit: contain; padding: 0; width: 34px; }
 .mp-nav-label { min-width: 0; }
+
+/* Hamburger: a theme-colored "patch" badge (matches the team/theme button
+   pill) instead of three bare lines, morphing to an X on open. */
+#navbarID .navbar6_menu-button { align-items: center; display: flex; justify-content: center; padding: 0 !important; }
+#navbarID .menu-icon { align-items: center; background: var(--wo-button); border-radius: 11px; box-shadow: 0 4px 14px rgba(0,0,0,.28); display: flex; height: 40px; justify-content: center; position: relative; transition: transform .2s ease; width: 40px; }
+#navbarID .navbar6_menu-button.w--open .menu-icon { transform: scale(1.06); }
+#navbarID .menu-icon_line-top,
+#navbarID .menu-icon_line-middle,
+#navbarID .menu-icon_line-middle-inner,
+#navbarID .menu-icon_line-bottom { background-color: var(--wo-on-button) !important; border-radius: 2px; height: 2px; left: 50%; margin: 0; position: absolute; top: 50%; transition: transform .25s ease, opacity .18s ease; width: 18px; }
+#navbarID .menu-icon_line-top { transform: translate(-50%, -6px); }
+#navbarID .menu-icon_line-middle,
+#navbarID .menu-icon_line-middle-inner { transform: translate(-50%, -50%); }
+#navbarID .menu-icon_line-bottom { transform: translate(-50%, 5px); }
+#navbarID .navbar6_menu-button.w--open .menu-icon_line-top { transform: translate(-50%, -50%) rotate(45deg); }
+#navbarID .navbar6_menu-button.w--open .menu-icon_line-bottom { transform: translate(-50%, -50%) rotate(-45deg); }
+#navbarID .navbar6_menu-button.w--open .menu-icon_line-middle,
+#navbarID .navbar6_menu-button.w--open .menu-icon_line-middle-inner { opacity: 0; }
 #navbarID .navbar6_menu-left > .navbar6_link,
 #navbarID .navbar6_menu-left > .navbar6_menu-dropdown > .navbar6_dropdown-toggle { background: transparent !important; border: 0 !important; border-radius: 8px !important; min-height: 46px; padding: 10px 13px !important; }
 #mp-floating-cart {
