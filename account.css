@@ -32,7 +32,10 @@ body.mp-page-account{overflow-x:hidden;background:var(--wo-bg,#10121a);color:var
 .mp-acct-sub{display:block;margin-top:3px;font:700 10px/1.4 ui-monospace,monospace;opacity:.62;text-transform:uppercase;letter-spacing:.05em}
 .mp-acct-status-pill{flex:0 0 auto;padding:5px 10px;border-radius:999px;border:1px solid var(--mp-line);font:900 8px/1 ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--mp-accent)}
 .mp-acct-items{margin-top:8px;padding-top:8px;border-top:1px dashed var(--mp-line)}
-.mp-acct-item-line{display:flex;justify-content:space-between;gap:10px;font:700 12px/1.6 inherit;opacity:.85}
+.mp-acct-item-line{display:flex;align-items:center;gap:10px;font:700 12px/1.6 inherit;opacity:.85;padding:5px 0}
+.mp-acct-item-line img{width:34px;height:46px;object-fit:cover;border-radius:4px;background:var(--mp-line);flex:none}
+.mp-acct-item-noimg{width:34px;height:46px;border-radius:4px;background:var(--mp-line);flex:none;opacity:.4}
+.mp-acct-item-info{flex:1;min-width:0;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .mp-acct-auth{display:grid;gap:10px;max-width:420px}
 .mp-acct-auth input{width:100%;min-height:46px;border:1px solid var(--mp-line);border-radius:9px;background:var(--mp-case);color:var(--mp-ink);padding:10px 12px;font:700 14px/1.2 inherit;box-sizing:border-box}
 .mp-acct-auth input::placeholder{color:currentColor;opacity:.48}
