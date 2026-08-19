@@ -35,19 +35,29 @@
    the grid-column/justify-self rules above (meant for a grid item) never
    actually applied anything at desktop -- it was falling back to whatever
    Webflow's own default layout does, which put the cart icon and theme
-   button in the wrong place, overlapping the COOL STUFF dropdown. Pin it
-   explicitly to the right edge, same pattern already proven to work in the
-   >=992px-only mobile rule further down this file. */
+   button in the wrong place, overlapping the COOL STUFF dropdown.
+   .navbar6_menu is absolutely positioned (inset:0), so it never
+   participates in a flex layout on .navbar6_container -- making the
+   container a flex row only affects the logo, menu-right, and wo-team-btn,
+   which is exactly what needs lining up. margin-left:auto on menu-right
+   pushes it (and wo-team-btn right after it) to the far right as one
+   group, instead of each needing its own separately-guessed absolute
+   offset -- the earlier attempt positioned menu-right correctly but left
+   wo-team-btn with no matching rule, so it fell back to stacking under it. */
 @media (min-width: 992px) {
+  #navbarID .navbar6_container {
+    display: flex;
+    align-items: center;
+  }
   #navbarID .navbar6_menu-right {
     align-items: center !important;
     display: flex !important;
     gap: 10px;
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 5;
+    margin-left: auto;
+    position: static;
+  }
+  #navbarID .wo-team-btn {
+    margin-left: 10px;
   }
 }
 /* .navbar6_menu is a full-bleed absolute overlay (inset:0) for its grid
