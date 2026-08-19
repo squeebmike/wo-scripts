@@ -401,11 +401,11 @@ body.mp-chat-enabled #mp-floating-cart { bottom: calc(max(18px, env(safe-area-in
 .mp-counter-rail i { border-top: 1px solid var(--wo-border-strong); flex: 1; }
 .mp-counter-rail b { color: var(--wo-highlight); font-size: 14px; }
 .mp-cool-grid { display: grid; gap: 12px; grid-template-columns: repeat(4,minmax(0,1fr)); margin: 0 auto; max-width: 1320px; }
-.mp-cool-object { background: var(--wo-surface-alt); border: 1px solid var(--wo-border); border-radius: 14px; color: var(--wo-text) !important; display: flex; min-height: 220px; overflow: hidden; position: relative; text-decoration: none !important; }
+.mp-cool-object { background: var(--wo-surface-alt); border: 1px solid var(--wo-border); border-radius: 14px; color: var(--wo-text) !important; display: flex; min-height: 240px; overflow: hidden; position: relative; text-decoration: none !important; }
 .mp-cool-object:hover,.mp-cool-object:focus-visible { border-color: var(--wo-highlight); transform: translateY(-3px); }
-.mp-cool-scene { inset: 12px 12px 68px; position: absolute; }
-.mp-cool-scene img { filter: drop-shadow(0 12px 18px var(--wo-shadow)); height: 100%; object-fit: contain; transform: rotate(-3deg); width: 100%; }
-.mp-cool-object--mtg-viewer .mp-cool-scene img { transform: rotate(3deg); }
+.mp-cool-scene { display: block; inset: 8px 8px 56px; position: absolute; }
+.mp-cool-scene img { display: block !important; filter: drop-shadow(0 12px 18px var(--wo-shadow)); height: 100% !important; object-fit: contain; transform: rotate(-3deg) scale(1.18); width: 100% !important; }
+.mp-cool-object--mtg-viewer .mp-cool-scene img { transform: rotate(3deg) scale(1.18); }
 .mp-cool-object--fan-club .mp-cool-scene { border: 1px solid var(--wo-border-strong); border-radius: 9px; }
 .mp-cool-object .mp-counter-copy { padding: 16px; }
 .mp-cool-object .mp-counter-copy strong { font-size: 20px; }
