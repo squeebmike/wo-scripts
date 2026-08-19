@@ -405,6 +405,10 @@ body.mp-chat-enabled #mp-floating-cart { bottom: calc(max(18px, env(safe-area-in
   .mp-mobile-drawer-head span { color: var(--wo-text-muted); font-size: 9px; font-weight: 900; letter-spacing: .16em; }
   .mp-mobile-drawer-head strong { color: var(--wo-text); font-family: Exo,system-ui,sans-serif; font-size: 21px; line-height: 1; text-transform: uppercase; }
   .mp-mobile-drawer-close { align-items: center; background: var(--wo-surface); border: 1px solid var(--wo-border-strong); border-radius: 50%; color: var(--wo-text); display: flex; font-size: 32px; height: 46px; justify-content: center; padding: 0 0 4px; width: 46px; }
+  .mp-mobile-cart-cta { align-items: center; background: var(--wo-button); border: 0; border-radius: 14px; color: var(--wo-on-button) !important; display: flex; font-weight: 900; gap: 10px; min-height: 56px; padding: 12px 16px; text-decoration: none !important; width: 100%; }
+  .mp-mobile-cart-cta span { font-size: 24px; line-height: 1; }
+  .mp-mobile-cart-cta strong { flex: 1; font-size: 15px; text-align: left; text-transform: uppercase; }
+  .mp-mobile-cart-cta b { align-items: center; background: var(--wo-on-button); border-radius: 50%; color: var(--wo-button); display: inline-flex; font-size: 13px; height: 26px; justify-content: center; min-width: 26px; padding: 0 6px; }
   .mp-mobile-case-grid { background: var(--wo-surface-alt); border: 6px solid var(--wo-border-strong); border-radius: 16px; box-shadow: inset 0 0 0 1px var(--wo-highlight), inset 0 -24px 42px var(--wo-shadow); display: grid; gap: 1px; grid-template-columns: repeat(2,minmax(0,1fr)); overflow: hidden; position: relative; }
   .mp-mobile-case-grid::after { background: linear-gradient(112deg,transparent 15%,var(--wo-highlight) 48%,transparent 72%); content: ''; inset: 0; opacity: .08; pointer-events: none; position: absolute; }
   #navbarID .mp-mobile-case-card { background: var(--wo-surface); border: 0; border-radius: 0; color: var(--wo-text) !important; display: flex; min-height: 156px !important; overflow: hidden; padding: 0 !important; position: relative; text-decoration: none !important; }
@@ -419,9 +423,6 @@ body.mp-chat-enabled #mp-floating-cart { bottom: calc(max(18px, env(safe-area-in
   #navbarID .mp-mobile-cool-grid a { align-items: center; background: var(--wo-surface-alt); border: 1px solid var(--wo-border); border-radius: 12px; color: var(--wo-text) !important; display: flex; font-size: 12px !important; gap: 9px; min-height: 54px !important; padding: 8px !important; text-decoration: none !important; }
   .mp-mobile-cool-grid img { height: 38px; object-fit: contain; width: 38px; }
   .mp-mobile-cool-grid span { font-size: 11px; font-weight: 850; line-height: 1.15; }
-  .mp-mobile-utility { border-top: 1px solid var(--wo-border); display: grid; gap: 8px; grid-template-columns: repeat(2,minmax(0,1fr)); padding-top: 16px; }
-  #navbarID .mp-mobile-utility a,.mp-mobile-utility button { align-items: center; background: var(--wo-surface); border: 1px solid var(--wo-border); border-radius: 999px; color: var(--wo-text) !important; display: flex; font-size: 11px !important; font-weight: 850; justify-content: center; min-height: 44px !important; padding: 8px !important; text-decoration: none !important; }
-  .mp-mobile-utility b { align-items: center; background: var(--wo-button); border-radius: 50%; color: var(--wo-on-button) !important; display: inline-flex; height: 21px; justify-content: center; margin-left: 5px; min-width: 21px; }
 }
 
 @media (max-width: 380px) {
