@@ -263,13 +263,21 @@ There was no push script to write. What actually got built and merged
   reference/price-guide catalog, not shop inventory, so there's no honest
   "in stock" claim to make.
 
-**Still not live** — two real blockers, neither of which is more code:
-1. **The R2 catalog itself is still empty.** Someone with `wrangler login`
-   access and reachable `api.scryfall.com` + a PriceCharting MTG CSV needs
-   to run `node scripts/mtg/build-mtg-offline-bundle.mjs --pricecharting=<url-or-file> --upload=true`
-   from a real machine — this session's sandbox has neither Cloudflare
-   credentials nor network access to Scryfall (confirmed: both blocked).
-2. **Domain routing gap, found while building this**: `still-resonance-4f87`
+**CORRECTION (same day)**: originally said the R2 catalog was empty and
+needed someone to manually run the build script. **Wrong** — didn't check
+`.github/workflows/` before saying that. `.github/workflows/mtg-offline-daily.yml`
+already exists, runs on a daily cron with `CLOUDFLARE_API_TOKEN` /
+`CLOUDFLARE_ACCOUNT_ID` / `PRICECHARTING_MTG_CSV_URL` already set as repo
+secrets, and has been succeeding every day for weeks — verified via the
+GitHub Actions run history directly (most recent success: 2026-08-18,
+every step green including the final step that curls the live
+`/catalog/mtg/manifest` endpoint to confirm the publish actually landed).
+**The MTG catalog is live in production, fresh as of yesterday.** Nothing
+needs to be manually run. The `/mtg/*` pages from PR #224 should already
+be rendering real data.
+
+**Still not live** — one real blocker left:
+1. **Domain routing gap, found while building this**: `still-resonance-4f87`
    (ArSca's Worker) has no custom domain/route bound in `wrangler.deploy.jsonc`
    — it's only reachable at `still-resonance-4f87.swarnerauto.workers.dev`,
    same as how `wo-cart.js` is only reachable at
