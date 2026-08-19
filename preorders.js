@@ -13,7 +13,13 @@ function readJson(key,fallback){try{return JSON.parse(localStorage.getItem(key)|
 function saveJson(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch(_){}}
 function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,function(ch){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
 function money(cents){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(cents||0)/100);}
-function dateLabel(value,withTime){if(!value)return'TBA';var d=new Date(value);return new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',weekday:'short',month:'short',day:'numeric',year:'numeric',hour:withTime?'numeric':undefined,minute:withTime?'2-digit':undefined,timeZoneName:withTime?'short':undefined}).format(d);}
+// foc_date/onSaleDate come back as bare YYYY-MM-DD (no time) -- new Date()
+// parses those as UTC midnight, and converting THAT to America/Los_Angeles
+// rolls it back to the previous calendar day (e.g. Sep 14 renders as Sep
+// 13). There's no real instant to convert for a date-only field, so those
+// format in UTC (i.e. exactly the digits given); only real timestamps
+// (customer_cutoff_at, which does carry a time) still convert to Pacific.
+function dateLabel(value,withTime){if(!value)return'TBA';var dateOnly=/^\d{4}-\d{2}-\d{2}$/.test(value);var d=new Date(value);return new Intl.DateTimeFormat('en-US',{timeZone:dateOnly?'UTC':'America/Los_Angeles',weekday:'short',month:'short',day:'numeric',year:'numeric',hour:withTime?'numeric':undefined,minute:withTime?'2-digit':undefined,timeZoneName:withTime?'short':undefined}).format(d);}
 function unique(values){return Array.from(new Set(values.filter(Boolean))).sort(function(a,b){return a.localeCompare(b);});}
 function token(){return state.session&&state.session.access_token||'';}
 function api(path,options){options=options||{};var headers=Object.assign({'Content-Type':'application/json'},options.headers||{});if(options.auth!==false&&token())headers.Authorization='Bearer '+token();return fetch(API+path,Object.assign({},options,{headers:headers})).then(async function(response){var data=await response.json().catch(function(){return{};});if(response.status===401&&state.session&&state.session.refresh_token&&!options.retried){await refreshSession();return api(path,Object.assign({},options,{retried:true}));}if(!response.ok)throw new Error(data.error||'The request could not be completed.');return data;});}

@@ -31,7 +31,10 @@ function readJson(key,fallback){try{return JSON.parse(localStorage.getItem(key)|
 function saveJson(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch(_){}}
 function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,function(ch){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
 function money(amount){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(amount||0));}
-function dateLabel(value,withTime){if(!value)return'';var d=new Date(value);return new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',month:'short',day:'numeric',year:'numeric',hour:withTime?'numeric':undefined,minute:withTime?'2-digit':undefined}).format(d);}
+// Same fix as preorders.js's dateLabel: a bare YYYY-MM-DD has no real
+// instant to convert to Pacific time, and doing so anyway rolls it back a
+// calendar day.
+function dateLabel(value,withTime){if(!value)return'';var dateOnly=/^\d{4}-\d{2}-\d{2}$/.test(value);var d=new Date(value);return new Intl.DateTimeFormat('en-US',{timeZone:dateOnly?'UTC':'America/Los_Angeles',month:'short',day:'numeric',year:'numeric',hour:withTime?'numeric':undefined,minute:withTime?'2-digit':undefined}).format(d);}
 function token(){return state.session&&state.session.access_token||'';}
 
 function api(path,options){
