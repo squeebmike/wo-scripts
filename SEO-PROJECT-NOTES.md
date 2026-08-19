@@ -178,6 +178,72 @@ changes the build from a few thousand pages (current Standard-legal sets)
 to several hundred thousand (entire competitive history of both games).
 Asked the user directly via AskUserQuestion before starting the build.
 
+**ANSWERED (2026-08-19)**: user chose "everything ever printed" — full
+historical catalog, both games.
+
+### MAJOR DISCOVERY (2026-08-19): most of the MTG pipeline already exists
+
+Before building anything from scratch, traced `MTG_CATALOG_R2`
+(`wrangler.deploy.jsonc` binding → R2 bucket `arsca-offline-catalogs`) and
+found real, working, already-proven infrastructure:
+
+- **`scripts/mtg/build-mtg-offline-bundle.mjs`** (ArSca repo, 255 lines) —
+  a complete, working local build script that calls Scryfall's own
+  `bulk-data` API, downloads the full `default_cards` bulk export (every
+  card, every printing, all ~30 years — this IS the "everything ever
+  printed" dataset), and builds gzip'd jsonl bundles (cards, market prices,
+  PriceCharting links). This already does exactly the bulk-import step the
+  earlier version of this doc assumed would need to be built new.
+- **The Worker already has R2-backed, versioned, gzip'd jsonl catalog
+  storage proven at real scale**: the `topps` category (sports card
+  checklists) already has **400,000+ live records** in this exact system
+  (see the streaming-merge code around `cloudflare-worker-full.js:3477` —
+  there's a code comment noting a naive full-materialize approach blew the
+  Worker's memory limit at this record count, so it now streams). Read
+  routes exist per category: `GET /{category}/manifest.json` and per-file
+  reads, generic across `mtg`, `topps`, and (by the same pattern) could
+  cover `pokemon` too.
+- **What's missing for MTG**: no script pushes `build-mtg-offline-bundle.mjs`'s
+  output to the Worker's R2 `mtg` category the way `import-topps-checklists.js`
+  pushes Topps data (that push script exists and is the template to copy —
+  simple authenticated `PUT` with the built bundle). And there are no
+  *public, server-rendered HTML pages* reading this data yet — today it's
+  only consumed by `mtg-offline-browser.js`, a **client-side IndexedDB
+  cache** for the in-store `mtg-deck-lab.html` tool (staff-facing, not
+  public/SEO-facing at all).
+- **Pokémon has none of this** — no bulk-import script, no R2 category
+  populated (only a single-card live-lookup route against
+  `api.pokemontcg.io`, used by the buylist/pricing tool, confirmed at
+  `cloudflare-worker-full.js:8878`). Needs an equivalent pipeline built from
+  scratch, following the same pattern as the MTG one. `api.pokemontcg.io`
+  doesn't offer one bulk dump file the way Scryfall does — needs a paginated
+  sync (250 cards/page) instead, but that's a well-understood, doable job.
+
+### Revised Phase 2 plan (MTG)
+1. Write the push script (copy `import-topps-checklists.js`'s PUT pattern)
+   to publish `build-mtg-offline-bundle.mjs`'s output to the Worker's `mtg`
+   R2 category — reuses everything, no new pipeline needed.
+2. Add new **public** Worker routes (`/mtg/{set-slug}` and
+   `/mtg/{set-slug}/{card-slug}`, naming TBD) that stream-read the same R2
+   jsonl.gz data server-side and render real HTML with per-card
+   title/description/image/price and Product JSON-LD — this is genuinely
+   new work, but it's "just" a read-and-render layer on top of data that
+   will already be sitting in R2.
+3. Sitemap: at this scale (Scryfall alone is 500k+ printings) a single
+   sitemap.xml won't work (50k URL cap) — needs a sitemap index with
+   multiple sub-sitemaps. Not yet built.
+
+### Revised Phase 2 plan (Pokémon) — build from scratch, mirror the MTG pattern
+1. Write a bulk-sync script against `api.pokemontcg.io` (paginated, 250/page,
+   `POKEMONTCG_API_KEY` already exists in the Worker env) producing the same
+   gzip'd jsonl bundle shape as the MTG builder.
+2. Push script + `pokemon` R2 category, same as MTG.
+3. Same new public rendering routes + sitemap index approach as MTG.
+
+Nothing built yet for either game beyond this research — next actual coding
+step is the MTG push script (#1 above), since it's the smallest, lowest-risk
+piece that unlocks everything else.
+
 ### Phase 3: mobile + PC UI redesign of the set browsers
 Should happen *after* Phase 2's URL structure exists — a nicer UI on the
 same single-URL widget doesn't move SEO at all. Once each
