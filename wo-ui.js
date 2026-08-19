@@ -473,11 +473,11 @@ function updateNavBtn(team,colorway){
   document.querySelectorAll('[data-wo-theme],[data-theme-trigger],[data-wo-open]').forEach(function(btn){
     btn.style.cssText='all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:7px;padding:5px 13px 5px 6px;border-radius:100px;background:'+p.btn+';color:'+p.onBtn+';font-size:13px;font-weight:900;cursor:pointer;line-height:1;transition:opacity .2s,transform .2s;white-space:nowrap;box-shadow:0 0 0 1px '+rgba(p.hi,.28)+';';
     btn.innerHTML='';
-    var img=document.createElement('img');
+    var img=document.createElement('img');img.className='wo-team-icon';
     img.style.cssText='width:26px;height:26px;object-fit:contain;border-radius:50%;background:rgba(255,255,255,.18);flex-shrink:0;display:block;';
     img.src=src;img.alt=team.n;
     img.onerror=function(){this.style.display='none';};
-    var lbl=document.createElement('span');lbl.textContent=name;
+    var lbl=document.createElement('span');lbl.className='wo-team-label';lbl.textContent=name;
     btn.appendChild(img);btn.appendChild(lbl);
   });
 }
@@ -555,7 +555,9 @@ function buildModal(){
   ttl.style.cssText='font-size:20px;font-weight:950;color:#fff;letter-spacing:-.02em;';
   var sub=document.createElement('div');sub.id='wo-sub';sub.textContent='Teams, MTG, Pokémon, and shiny themes now use separate contrast-safe roles for text, cards, links, buttons, navigation, and footer states.';
   sub.style.cssText='font-size:12px;color:rgba(255,255,255,.65);margin-top:2px;';
-  tb.appendChild(ttl);tb.appendChild(sub);
+  var signIn=document.createElement('a');signIn.href='/login?next='+encodeURIComponent(location.pathname+location.search);signIn.textContent='Have an account? Sign in →';
+  signIn.style.cssText='display:inline-block;margin-top:8px;font-size:12px;font-weight:800;color:#69be28;text-decoration:none;';
+  tb.appendChild(ttl);tb.appendChild(sub);tb.appendChild(signIn);
   var done=document.createElement('button');done.id='wo-done';done.textContent='Done';
   done.style.cssText='all:unset;cursor:pointer;padding:9px 22px;border-radius:100px;font-size:13px;font-weight:900;background:#69be28;color:#fff;';
   done.addEventListener('click',closeModal);
@@ -579,6 +581,19 @@ function openModal(){buildModal();overlay.style.background='rgba(0,0,0,.76)';ove
 function closeModal(){if(!overlay)return;overlay.style.background='rgba(0,0,0,0)';overlay.style.pointerEvents='none';sheet.style.transform='translateY(105%)';}
 WO.openTheme=openModal;WO.closeTheme=closeModal;
 
+// The nav's theme button doubles as the account entry point (one button
+// instead of two): signed-in visitors land on Account Settings, where the
+// theme picker also lives; everyone else just gets the picker, with a
+// sign-in link inside it since there's no separate account button anymore.
+function isSignedIn(){
+  try{return !!(JSON.parse(localStorage.getItem('mp-foc-session-v1')||'null')||{}).access_token;}catch(e){return false;}
+}
+function onThemeTrigger(event){
+  if(event)event.preventDefault();
+  if(isSignedIn())location.href='/account-profile';
+  else openModal();
+}
+
 function init(){
   var applied=false;
   try{
@@ -597,7 +612,7 @@ function init(){
     WO.applyTheme(state.team,state.colorway);
   }
   document.querySelectorAll('[data-wo-theme],[data-theme-trigger],[data-wo-open]').forEach(function(el){
-    el.addEventListener('click',openModal);
+    el.addEventListener('click',onThemeTrigger);
   });
   if(!applied)showThemeNudge();
 }
@@ -829,9 +844,9 @@ function polishNavigation(){
     var all=document.createElement('a');all.className='mp-mobile-view-all';all.href=SHOP_LINKS[0].href;all.textContent='View everything in the shop \u2192';drawer.appendChild(all);
     var coolTitle=document.createElement('h2');coolTitle.textContent='Cool stuff at the register';drawer.appendChild(coolTitle);
     var coolGrid=document.createElement('div');coolGrid.className='mp-mobile-cool-grid';coolItems.forEach(function(item){var link=document.createElement('a');link.href=item.href;var image=document.createElement('img');image.src=item.image;image.alt='';image.loading='lazy';link.appendChild(image);var text=document.createElement('span');text.textContent=item.label;link.appendChild(text);coolGrid.appendChild(link);});drawer.appendChild(coolGrid);
-    var utility=document.createElement('div');utility.className='mp-mobile-utility';var home=document.createElement('a');home.href='/';home.textContent='Home';utility.appendChild(home);var teamButton=nav.querySelector('.wo-team-btn');var theme=document.createElement('button');theme.type='button';theme.textContent=teamButton&&teamButton.textContent.trim()?teamButton.textContent.trim():'Choose theme';theme.setAttribute('aria-label','Choose site theme');utility.appendChild(theme);var accountButton=nav.querySelector('#wo-account-toggle');var account=document.createElement('button');account.type='button';account.textContent='My Pocket';account.setAttribute('aria-label','My Pocket account');utility.appendChild(account);var cart=document.createElement('button');cart.type='button';cart.innerHTML='Cart <b data-mp-mobile-cart-count>0</b>';utility.appendChild(cart);drawer.appendChild(utility);menu.appendChild(drawer);
+    var utility=document.createElement('div');utility.className='mp-mobile-utility';var home=document.createElement('a');home.href='/';home.textContent='Home';utility.appendChild(home);var cart=document.createElement('button');cart.type='button';cart.innerHTML='Cart <b data-mp-mobile-cart-count>0</b>';utility.appendChild(cart);drawer.appendChild(utility);menu.appendChild(drawer);
     var menuButton=nav.querySelector('.w-nav-button');function closeDrawer(){if(menuButton&&menuButton.classList.contains('w--open'))menuButton.click();document.body.classList.remove('mp-mobile-nav-open');}
-    close.addEventListener('click',closeDrawer);theme.addEventListener('click',function(){closeDrawer();if(teamButton)teamButton.click();else openModal();});account.addEventListener('click',function(){closeDrawer();if(accountButton)accountButton.click();});cart.addEventListener('click',function(){closeDrawer();if(WO&&typeof WO.openCart==='function')WO.openCart();});drawer.addEventListener('click',function(event){if(event.target.closest('a'))closeDrawer();});
+    close.addEventListener('click',closeDrawer);cart.addEventListener('click',function(){closeDrawer();if(WO&&typeof WO.openCart==='function')WO.openCart();});drawer.addEventListener('click',function(event){if(event.target.closest('a'))closeDrawer();});
     if(menuButton&&!menuButton.dataset.mpDrawerBound){menuButton.dataset.mpDrawerBound='true';menuButton.addEventListener('click',function(){requestAnimationFrame(function(){document.body.classList.toggle('mp-mobile-nav-open',menuButton.classList.contains('w--open'));});});}
     function syncCount(){var badge=document.getElementById('wo-cart-badge');var target=drawer.querySelector('[data-mp-mobile-cart-count]');if(target)target.textContent=Math.max(0,parseInt(badge&&badge.textContent,10)||0);}syncCount();var badge=document.getElementById('wo-cart-badge');if(badge)new MutationObserver(syncCount).observe(badge,{childList:true,subtree:true,characterData:true});
   }
