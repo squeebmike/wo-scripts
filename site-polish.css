@@ -60,12 +60,19 @@
     margin-left: 10px;
   }
 }
-/* .navbar6_menu is a full-bleed absolute overlay (inset:0) for its grid
-   layout; without this it can intercept clicks meant for menu-right/
-   wo-team-btn/wo-cart-toggle, which sit at the same container level. */
-#navbarID .navbar6_menu { pointer-events: none; }
-#navbarID .navbar6_menu-left,
-#navbarID .navbar6_menu-left * { pointer-events: auto; }
+/* .navbar6_menu is a full-bleed absolute overlay (inset:0) for its desktop
+   grid layout; without this it can intercept clicks meant for menu-right/
+   wo-team-btn/wo-cart-toggle, which sit at the same container level. Scoped
+   to desktop only -- on mobile, .navbar6_menu IS the real nav-menu panel,
+   and the whole mp-mobile-drawer (shop tiles, cart button, cool-stuff
+   links) is appended inside it. The old unscoped rule only re-enabled
+   pointer-events for .navbar6_menu-left, so every button in the mobile
+   drawer was silently unclickable. */
+@media (min-width: 992px) {
+  #navbarID .navbar6_menu { pointer-events: none; }
+  #navbarID .navbar6_menu-left,
+  #navbarID .navbar6_menu-left * { pointer-events: auto; }
+}
 #navbarID .w-nav-brand { align-items: center !important; display: flex !important; height: 82px; justify-content: flex-start !important; min-width: 124px; position: relative; z-index: 2; }
 .mp-nav-brand-image { display: block; height: 72px; object-fit: contain; object-position: left center; width: 118px; }
 #navbarID :is(.navbar6_link,.navbar6_dropdown-toggle,.navbar6_dropdown-link) {
