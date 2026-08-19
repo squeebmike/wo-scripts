@@ -240,9 +240,61 @@ found real, working, already-proven infrastructure:
 2. Push script + `pokemon` R2 category, same as MTG.
 3. Same new public rendering routes + sitemap index approach as MTG.
 
-Nothing built yet for either game beyond this research — next actual coding
-step is the MTG push script (#1 above), since it's the smallest, lowest-risk
-piece that unlocks everything else.
+### DONE (2026-08-19): #1 turned out unnecessary; built #2 instead
+
+Re-read `build-mtg-offline-bundle.mjs` in full — it already has a working
+`--upload=true` step (`wrangler r2 object put`, same pattern as Topps).
+There was no push script to write. What actually got built and merged
+(ArSca PR #224, `main` — auto-deploys):
+
+- **New public routes** in `cloudflare-worker-full.js`: `GET /mtg` (every
+  set, index page), `GET /mtg/{setCode}` (every card in a set + prices),
+  `GET /mtg/{setCode}/{cardSlug}` (single card: price, image, oracle text,
+  Product JSON-LD, og:image). All three read the existing
+  `mtg/manifest.json` + `cards.jsonl.gz`/`sets.jsonl.gz` from
+  `MTG_CATALOG_R2` — no new data pipeline, just a render layer. Edge-cached
+  6h per page (`caches.default` + `Cache-Control`) so a cache miss is the
+  only time the full cards file gets scanned. Renders a "catalog is still
+  being built" placeholder until `mtg/manifest.json` actually exists with
+  `status: 'ready'`. Full `npm test` suite passed before merge (also picked
+  up and correctly resolved a real merge conflict against an
+  already-merged CAN-SPAM email-compliance PR in the process).
+- **Product JSON-LD deliberately omits `availability`** — this is a
+  reference/price-guide catalog, not shop inventory, so there's no honest
+  "in stock" claim to make.
+
+**Still not live** — two real blockers, neither of which is more code:
+1. **The R2 catalog itself is still empty.** Someone with `wrangler login`
+   access and reachable `api.scryfall.com` + a PriceCharting MTG CSV needs
+   to run `node scripts/mtg/build-mtg-offline-bundle.mjs --pricecharting=<url-or-file> --upload=true`
+   from a real machine — this session's sandbox has neither Cloudflare
+   credentials nor network access to Scryfall (confirmed: both blocked).
+2. **Domain routing gap, found while building this**: `still-resonance-4f87`
+   (ArSca's Worker) has no custom domain/route bound in `wrangler.deploy.jsonc`
+   — it's only reachable at `still-resonance-4f87.swarnerauto.workers.dev`,
+   same as how `wo-cart.js` is only reachable at
+   `wo-checkout.swarnerauto.workers.dev`. **These new `/mtg/*` pages will
+   NOT be reachable at `themanapocket.com/mtg/...` unless something routes
+   that path to this Worker** — either a Cloudflare Worker Route bound to
+   `themanapocket.com`'s zone (only possible if that domain's DNS is on
+   Cloudflare, not just Webflow), or some other proxy. Until this is
+   resolved, publishing the catalog would only make the pages reachable at
+   the workers.dev subdomain — much weaker for SEO, fragments authority
+   away from the main domain. **Open question for the user: is
+   themanapocket.com's DNS on Cloudflare?** That's the deciding factor for
+   how to close this gap.
+
+### Pokémon — on hold
+
+User: Pokémon catalog will use the PokemonPriceTracker (PPT) business plan
+once purchased — not a from-scratch `api.pokemontcg.io` pipeline as
+originally planned. `POKEMONPRICE_API_KEY`/`POKEMON_PRICE_TRACKER_API_KEY`
+already exist as env vars and are already used for single-card price
+lookups (`cloudflare-worker-full.js` ~line 912, the buylist matching tool).
+Once the business plan is active, mirror the MTG pattern: a build script
+pulling PPT's bulk/business-tier data into the same R2 manifest shape, then
+the same `/pokemon`, `/pokemon/{setId}`, `/pokemon/{setId}/{cardSlug}`
+route pattern as MTG. Not started — waiting on the plan purchase.
 
 ### Phase 3: mobile + PC UI redesign of the set browsers
 Should happen *after* Phase 2's URL structure exists — a nicer UI on the
