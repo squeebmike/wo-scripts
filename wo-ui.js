@@ -991,11 +991,13 @@ function loadHomepageRedesign(){
   script.src=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'homepage-redesign.js');
   document.head.appendChild(script);
 }
-function loadPreorders(){
-  if((location.pathname.replace(/\/$/,'')||'/')!=='/preorders'||!WO_SCRIPT_SRC||document.querySelector('script[data-mp-preorders]'))return;
-  var css=document.createElement('link');css.rel='stylesheet';css.setAttribute('data-mp-preorders-css','');css.href=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'preorders.css');document.head.appendChild(css);
-  var script=document.createElement('script');script.async=true;script.setAttribute('data-mp-preorders','');script.src=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'preorders.js');document.head.appendChild(script);
-}
+// /preorders has its own page-level footer script (preorders-loader.js)
+// pinned independently to wo-scripts' actual current preorders.js -- this
+// used to ALSO auto-inject a preorders.js from wo-ui.js's own (unrelated,
+// much older) commit lineage, racing the two against each other by load
+// timing. The stale copy kept winning: no multi-week sort, no week-jump
+// nav, just whatever cycle the old single-catalog endpoint happened to
+// return. Removed -- the page's own loader is the only source of truth now.
 function loadShopPreorders(){
   if((location.pathname.replace(/\/$/,'')||'/')!=='/shop'||!WO_SCRIPT_SRC||document.querySelector('script[data-mp-shop-preorders]'))return;
   var css=document.createElement('link');css.rel='stylesheet';css.setAttribute('data-mp-shop-preorders-css','');css.href=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'shop-preorders.css');document.head.appendChild(css);
@@ -1030,7 +1032,6 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 else{init();}
 loadSitePolish();
 loadHomepageRedesign();
-loadPreorders();
 loadShopPreorders();
 loadStorefrontCheckout();
 enhanceCart();
