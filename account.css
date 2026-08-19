@@ -6,6 +6,7 @@ body.mp-page-account{overflow-x:hidden;background:var(--wo-bg,#10121a);color:var
 .mp-acct-eyebrow{font:800 11px/1.2 ui-monospace,monospace;letter-spacing:.18em;text-transform:uppercase;color:var(--mp-accent)}
 .mp-acct-title{font:900 clamp(36px,7vw,72px)/.9 Impact,'Arial Black',sans-serif;text-transform:uppercase;letter-spacing:-.03em;margin:12px 0}
 .mp-acct-intro{max-width:640px;font-size:15px;line-height:1.55;opacity:.78;margin:0 0 18px}
+.mp-acct-fineprint{max-width:520px;font-size:11px;line-height:1.5;opacity:.72;margin:-8px 0 12px}.mp-acct-fineprint a{color:inherit}
 .mp-acct-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:22px 0 18px;padding:6px;border:1px solid var(--mp-line);border-radius:14px;background:color-mix(in srgb,var(--mp-paper) 92%,transparent)}
 .mp-acct-tabs a{appearance:none;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--mp-ink);padding:10px 14px;font:800 10px/1 ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;text-decoration:none;display:inline-block}
 .mp-acct-tabs a.active{background:var(--mp-accent);color:var(--mp-on-accent)}
