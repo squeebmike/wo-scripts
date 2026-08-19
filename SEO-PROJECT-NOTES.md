@@ -5,14 +5,56 @@ for-sale item actually indexed by Google. User wants this driven end-to-end;
 this file is the running log so any session (or person) can pick it up
 without re-discovering the same things.
 
-## What the site actually looks like today (audited 2026-08-19)
+## CORRECTION (2026-08-19, same day) — the Products CMS collection is a dead end
 
-- **Products CMS collection** (Webflow, `product` slug) is real and growing —
+Everything in the original version of this section below was wrong. The
+user corrected it directly: **"there are no live products on site. it's all
+the Javascript."** Verified by tracing the actual render path:
+
+- The `/shop` page in Webflow Designer contains exactly one relevant
+  element: `<div id="wo-live-shop">`, completely empty. Confirmed via
+  `data_element_tool` — zero HTML embeds, zero CMS collection list bound to
+  it, nothing static at all.
+- That div is filled entirely at runtime by
+  **`renderLiveInventory()` in `wo-checkout/worker.js` (~line 1591)**,
+  which `fetch()`es `API_BASE + '/api/inventory'` (the ArSca backend,
+  `still-resonance-4f87`) client-side and builds a `.wo-live-card` div
+  *per item, in JS, with `innerHTML`* — every card, comic, TCG single,
+  sports card, everything for sale. Clicking a card calls
+  `openWoLiveItemDetail(item)` (~line 1559), which opens a JS modal —
+  **not a navigation, not a URL**.
+- There is no server route anywhere (ArSca, wo-checkout, or Webflow) that
+  renders a single item's page. `wo-ui.js`'s `polishShopInventory()` can
+  scroll to and click a card if the page is loaded with `?item=xxx` in the
+  URL, but that's still the same generic `/shop` document as far as any
+  crawler is concerned — no unique title, description, or content per item.
+- **So: zero products on the entire site have an indexable URL. Not just
+  MTG/Pokémon — everything.** This is the single root cause behind
+  "SEO isn't working" for the whole catalog, not a set-browser-specific
+  problem.
+- The Webflow **Products CMS collection** (10 items, real buylist-intake
+  data, real `/product/{slug}` template pages) that the previous version of
+  this doc focused on **is not what's rendered on `/shop` at all** — it
+  appears to be a disconnected/unused artifact, not the live storefront.
+  The `Product` JSON-LD added to its template page earlier today is
+  harmless but very likely inert — it's schema on pages nothing links to.
+  **Do not treat that collection as the source of truth for what's live.**
+  Worth a follow-up question to the user: what created those 10 CMS items,
+  and is anything else pointing at `/product/{slug}` (nav, sitemap
+  clicks-through, anything)? If truly orphaned, consider deleting later —
+  not done yet, no destructive action taken.
+- The `thumbnail: null` "bug" noted below is very likely a non-issue now
+  that we know that collection isn't live-rendered — deprioritized, not
+  investigated further.
+
+## What the site actually looks like today (superseded by the correction above — kept for the audit trail)
+
+- ~~**Products CMS collection** (Webflow, `product` slug) is real and growing —
   10 live items as of today, auto-created by the buylist/intake pipeline
   (field names like `card-sku`, `buy_session_...` in the description confirm
   this comes from the scanner/dashboard system, not manual entry). Each
   product already gets a real, indexable `/product/{slug}` page. This part
-  of the architecture is already SEO-correct.
+  of the architecture is already SEO-correct.~~ **Wrong — see correction above.**
   - **Bug found, not yet fixed**: new intake items have `thumbnail: null`
     even though `image-url` (a plain-text field pointing at a TCGPlayer CDN
     image) is populated. Whatever renders the product photo on the live page
@@ -20,7 +62,8 @@ without re-discovering the same things.
     live listings currently have broken/missing photos. Needs a look at the
     Products Template page's element bindings, or wherever intake writes
     `image-url` should also be uploading to `thumbnail` as a real Webflow
-    asset. **Flagged to the user, not yet fixed.**
+    asset. **Deprioritized — see correction above, this collection likely
+    isn't live-rendered at all.**
 - **Card Sets** and **Checklist Items** CMS collections exist, have real
   template pages (`/card-sets/{slug}`, `/checklist-items/{slug}`), and the
   Card Sets collection already has "Pokemon" and "Magic: The Gathering" as
@@ -70,23 +113,48 @@ without re-discovering the same things.
 
 ## Not started yet — the big pieces
 
-### Phase 2: give every card its own URL (the core SEO fix)
-This is the one that actually gets "every MTG card, every Pokemon card"
-found by search. Two real options, needs a decision before building:
-  - **(a) Populate the existing Card Sets / Checklist Items collections**
-    with the full catalog data the set-browser widgets already have, and
-    build real CMS template pages for them (they already have the right
-    schema/fields, they're just empty). Reuses existing Webflow structure.
-  - **(b) Server-render the set browsers** some other way (e.g. a Worker
-    route per card, similar to how wo-checkout/ArSca already serve
-    dynamic pages) if the live card data changes too often/is too large for
-    manual CMS population (TCG sets can be 200+ cards each; Pokemon has
-    thousands of cards across hundreds of sets — CMS item creation via API
-    is very doable in bulk, but worth confirming where the canonical card
-    data source is first — Scryfall API for MTG, pokemontcg.io for Pokemon,
-    or something already wired into ArSca/the dashboard).
-  - Whichever way, each card/set needs: a unique URL, real
-    title/description/image, and Product or CollectionPage JSON-LD.
+### Phase 2: give every item its own URL (the core SEO fix — sitewide, not just cards)
+Confirmed (see correction above): **the entire live catalog** — sports
+cards, TCG singles, comics, everything `/api/inventory` returns — renders
+client-side into `#wo-live-shop` via `renderLiveInventory()` in
+`wo-checkout/worker.js`, with zero per-item URLs. This is the one fix that
+actually gets anything found by search, for the whole shop, not just
+MTG/Pokémon.
+
+Real inventory (the stuff actually for sale, fed by ArSca's `/api/inventory`
+/ `/public/storefront`) is a different, separate problem from the MTG/Pokémon
+**set browsers** (`/mtg-new-releases`, `/pokemon-new-releases` —
+reference/catalog pages, not necessarily tied to what's in stock). Both need
+real URLs, but they're likely different data sources and may want different
+solutions:
+
+  - **Live inventory (cards/comics actually for sale)**: the cleanest fix is
+    a server-rendered item-detail route — e.g. wo-checkout or ArSca serves
+    `/item/{id}` (or similar) with real `<title>`/meta/JSON-LD baked in
+    server-side from the same inventory data `renderLiveInventory()` already
+    fetches, then the JS shop grid's cards link to that real URL instead of
+    (only) opening a JS modal. Modal can stay for the in-page UX; the card
+    also needs a real `<a href>` for crawlers and for anyone who wants to
+    share/bookmark a specific item. This does NOT require touching Webflow's
+    CMS at all — it's a Worker route change in wo-checkout/ArSca.
+  - **MTG/Pokémon set browsers**: separate question — is this reference data
+    (every card in every set, whether or not in stock) or does it overlap
+    with live inventory? If it's reference data, populating the existing
+    (currently empty) Card Sets / Checklist Items Webflow CMS collections is
+    the natural fit (they already have Pokemon/MTG as Sport options and
+    ready-made template pages at `/card-sets/{slug}` and
+    `/checklist-items/{slug}`). If it's actually the same live inventory,
+    fold it into the item-detail-route fix above instead of building two
+    separate systems.
+  - Whichever way, each item needs: a unique URL, real
+    title/description/image, and Product JSON-LD — generated server-side,
+    not just client-side JS.
+
+**Next step before building anything**: confirm with the user (a) whether
+the MTG/Pokémon set browsers are reference catalogs or live inventory, and
+(b) sign off on the `/item/{id}` server-rendered route approach for
+`wo-checkout`/ArSca before it's built, since it touches the checkout
+worker's routing.
 
 ### Phase 3: mobile + PC UI redesign of the set browsers
 Should happen *after* Phase 2's URL structure exists — a nicer UI on the
