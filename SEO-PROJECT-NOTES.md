@@ -156,6 +156,28 @@ the MTG/Pokémon set browsers are reference catalogs or live inventory, and
 `wo-checkout`/ArSca before it's built, since it touches the checkout
 worker's routing.
 
+**ANSWERED (2026-08-19)**: user confirmed the set browsers should show
+**"all cards in each set with prices"** — a full reference catalog, not
+filtered to in-stock inventory. This rules out populating it into Webflow's
+CMS at full scope: Scryfall alone has 500,000+ individual printings across
+MTG's ~30-year history; Pokémon TCG API has tens of thousands across
+hundreds of sets. No Webflow CMS plan supports that many items in one
+collection. The right architecture is the same pattern as the `/item/{id}`
+inventory fix: **Worker-rendered pages, not Webflow CMS**, sourced directly
+from Scryfall (free/public, no key needed, includes `prices.usd` /
+`prices.usd_foil`) and the Pokémon TCG API (free, API key recommended for
+rate limits, includes `tcgplayer.prices` directly) — both already give
+price data inline, so this does NOT need the ArSca backend's separate
+TCGPlayer `mpapi` resolver at all. Cache aggressively (KV/R2) since the
+underlying set data changes rarely.
+
+**Still open**: exact scope. "MTG New Releases" as a page name suggests
+current/recent sets were the original intent, not the full 30-year archive
+— but the user said "all cards in each set," which could mean either. This
+changes the build from a few thousand pages (current Standard-legal sets)
+to several hundred thousand (entire competitive history of both games).
+Asked the user directly via AskUserQuestion before starting the build.
+
 ### Phase 3: mobile + PC UI redesign of the set browsers
 Should happen *after* Phase 2's URL structure exists — a nicer UI on the
 same single-URL widget doesn't move SEO at all. Once each
