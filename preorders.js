@@ -63,7 +63,7 @@ function mount(){
 }
 
 async function loadCatalog(){
-  try{var data=await api('/public/preorders/weeks?store_id='+encodeURIComponent(STORE_ID),{auth:false});state.cycles=data.cycles||[];render();handleDeepLink();}
+  try{var data=await api('/public/preorders/weeks?store_id='+encodeURIComponent(STORE_ID),{auth:false});state.cycles=(data.cycles||[]).slice().sort(function(a,b){return new Date(a.cycle.customer_cutoff_at)-new Date(b.cycle.customer_cutoff_at);});render();handleDeepLink();}
   catch(error){document.getElementById('mp-foc-app').innerHTML='<div class="mp-foc-shell"><div class="mp-foc-empty"><h1>Comic preorders are getting bagged and boarded.</h1><p>'+esc(error.message)+'</p><a class="mp-foc-button ghost" href="/">Back to the shop</a></div></div>';}
 }
 
@@ -82,9 +82,9 @@ function render(){
   var artists=unique(allSkus().map(function(e){return e.sku.coverArtist;}));
   document.getElementById('mp-foc-app').innerHTML='<div class="mp-foc-shell">'+
     '<header><div class="mp-foc-eyebrow">The Mana Pocket · Penguin Random House FOC</div><h1 class="mp-foc-title">Pick your exact covers.</h1><p class="mp-foc-intro">Prepay for the comics and covers you actually want. Every foil has its own selling price. Ratio incentives stay request-only until we secure a copy and confirm its price. Every open week is shown below, each with its own order deadline.</p></header>'+
-    (state.cycles.length>1?'<nav class="mp-foc-week-nav" aria-label="Jump to an FOC week">'+state.cycles.map(function(entry){return'<a href="#foc-week-'+esc(entry.cycle.id)+'">FOC '+esc(dateLabel(entry.cycle.foc_date,false))+'</a>';}).join('')+'</nav>':'')+
+    (state.cycles.length>1?'<nav class="mp-foc-week-nav" aria-label="Jump to an FOC week">'+state.cycles.map(function(entry,index){return'<a href="#foc-week-'+esc(entry.cycle.id)+'">'+(index===0?'⏰ Closes soonest · ':'')+'FOC '+esc(dateLabel(entry.cycle.foc_date,false))+'</a>';}).join('')+'</nav>':'')+
     '<section class="mp-foc-controls" aria-label="Filter comic preorders"><input data-filter="q" type="search" placeholder="Search title, creator, character…" value="'+esc(state.filters.q)+'"><select data-filter="publisher"><option value="all">All publishers</option>'+publishers.map(function(v){return'<option'+(state.filters.publisher===v?' selected':'')+'>'+esc(v)+'</option>';}).join('')+'</select><select data-filter="artist"><option value="all">All cover artists</option>'+artists.map(function(v){return'<option'+(state.filters.artist===v?' selected':'')+'>'+esc(v)+'</option>';}).join('')+'</select><select data-filter="kind"><option value="all">All covers</option><option value="standard"'+(state.filters.kind==='standard'?' selected':'')+'>Standard covers</option><option value="foil"'+(state.filters.kind==='foil'?' selected':'')+'>Foil covers</option><option value="first"'+(state.filters.kind==='first'?' selected':'')+'>#1 issues</option><option value="incentive"'+(state.filters.kind==='incentive'?' selected':'')+'>Incentives</option></select><button class="mp-foc-button ghost" data-account>'+(token()?'My preorders':'Sign in')+'</button></section>'+
-    state.cycles.map(function(entry,index){return weekSectionHtml(entry,index>0);}).join('')+
+    state.cycles.map(function(entry,index){return weekSectionHtml(entry,index>0,index);}).join('')+
     '</div><button class="mp-foc-button mp-foc-float" data-cart>My picks <span>'+cartLines().reduce(function(n,l){return n+l.quantity;},0)+'</span></button>';
   bind();
   if(state.timer)clearInterval(state.timer);
@@ -92,9 +92,9 @@ function render(){
     document.querySelectorAll('[data-foc-countdown]').forEach(function(node){var cycle=cycleById(node.dataset.cycleId);if(cycle)node.innerHTML=countdownHtml(cycle);});
   },1000);
 }
-function weekSectionHtml(entry,withSeparator){
+function weekSectionHtml(entry,withSeparator,index){
   var cycle=entry.cycle,families=filteredFamiliesFor(entry);
-  return '<section id="foc-week-'+esc(cycle.id)+'" class="mp-foc-week'+(withSeparator?' mp-foc-week-sep':'')+'" data-foc-week="'+esc(cycle.id)+'">'+
+  return '<section id="foc-week-'+esc(cycle.id)+'" class="mp-foc-week'+(withSeparator?' mp-foc-week-sep':'')+'" data-foc-week="'+esc(cycle.id)+'" data-week-color="'+(index%4)+'">'+
     '<div class="mp-foc-deadline"><div><strong>'+(cycle.isOpen?'Orders close '+esc(dateLabel(cycle.customer_cutoff_at,true)):'This FOC is closed')+'</strong><span>FOC '+esc(dateLabel(cycle.foc_date,false))+' · we place the distributor order every Monday · quantities, finishes, and covers are exact</span></div><div class="mp-foc-countdown" data-foc-countdown data-cycle-id="'+esc(cycle.id)+'">'+countdownHtml(cycle)+'</div></div>'+
     '<div class="mp-foc-result-line" data-result-line="'+esc(cycle.id)+'">'+resultLineText(families,cycle)+'</div>'+
     '<div data-foc-families="'+esc(cycle.id)+'">'+familyHtml(families,cycle.isOpen)+'</div>'+
