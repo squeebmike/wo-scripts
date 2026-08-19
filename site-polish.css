@@ -31,6 +31,31 @@
 #navbarID .navbar6_menu { display: grid !important; grid-template-columns: 1fr auto 1fr; inset: 0; margin: 0 !important; position: absolute; width: 100%; }
 #navbarID .navbar6_menu-left { display: flex !important; gap: 4px; grid-column: 2; justify-content: center !important; position: static; translate: none; }
 #navbarID .navbar6_menu-right { gap: 10px; grid-column: 3; justify-content: flex-end !important; justify-self: end; }
+/* .navbar6_menu-right is a sibling of .navbar6_menu, not a child of it, so
+   the grid-column/justify-self rules above (meant for a grid item) never
+   actually applied anything at desktop -- it was falling back to whatever
+   Webflow's own default layout does, which put the cart icon and theme
+   button in the wrong place, overlapping the COOL STUFF dropdown. Pin it
+   explicitly to the right edge, same pattern already proven to work in the
+   >=992px-only mobile rule further down this file. */
+@media (min-width: 992px) {
+  #navbarID .navbar6_menu-right {
+    align-items: center !important;
+    display: flex !important;
+    gap: 10px;
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+  }
+}
+/* .navbar6_menu is a full-bleed absolute overlay (inset:0) for its grid
+   layout; without this it can intercept clicks meant for menu-right/
+   wo-team-btn/wo-cart-toggle, which sit at the same container level. */
+#navbarID .navbar6_menu { pointer-events: none; }
+#navbarID .navbar6_menu-left,
+#navbarID .navbar6_menu-left * { pointer-events: auto; }
 #navbarID .w-nav-brand { align-items: center !important; display: flex !important; height: 82px; justify-content: flex-start !important; min-width: 124px; position: relative; z-index: 2; }
 .mp-nav-brand-image { display: block; height: 72px; object-fit: contain; object-position: left center; width: 118px; }
 #navbarID :is(.navbar6_link,.navbar6_dropdown-toggle,.navbar6_dropdown-link) {
