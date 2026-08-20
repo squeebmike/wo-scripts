@@ -116,7 +116,7 @@ function renderResend(node,message,email,kind){
   button.addEventListener('click',function(){
     button.disabled=true;button.textContent='Sending…';
     auth('resend',{type:'signup',email:email}).then(function(){
-      node.innerHTML=statusHtml('Confirmation email resent — check your inbox (and spam folder).','success');
+      node.innerHTML=statusHtml('If an unconfirmed account exists for this email, a new confirmation message was requested. Check your inbox and spam folder.','success');
     }).catch(function(error){renderResend(node,error.message,email,'error');});
   });
 }
@@ -149,7 +149,7 @@ function renderAuthPage(app,mode){
       var session;
       if(isSignup){
         var result=await auth('signup',{email:email,password:password,data:{full_name:name}});
-        if(!result.access_token){renderResend(out,'Check your email to confirm the account, then sign in.',email);return;}
+        if(!result.access_token){renderResend(out,'If this email is new, check your inbox to confirm it. If you already have an account, sign in instead or reset your password.',email);return;}
         session=result;
       }else session=await auth('token?grant_type=password',{email:email,password:password});
       setSession(session);
