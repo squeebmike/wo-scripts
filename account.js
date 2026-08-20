@@ -131,9 +131,9 @@ function renderAuthPage(app,mode){
     '<div class="mp-acct-eyebrow">The Mana Pocket</div><h1 class="mp-acct-title">'+(isSignup?'Create Account':'Sign In')+'</h1>'+
     '<p class="mp-acct-intro">One account covers comic preorders, shop orders, rewards, and your in-store history.</p>'+
     '<form class="mp-acct-auth" data-auth-form>'+
-      (isSignup?'<input name="name" placeholder="Name">':'')+
-      '<input name="email" type="email" required placeholder="Email">'+
-      '<input name="password" type="password" minlength="8" required placeholder="Password · 8+ characters">'+
+      (isSignup?'<input name="name" autocomplete="name" placeholder="Name">':'')+
+      '<input name="email" type="email" autocomplete="email" required placeholder="Email">'+
+      '<input name="password" type="password" autocomplete="'+(isSignup?'new-password':'current-password')+'" minlength="8" required placeholder="Password · 8+ characters">'+
       '<div data-auth-status></div>'+
       '<button class="mp-acct-button" type="submit">'+(isSignup?'Create account':'Sign in')+'</button>'+
     '</form>'+
@@ -275,14 +275,14 @@ function renderProfile(){
     '<p class="mp-acct-intro">Pick a team, Pokémon, or MTG theme for the whole site.</p>'+
     '<div class="mp-acct-actions"><button class="mp-acct-button ghost" type="button" data-open-theme>Change theme</button></div>'+
     '<h3 class="mp-acct-subhead">Change email</h3>'+
-    '<form class="mp-acct-auth" data-email-form><input name="email" type="email" required placeholder="New email" value="'+esc(email)+'"><div class="mp-acct-actions"><button class="mp-acct-button" type="submit">Update email</button></div><div data-email-status></div></form>'+
+    '<form class="mp-acct-auth" data-email-form><input name="email" type="email" autocomplete="email" required placeholder="New email" value="'+esc(email)+'"><div class="mp-acct-actions"><button class="mp-acct-button" type="submit">Update email</button></div><div data-email-status></div></form>'+
     '<h3 class="mp-acct-subhead">Change password</h3>'+
-    '<form class="mp-acct-auth" data-password-form><input name="password" type="password" minlength="8" required placeholder="New password · 8+ characters"><div class="mp-acct-actions"><button class="mp-acct-button" type="submit">Update password</button></div><div data-password-status></div></form>'+
+    '<form class="mp-acct-auth" data-password-form><input name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="New password · 8+ characters"><div class="mp-acct-actions"><button class="mp-acct-button" type="submit">Update password</button></div><div data-password-status></div></form>'+
     '<h3 class="mp-acct-subhead">Link my phone</h3>'+
     '<p class="mp-acct-intro">Connects the rewards and store credit a cashier attaches to your phone number at the register to this account, and unlocks your in-store history, consignments, and want list here.</p>'+
     (linkedPhone?'<div class="mp-acct-note">Currently linked to '+esc(linkedPhone)+'. Verifying a new number below moves the link to that number instead.</div>':'')+
-    '<form class="mp-acct-auth" data-phone-form><input name="phone" type="tel" required placeholder="Phone number"><p class="mp-acct-fineprint">By continuing, you agree to receive a one-time SMS/text message with your verification code from The Mana Pocket. Msg &amp; data rates may apply. Reply STOP to cancel, HELP for help. See our <a href="https://themanapocket.com/privacy-policy" target="_blank">Privacy Policy</a> and <a href="https://themanapocket.com/terms-and-conditions" target="_blank">Terms</a>.</p><div class="mp-acct-actions"><button class="mp-acct-button" type="submit">Send code</button></div><div data-phone-status></div></form>'+
-    '<form class="mp-acct-auth" data-code-form hidden><input name="code" inputmode="numeric" maxlength="6" required placeholder="6-digit code"><div class="mp-acct-actions"><button class="mp-acct-button" type="submit">Confirm</button></div><div data-code-status></div></form>';
+    '<form class="mp-acct-auth" data-phone-form><input name="phone" type="tel" autocomplete="tel" required placeholder="Phone number"><p class="mp-acct-fineprint">By continuing, you agree to receive a one-time SMS/text message with your verification code from The Mana Pocket. Msg &amp; data rates may apply. Reply STOP to cancel, HELP for help. See our <a href="https://themanapocket.com/privacy-policy" target="_blank">Privacy Policy</a> and <a href="https://themanapocket.com/terms-and-conditions" target="_blank">Terms</a>.</p><div class="mp-acct-actions"><button class="mp-acct-button" type="submit">Send code</button></div><div data-phone-status></div></form>'+
+    '<form class="mp-acct-auth" data-code-form hidden><input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required placeholder="6-digit code"><div class="mp-acct-actions"><button class="mp-acct-button" type="submit">Confirm</button></div><div data-code-status></div></form>';
 
   var themeButton=host.querySelector('[data-open-theme]');
   if(themeButton)themeButton.addEventListener('click',function(){if(window.WO&&typeof window.WO.openTheme==='function')window.WO.openTheme();});

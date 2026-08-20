@@ -4,7 +4,7 @@
 var API_BASE='https://wo-checkout.swarnerauto.workers.dev';
 var CONFIG=window.MANA_HOMEPAGE_CONFIG||{};
 var scriptUrl=(document.currentScript&&document.currentScript.src)||'';
-var SCHEDULE_URL=CONFIG.scheduleUrl||'https://raw.githubusercontent.com/squeebmike/wo-scripts/codex/homepage-merchandising-redesign/homepage-schedule.json';
+var SCHEDULE_URL=CONFIG.scheduleUrl||'https://still-resonance-4f87.swarnerauto.workers.dev/public/events';
 var OFF_AIR_IMAGE='https://cdn.prod.website-files.com/65b15ee0228d06647ca7e4ce/6a7ceed727942e7f2a329aff_manapocketstorefront.avif';
 
 function isHomepage(){
