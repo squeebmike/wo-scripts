@@ -5,6 +5,7 @@ var API='https://still-resonance-4f87.swarnerauto.workers.dev';
 var STORE_ID='0f9dd4bc-42a7-487e-a972-2905d24513e9';
 var SUPABASE_URL='https://vroknjrxubsqyexngwus.supabase.co';
 var SUPABASE_KEY='sb_publishable_wbpX2nL8l-4NbXtZNG_bjA_nabSYaJ5';
+var AUTH_REDIRECT_URL='https://themanapocket.com/account';
 // Same key preorders.js uses -- signing in on either page signs in on both.
 var SESSION_KEY='mp-foc-session-v1';
 var state={session:readJson(SESSION_KEY,null),cache:{}};
@@ -72,6 +73,22 @@ function setSession(session){
   state.session=session&&session.access_token?session:null;
   if(state.session)saveJson(SESSION_KEY,state.session);else{try{localStorage.removeItem(SESSION_KEY);}catch(_){}}
 }
+function consumeAuthRedirectSession(){
+  if(!location.hash||location.hash.indexOf('access_token=')===-1)return;
+  var params=new URLSearchParams(location.hash.slice(1));
+  var accessToken=params.get('access_token');
+  if(!accessToken)return;
+  var expiresIn=Number(params.get('expires_in')||3600);
+  setSession({
+    access_token:accessToken,
+    refresh_token:params.get('refresh_token')||'',
+    token_type:params.get('token_type')||'bearer',
+    expires_in:expiresIn,
+    expires_at:Math.floor(Date.now()/1000)+expiresIn
+  });
+  // Remove credentials from the visible URL and browser history immediately.
+  history.replaceState(null,document.title,location.pathname+location.search);
+}
 async function refreshSession(){
   if(!state.session||!state.session.refresh_token)return;
   try{setSession(await auth('token?grant_type=refresh_token',{refresh_token:state.session.refresh_token}));}catch(_){setSession(null);}
@@ -115,7 +132,7 @@ function renderResend(node,message,email,kind){
   var button=node.querySelector('[data-resend]');
   button.addEventListener('click',function(){
     button.disabled=true;button.textContent='Sending…';
-    auth('resend',{type:'signup',email:email}).then(function(){
+    auth('resend?redirect_to='+encodeURIComponent(AUTH_REDIRECT_URL),{type:'signup',email:email}).then(function(){
       node.innerHTML=statusHtml('If an unconfirmed account exists for this email, a new confirmation message was requested. Check your inbox and spam folder.','success');
     }).catch(function(error){renderResend(node,error.message,email,'error');});
   });
@@ -148,7 +165,7 @@ function renderAuthPage(app,mode){
     try{
       var session;
       if(isSignup){
-        var result=await auth('signup',{email:email,password:password,data:{full_name:name}});
+        var result=await auth('signup?redirect_to='+encodeURIComponent(AUTH_REDIRECT_URL),{email:email,password:password,data:{full_name:name}});
         if(!result.access_token){renderResend(out,'If this email is new, check your inbox to confirm it. If you already have an account, sign in instead or reset your password.',email);return;}
         session=result;
       }else session=await auth('token?grant_type=password',{email:email,password:password});
@@ -334,5 +351,6 @@ function renderProfile(){
   });
 }
 
+consumeAuthRedirectSession();
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
