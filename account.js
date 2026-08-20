@@ -100,7 +100,7 @@ function mount(){
   document.body.classList.add('mp-page-account');
   if(!document.getElementById('navbarID')){
     var nav=document.createElement('nav');nav.className='mp-acct-nav';nav.setAttribute('aria-label','Main navigation');
-    nav.innerHTML='<a class="mp-acct-brand" href="/" aria-label="The Mana Pocket home"><img src="https://cdn.prod.website-files.com/65b15ee0228d06647ca7e4ce/6a7ce98ab3d4819b7565620e_the_mana_pocket_patch_1024x1024.png" alt="The Mana Pocket"></a><div><a href="/">Home</a><a href="/shop">Shop</a><a href="/preorders">Comic Preorders</a><button type="button" data-acct-theme>Pick a theme</button></div>';
+    nav.innerHTML='<a class="mp-acct-brand" href="/" aria-label="The Mana Pocket home"><img src="https://cdn.prod.website-files.com/65b15ee0228d06647ca7e4ce/6a7ce98ab3d4819b7565620e_the_mana_pocket_patch_1024x1024.png" alt="The Mana Pocket"></a><div><a href="/">Home</a><a href="/shop">Shop</a><a href="/preorders">Comic Preorders</a><button type="button" data-acct-theme>My Pocket</button></div>';
     document.body.prepend(nav);
     nav.querySelector('[data-acct-theme]').addEventListener('click',function(){if(window.WO&&typeof window.WO.openTheme==='function')window.WO.openTheme();});
   }
@@ -240,9 +240,15 @@ async function loadPreorders(){
   try{
     var result=state.cache.preorders||await api('/public/preorders/my?store_id='+encodeURIComponent(STORE_ID));
     state.cache.preorders=result;
-    var orders=result.orders||[];
-    host.innerHTML=orders.length?orders.map(preorderCardHtml).join(''):'<div class="mp-acct-empty">No comic preorders yet. <a class="mp-acct-link" href="/preorders">Browse this week’s FOC covers</a>.</div>';
+    var orders=result.orders||[],picks=(result.picks||[]).filter(function(list){return(list.items||[]).length;});
+    var saved=picks.length?'<h2 class="mp-acct-subhead">Saved comic pulls</h2><p class="mp-acct-intro">These are saved, but not purchased yet. Add more or pay before the listed FOC deadline.</p>'+picks.map(pickListCardHtml).join(''):'';
+    var purchased=orders.length?'<h2 class="mp-acct-subhead">Purchased preorders</h2>'+orders.map(preorderCardHtml).join(''):'<div class="mp-acct-empty">No paid comic preorders yet. <a class="mp-acct-link" href="/preorders">Browse this week’s FOC covers</a>.</div>';
+    host.innerHTML=saved+purchased;
   }catch(error){host.innerHTML=statusHtml(error.message,'error');}
+}
+function pickListCardHtml(list){
+  var cycle=list.cycle||{},items=list.items||[],total=items.reduce(function(sum,item){return sum+Number(item.quantity||0)*Number(item.sku&&item.sku.customer_price_cents||0);},0);
+  return '<article class="mp-acct-order mp-acct-saved-pulls"><header><div><h3>'+items.reduce(function(n,item){return n+Number(item.quantity||0);},0)+' saved pull'+(items.length===1?'':'s')+'</h3><span class="mp-acct-sub">FOC '+esc(dateLabel(cycle.foc_date))+' · '+(list.isOpen?'payment still needed':'deadline closed')+'</span></div><span class="mp-acct-status-pill">unpaid</span></header>'+items.map(function(item){var sku=item.sku||{};return'<div class="mp-acct-item-line">'+(sku.cover_image_url?'<img src="'+esc(sku.cover_image_url)+'" alt="">':'<span class="mp-acct-item-noimg"></span>')+'<div class="mp-acct-item-info"><span>'+esc(sku.title||'')+(sku.variant_label?' · '+esc(sku.variant_label):'')+(item.quantity>1?' ×'+item.quantity:'')+'</span><span>'+money(Number(sku.customer_price_cents||0)/100)+'</span></div></div>';}).join('')+'<div class="mp-acct-row"><span>Current subtotal</span><strong>'+money(total/100)+'</strong></div><div class="mp-acct-actions"><a class="mp-acct-button" href="/preorders#foc-week-'+esc(cycle.id||'')+'">Open pulls &amp; pay</a></div></article>';
 }
 function preorderCardHtml(order){
   return '<article class="mp-acct-order"><header><div><h3>'+esc(order.order_number)+'</h3><span class="mp-acct-sub">ordered '+esc(dateLabel(order.created_at,true))+'</span></div><span class="mp-acct-status-pill">'+esc(String(order.status||'').replace(/_/g,' '))+'</span></header>'+

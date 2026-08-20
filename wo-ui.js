@@ -468,8 +468,10 @@ function updateNavBtn(team,colorway){
   if(!team)return;
   var p=resolvePalette(team,colorway);
   var src=logoUrl(state.league,team.k,colorway);
-  var name=team.brand?'Pick a theme':(team.n.length>13?team.n.substring(0,12)+'…':team.n);
-  if(isPokemon()&&(colorway||state.colorway)==='away')name='✨ '+name;
+  // This control is the visitor's account/theme identity, not a team-name
+  // label. Keep the chosen theme image and colors, but use one predictable
+  // destination name before and after they make a selection.
+  var name='My Pocket';
   document.querySelectorAll('[data-wo-theme],[data-theme-trigger],[data-wo-open]').forEach(function(btn){
     btn.style.cssText='all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:7px;padding:5px 13px 5px 6px;border-radius:100px;background:'+p.btn+';color:'+p.onBtn+';font-size:13px;font-weight:900;cursor:pointer;line-height:1;transition:opacity .2s,transform .2s;white-space:nowrap;box-shadow:0 0 0 1px '+rgba(p.hi,.28)+';';
     btn.innerHTML='';
