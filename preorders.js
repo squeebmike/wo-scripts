@@ -73,7 +73,14 @@ function mount(){
 }
 
 async function loadCatalog(){
-  try{var data=await api('/public/preorders/weeks?store_id='+encodeURIComponent(STORE_ID),{auth:false});state.cycles=(data.cycles||[]).slice().sort(function(a,b){return new Date(a.cycle.customer_cutoff_at)-new Date(b.cycle.customer_cutoff_at);});await reconcileSavedPicks();render();handleDeepLink();}
+  try{
+    var data=await api('/public/preorders/weeks?store_id='+encodeURIComponent(STORE_ID),{auth:false});state.cycles=(data.cycles||[]).slice().sort(function(a,b){return new Date(a.cycle.customer_cutoff_at)-new Date(b.cycle.customer_cutoff_at);});await reconcileSavedPicks();render();handleDeepLink();
+    // "Open pulls & pay" on the account page's saved-pulls card links here
+    // with ?cart=1 -- without this, that link only scrolled to the FOC week
+    // and left the customer to find and click the floating cart button
+    // themselves to actually reach payment, which read as "does nothing."
+    if(new URLSearchParams(location.search).get('cart')==='1')openCart();
+  }
   catch(error){document.getElementById('mp-foc-app').innerHTML='<div class="mp-foc-shell"><div class="mp-foc-empty"><h1>Comic preorders are getting bagged and boarded.</h1><p>'+esc(error.message)+'</p><a class="mp-foc-button ghost" href="/">Back to the shop</a></div></div>';}
 }
 
