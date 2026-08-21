@@ -172,7 +172,7 @@ function bind(){
 // bypasses window.WO.addToCart because that helper only ever adds one unit
 // at a time, and here the customer picked an exact quantity in the qty
 // input next to the cover.
-function addPreorderLine(skuId,qty){
+function addPreorderLine(skuId,qty,sourceEl){
   var match=findSku(skuId);if(!match)return;
   var cart=(window.WO&&typeof window.WO.getCart==='function'?window.WO.getCart():[]);
   var lineId='foc:'+skuId,existing=cart.find(function(l){return l.id===lineId;});
@@ -181,10 +181,13 @@ function addPreorderLine(skuId,qty){
   else cart.push(preorderLineFor(match,add));
   if(window.WO&&typeof window.WO.setCart==='function')window.WO.setCart(cart);
   scheduleSavedPicks();
-  if(window.WO&&typeof window.WO.openCart==='function')window.WO.openCart();
+  // Same flourish-toward-the-cart-icon as a regular add, not a forced-open
+  // drawer -- someone picking exact covers is almost always about to add
+  // another, and popping the drawer here would cut that off every time.
+  if(window.WO&&typeof window.WO.playAddToCartFlourish==='function')window.WO.playAddToCartFlourish(sourceEl);
 }
 function bindDynamic(){
-  document.querySelectorAll('[data-add]').forEach(function(button){button.addEventListener('click',function(){var input=document.querySelector('[data-qty="'+button.dataset.add+'"]');addPreorderLine(button.dataset.add,Number(input&&input.value||1));button.textContent='Added ✓';setTimeout(function(){button.textContent='Add exact cover';},900);});});
+  document.querySelectorAll('[data-add]').forEach(function(button){button.addEventListener('click',function(){var input=document.querySelector('[data-qty="'+button.dataset.add+'"]');addPreorderLine(button.dataset.add,Number(input&&input.value||1),button);button.textContent='Added ✓';setTimeout(function(){button.textContent='Add exact cover';},900);});});
   document.querySelectorAll('[data-waitlist]').forEach(function(button){button.addEventListener('click',function(){requestWaitlist(button.dataset.waitlist,Number(document.querySelector('[data-qty="'+button.dataset.waitlist+'"]')?.value||1));});});
   document.querySelectorAll('[data-lightbox]').forEach(function(button){button.addEventListener('click',function(){var match=findSku(button.dataset.lightbox);if(match)dialog('<div class="mp-foc-lightbox"><img src="'+esc(match.sku.coverImageUrl)+'" alt=""><p>'+esc((match.family.seriesName||match.family.title)+' · '+match.sku.variantLabel)+'</p></div>','wide');});});
 }
