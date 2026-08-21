@@ -1011,6 +1011,22 @@ function loadStorefrontCheckout(){
   script.src=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'storefront-checkout.js');
   document.head.appendChild(script);
 }
+// /preorders loads preorders.js itself (via preorders-loader.js) for the
+// full FOC Wall page, guarded by data-mp-preorders so this never double-
+// injects there. Loaded here too, site-wide, purely so its cart/checkout
+// functions (exposed on window.WO by preorders.js) are reachable from the
+// shared cart drawer on every page -- a customer can add a comic preorder
+// on /preorders, then finish checkout from the cart icon on /shop or the
+// homepage, without the "Comic pulls" flow only working on one page.
+// preorders.js itself no-ops its actual page rendering off /preorders, so
+// this costs one extra script fetch elsewhere, nothing more.
+function loadPreorderCartHelpers(){
+  if(!WO_SCRIPT_SRC||document.querySelector('script[data-mp-preorders]'))return;
+  var css=document.createElement('link');css.rel='stylesheet';css.setAttribute('data-mp-preorders-css','');
+  css.href=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'preorders.css');document.head.appendChild(css);
+  var script=document.createElement('script');script.async=true;script.setAttribute('data-mp-preorders','');
+  script.src=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'preorders.js');document.head.appendChild(script);
+}
 function loadSitePolish(){
   if(!WO_SCRIPT_SRC)return;
   var path=location.pathname.replace(/\/$/,'')||'/';
@@ -1036,6 +1052,7 @@ loadSitePolish();
 loadHomepageRedesign();
 loadShopPreorders();
 loadStorefrontCheckout();
+loadPreorderCartHelpers();
 enhanceCart();
 setupTawkChat();
 polishNavigation();

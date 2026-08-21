@@ -12,8 +12,16 @@ var mousedownTarget=null;
 function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,function(char){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char];});}
 function money(cents){return'$'+(Number(cents||0)/100).toFixed(2);}
 function cart(){try{var value=JSON.parse(localStorage.getItem(CART_KEY)||'[]');return Array.isArray(value)?value:[];}catch(error){return[];}}
-function items(){return cart().map(function(line){return{itemId:String(line.id||''),quantity:Math.max(1,parseInt(line.qty,10)||1)};}).filter(function(line){return line.itemId;});}
-function subtotal(){return cart().reduce(function(total,line){return total+Math.round(Number(line.price||0)*100)*Math.max(1,parseInt(line.qty,10)||1);},0);}
+// The cart is shared with the comic-preorder flow (preorders.js writes
+// kind:'preorder' lines into this same wo_cart_v1 key via window.WO, so
+// there's one cart instead of two) -- this checkout only ever concerns
+// itself with regular in-stock lines. Preorder lines get their own
+// dedicated checkout (different backend route, per-FOC-cycle Stripe
+// charges, request-only pricing) via beginPreorderCheckout below.
+function regularLines(){return cart().filter(function(line){return line.kind!=='preorder';});}
+function preorderLines(){return cart().filter(function(line){return line.kind==='preorder';});}
+function items(){return regularLines().map(function(line){return{itemId:String(line.id||''),quantity:Math.max(1,parseInt(line.qty,10)||1)};}).filter(function(line){return line.itemId;});}
+function subtotal(){return regularLines().reduce(function(total,line){return total+Math.round(Number(line.price||0)*100)*Math.max(1,parseInt(line.qty,10)||1);},0);}
 function addStyles(){
   if(document.getElementById('mp-storefront-checkout-css'))return;
   var style=document.createElement('style');style.id='mp-storefront-checkout-css';style.textContent='\
@@ -67,12 +75,36 @@ function bind(modal){
   DRAFT_FIELDS.concat(['mp-sfc-sms-consent']).forEach(function(id){var field=modal.querySelector('#'+id);if(field)field.addEventListener('input',saveDraft);});
   modal.querySelector('[data-sfc-form]').addEventListener('submit',function(event){event.preventDefault();checkout();});
 }
-function open(){if(!cart().length)return;var modal=node();modal.innerHTML=panel();bind(modal);restoreDraft();quote={cents:null,loading:false,error:'',label:''};paymentRuntime=null;modal.classList.add('is-open');document.body.style.overflow='hidden';methodChanged();}
+// A comic-preorder-only cart skips this pickup/shipping modal entirely --
+// there's nothing here for it (no live inventory, no flat pickup/shipping
+// choice; FOC checkout has its own per-cycle fulfillment + Stripe flow) --
+// and goes straight into beginPreorderCheckout. A mixed cart still opens
+// this modal for its regular items first; the leftover preorder lines stay
+// in the cart afterward for the customer to check out separately (a single
+// chained payment flow risked surprising someone with a second unexpected
+// charge screen right after they just paid for one).
+function open(){
+  var regular=regularLines(),preorder=preorderLines();
+  if(!regular.length&&!preorder.length)return;
+  if(!regular.length){beginPreorderCheckout(preorder);return;}
+  var modal=node();modal.innerHTML=panel();bind(modal);restoreDraft();quote={cents:null,loading:false,error:'',label:''};paymentRuntime=null;modal.classList.add('is-open');document.body.style.overflow='hidden';methodChanged();
+}
+function beginPreorderCheckout(lines){
+  if(!window.WO||typeof window.WO.checkoutPreorderLines!=='function'){alert('Comic preorder checkout is still loading -- give it a second and try again.');return;}
+  window.WO.checkoutPreorderLines(lines,function(){});
+}
 function close(){node().classList.remove('is-open');document.body.style.overflow='';}
 async function loadStripe(){if(window.Stripe)return window.Stripe;await new Promise(function(resolve,reject){var existing=document.querySelector('script[src="https://js.stripe.com/v3/"]');if(existing){existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',reject,{once:true});return;}var script=document.createElement('script');script.src='https://js.stripe.com/v3/';script.onload=resolve;script.onerror=reject;document.head.appendChild(script);});return window.Stripe;}
 async function checkout(){var name=value('mp-sfc-name'),phone=value('mp-sfc-phone'),email=value('mp-sfc-email'),method=selectedMethod(),address=method==='shipping'?destination():null;if(name.length<2){setStatus('Enter the collector’s full name.',true);return;}if(phone.replace(/\D/g,'').length<7){setStatus('Enter a valid phone number.',true);return;}if(method==='shipping'&&!completeAddress(address)){setStatus('Complete the shipping address first.',true);return;}if(method==='shipping'&&quote.cents==null){setStatus(quote.error||'Wait for a live shipping rate before continuing.',true);return;}var button=node().querySelector('[data-continue]');button.disabled=true;button.textContent='Starting secure payment…';setStatus('Verifying inventory and final total…');try{var data=await api('/public/storefront/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({storeId:STORE_ID,items:items(),fulfillment:{method:method,name:name,phone:phone,email:email,shippingAddress:address}})});await mountPayment(data);}catch(error){setStatus(error.message,true);button.disabled=false;button.textContent='Try secure checkout again';}}
 async function mountPayment(data){var Stripe=await loadStripe();if(!Stripe)throw new Error('The secure payment form could not load.');var client=Stripe(data.publishableKey);var elements=client.elements({clientSecret:data.clientSecret,appearance:{theme:'night',variables:{colorPrimary:getComputedStyle(document.documentElement).getPropertyValue('--wo-accent').trim()||'#8bd450',borderRadius:'10px'}}});var content=node().querySelector('#mp-sfc-content');content.innerHTML='<div class="mp-sfc-summary"><div class="mp-sfc-row total"><span>Final total</span><strong>'+money(data.amountCents)+'</strong></div>'+(data.shippingFeeCents?'<div class="mp-sfc-row"><span>Live shipping</span><span>'+money(data.shippingFeeCents)+'</span></div>':'<div class="mp-sfc-row"><span>Local pickup</span><span>FREE</span></div>')+'</div><div id="mp-sfc-payment"></div><div class="mp-sfc-status" data-pay-status aria-live="polite"></div><button class="mp-sfc-button" type="button" data-pay>Pay '+money(data.amountCents)+'</button><p class="mp-sfc-note">Secure payment powered by Stripe.</p>';elements.create('payment',{layout:'tabs'}).mount('#mp-sfc-payment');paymentRuntime={client:client,elements:elements,confirmation:data.confirmationNumber};content.querySelector('[data-pay]').addEventListener('click',confirmPayment);}
-async function confirmPayment(){if(!paymentRuntime)return;var button=node().querySelector('[data-pay]'),out=node().querySelector('[data-pay-status]');button.disabled=true;button.textContent='Processing payment…';out.textContent='';try{var result=await paymentRuntime.client.confirmPayment({elements:paymentRuntime.elements,redirect:'if_required'});if(result.error)throw new Error(result.error.message);localStorage.removeItem(CART_KEY);clearDraft();node().querySelector('#mp-sfc-content').innerHTML='<div class="mp-sfc-success"><div style="font-size:48px">✓</div><b>Order confirmed</b><p class="mp-sfc-confirm">'+esc(paymentRuntime.confirmation)+'</p><p>Save this confirmation number. We will contact you about pickup or shipping.</p><button class="mp-sfc-button" type="button" data-done>Done</button></div>';node().querySelector('[data-done]').addEventListener('click',function(){location.reload();});}catch(error){out.textContent=error.message;out.classList.add('error');button.disabled=false;button.textContent='Try payment again';}}
+async function confirmPayment(){if(!paymentRuntime)return;var button=node().querySelector('[data-pay]'),out=node().querySelector('[data-pay-status]');button.disabled=true;button.textContent='Processing payment…';out.textContent='';try{var result=await paymentRuntime.client.confirmPayment({elements:paymentRuntime.elements,redirect:'if_required'});if(result.error)throw new Error(result.error.message);
+  // Clear only the just-paid regular items -- the cart is shared with comic
+  // preorders now, and a blanket localStorage.removeItem(CART_KEY) here
+  // would wipe out any unpaid preorder lines sitting in the same cart that
+  // this checkout never touched.
+  var remainingPreorders=preorderLines();
+  if(window.WO&&typeof window.WO.setCart==='function')window.WO.setCart(remainingPreorders);else localStorage.removeItem(CART_KEY);
+  clearDraft();node().querySelector('#mp-sfc-content').innerHTML='<div class="mp-sfc-success"><div style="font-size:48px">✓</div><b>Order confirmed</b><p class="mp-sfc-confirm">'+esc(paymentRuntime.confirmation)+'</p><p>Save this confirmation number. We will contact you about pickup or shipping.</p>'+(remainingPreorders.length?'<p class="mp-sfc-note">You still have '+remainingPreorders.length+' comic preorder item'+(remainingPreorders.length===1?'':'s')+' in your cart -- open your cart again to pay for '+(remainingPreorders.length===1?'it':'those')+' separately.</p>':'')+'<button class="mp-sfc-button" type="button" data-done>Done</button></div>';node().querySelector('[data-done]').addEventListener('click',function(){location.reload();});}catch(error){out.textContent=error.message;out.classList.add('error');button.disabled=false;button.textContent='Try payment again';}}
 function install(){var button=document.getElementById('wo-cart-checkout');if(!button||button.dataset.mpStorefrontCheckout)return false;button.dataset.mpStorefrontCheckout='true';button.textContent='Secure checkout →';button.onclick=function(event){event.preventDefault();event.stopPropagation();open();};return true;}
 function start(){addStyles();install();new MutationObserver(install).observe(document.body,{childList:true,subtree:true});}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();

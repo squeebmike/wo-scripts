@@ -6,8 +6,7 @@ var STORE_ID='0f9dd4bc-42a7-487e-a972-2905d24513e9';
 var SUPABASE_URL='https://vroknjrxubsqyexngwus.supabase.co';
 var SUPABASE_KEY='sb_publishable_wbpX2nL8l-4NbXtZNG_bjA_nabSYaJ5';
 var SESSION_KEY='mp-foc-session-v1';
-var CART_KEY='mp-foc-cart-v1';
-var state={cycles:null,cart:readJson(CART_KEY,{}),session:readJson(SESSION_KEY,null),filters:{q:'',publisher:'all',artist:'all',kind:'all'},timer:null,pickSyncTimer:null,pickSyncState:'',deepLinkHandled:false};
+var state={cycles:null,session:readJson(SESSION_KEY,null),filters:{q:'',publisher:'all',artist:'all',kind:'all'},timer:null,pickSyncTimer:null,pickSyncState:'',deepLinkHandled:false};
 
 function readJson(key,fallback){try{return JSON.parse(localStorage.getItem(key)||'null')||fallback;}catch(_){return fallback;}}
 function saveJson(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch(_){}}
@@ -26,39 +25,72 @@ function api(path,options){options=options||{};var headers=Object.assign({'Conte
 function auth(path,body){return fetch(SUPABASE_URL+'/auth/v1/'+path,{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)}).then(async function(response){var data=await response.json().catch(function(){return{};});if(!response.ok)throw new Error(data.msg||data.message||data.error_description||'Account request failed.');return data;});}
 function setSession(session){state.session=session&&session.access_token?session:null;if(state.session)saveJson(SESSION_KEY,state.session);else{try{localStorage.removeItem(SESSION_KEY);}catch(_){}}}
 async function refreshSession(){if(!state.session||!state.session.refresh_token)return;try{setSession(await auth('token?grant_type=refresh_token',{refresh_token:state.session.refresh_token}));}catch(_){setSession(null);}}
-function cartPayload(){return Object.keys(state.cart).map(function(skuId){return{skuId:skuId,quantity:Math.max(1,Math.min(50,Number(state.cart[skuId]||1)))};});}
-function saveCart(){saveJson(CART_KEY,state.cart);renderFloat();scheduleSavedPicks();}
-function scheduleSavedPicks(){if(!token())return;if(state.pickSyncTimer)clearTimeout(state.pickSyncTimer);state.pickSyncState='saving';renderFloat();state.pickSyncTimer=setTimeout(syncSavedPicks,350);}
-async function syncSavedPicks(){if(!token())return;try{await api('/public/preorders/picks',{method:'PUT',body:JSON.stringify({storeId:STORE_ID,items:cartPayload()})});state.pickSyncState='saved';}catch(error){state.pickSyncState='error';console.warn('[Mana Pocket] Comic pulls could not be saved:',error.message);}renderFloat();}
-async function reconcileSavedPicks(){if(!token())return;try{var result=await api('/public/preorders/picks?store_id='+encodeURIComponent(STORE_ID));var merged=Object.assign({},state.cart);(result.picks||[]).forEach(function(list){(list.items||[]).forEach(function(item){merged[item.sku_id]=Math.max(Number(merged[item.sku_id]||0),Number(item.quantity||1));});});state.cart=merged;saveJson(CART_KEY,state.cart);if(cartPayload().length)await syncSavedPicks();}catch(error){console.warn('[Mana Pocket] Saved comic pulls could not be opened:',error.message);}}
+// The cart lives entirely in the shared window.WO cart (wo_cart_v1) now --
+// this file never keeps its own copy. Preorder lines are just the subset
+// tagged kind:'preorder'; everything below reads/writes through
+// window.WO.getCart()/setCart() so a change here shows up in the shared
+// drawer immediately, and a change made in the drawer (qty +/-, remove)
+// is what watchCartForChanges() below notices and re-saves to the server.
+function preorderCartLines(){return(window.WO&&typeof window.WO.getCart==='function'?window.WO.getCart():[]).filter(function(line){return line.kind==='preorder';});}
+function preorderLineFor(match,qty){var family=match.family,sku=match.sku,cycle=match.cycle;return{id:'foc:'+sku.id,kind:'preorder',skuId:sku.id,cycleId:cycle.id,focDate:cycle.foc_date,name:(family.seriesName||family.title)+' · '+(sku.variantLabel||'Cover A'),image:sku.coverImageUrl||'',upc:sku.upc||'',price:Number(sku.priceCents||0)/100,available:50,qty:Math.max(1,Math.min(50,Number(qty||1)))};}
+function cartPayload(){return preorderCartLines().map(function(line){return{skuId:line.skuId,quantity:Math.max(1,Math.min(50,Number(line.qty||1)))};});}
+function scheduleSavedPicks(){if(!token())return;if(state.pickSyncTimer)clearTimeout(state.pickSyncTimer);state.pickSyncState='saving';state.pickSyncTimer=setTimeout(syncSavedPicks,350);}
+async function syncSavedPicks(){if(!token())return;try{await api('/public/preorders/picks',{method:'PUT',body:JSON.stringify({storeId:STORE_ID,items:cartPayload()})});state.pickSyncState='saved';}catch(error){state.pickSyncState='error';console.warn('[Mana Pocket] Comic pulls could not be saved:',error.message);}}
+// Called once the FOC catalog has loaded (from loadCatalog, /preorders
+// only -- building a cart line needs name/price/image off state.cycles).
+// Merges server-saved picks into the shared cart rather than replacing it,
+// so anything already added this session survives a sign-in.
+async function reconcileSavedPicks(){
+  if(!token())return;
+  try{
+    var result=await api('/public/preorders/picks?store_id='+encodeURIComponent(STORE_ID));
+    var saved={};(result.picks||[]).forEach(function(list){(list.items||[]).forEach(function(item){saved[item.sku_id]=Math.max(Number(saved[item.sku_id]||0),Number(item.quantity||1));});});
+    if(!Object.keys(saved).length)return;
+    var cart=(window.WO&&typeof window.WO.getCart==='function'?window.WO.getCart():[]);
+    var byId={};cart.forEach(function(line){byId[line.id]=line;});
+    Object.keys(saved).forEach(function(skuId){
+      var match=findSku(skuId);if(!match)return;
+      var lineId='foc:'+skuId,qty=Math.max(1,Math.min(50,saved[skuId]));
+      if(byId[lineId])byId[lineId].qty=Math.max(Number(byId[lineId].qty||1),qty);
+      else{var line=preorderLineFor(match,qty);cart.push(line);byId[lineId]=line;}
+    });
+    if(window.WO&&typeof window.WO.setCart==='function')window.WO.setCart(cart);
+    lastCartSnapshot=JSON.stringify(cartPayload());
+    await syncSavedPicks();
+  }catch(error){console.warn('[Mana Pocket] Saved comic pulls could not be opened:',error.message);}
+}
+// The shared drawer's own qty +/- and remove buttons mutate window.WO's
+// cart directly and have no reason to know this file's server-save exists
+// -- polling is the simplest way to notice those edits and re-save picks
+// without wiring a callback through wo-checkout for a single low-stakes
+// convenience feature (saved picks are just a cross-device nicety; the
+// cart itself is already the source of truth for checkout either way).
+var lastCartSnapshot='';
+function watchCartForChanges(){
+  setInterval(function(){
+    if(!token())return;
+    var snapshot=JSON.stringify(cartPayload());
+    if(snapshot===lastCartSnapshot)return;
+    lastCartSnapshot=snapshot;
+    scheduleSavedPicks();
+  },2000);
+}
 
 // Every helper below used to read the single state.catalog; now it reads
 // across state.cycles (one entry per open/closed FOC week, newest first --
 // see loadCatalog). A cart can hold picks from more than one week at once,
-// so anything id-keyed (findSku/cartLines) has to search every week, not
-// just one.
+// so anything id-keyed (findSku) has to search every week, not just one.
 function allSkus(){return(state.cycles||[]).flatMap(function(entry){return entry.families.flatMap(function(family){return family.variants.map(function(sku){return{family:family,sku:sku,cycle:entry.cycle};});});});}
 function findSku(id){var match=allSkus().find(function(entry){return entry.sku.id===id;});return match||null;}
 function cycleById(id){var entry=(state.cycles||[]).find(function(e){return e.cycle.id===id;});return entry?entry.cycle:null;}
-function cartLines(){return Object.keys(state.cart).map(function(id){var match=findSku(id);return match?{family:match.family,sku:match.sku,cycle:match.cycle,quantity:Math.max(1,Number(state.cart[id]||1))}:null;}).filter(Boolean);}
-function linesTotal(lines){return lines.reduce(function(sum,line){return sum+line.sku.priceCents*line.quantity;},0);}
-function cartTotal(){return linesTotal(cartLines());}
-// Checkout has to happen one FOC week at a time -- the Worker's checkout
-// route validates every line against a single cycle_id, since each week is
-// its own distributor order with its own cutoff. Grouping here is what lets
-// someone add covers from two different weeks to one cart and still check
-// out cleanly, as two real orders back to back.
-function groupCartByCycle(){
-  var groups=[],byId={};
-  cartLines().forEach(function(line){
-    var key=line.cycle.id;
-    if(!byId[key]){byId[key]={cycle:line.cycle,lines:[]};groups.push(byId[key]);}
-    byId[key].lines.push(line);
-  });
-  return groups;
-}
-
 function mount(){
+  // This file now loads site-wide (wo-ui.js's loadPreorderCartHelpers) so
+  // its cart/checkout functions are reachable from the shared cart drawer
+  // everywhere, not just on /preorders -- but the actual FOC Wall page (nav,
+  // catalog fetch, DOM mount) must still only ever render on /preorders
+  // itself, or every other page on the site would grow a comic-covers
+  // section nobody asked for.
+  if((location.pathname.replace(/\/$/,'')||'/')!=='/preorders')return;
   if(document.getElementById('mp-foc-app'))return;
   document.body.classList.add('mp-page-preorders');
   if(!document.getElementById('navbarID')){
@@ -79,7 +111,7 @@ async function loadCatalog(){
     // with ?cart=1 -- without this, that link only scrolled to the FOC week
     // and left the customer to find and click the floating cart button
     // themselves to actually reach payment, which read as "does nothing."
-    if(new URLSearchParams(location.search).get('cart')==='1')openCart();
+    if(new URLSearchParams(location.search).get('cart')==='1'&&window.WO&&typeof window.WO.openCart==='function')window.WO.openCart();
   }
   catch(error){document.getElementById('mp-foc-app').innerHTML='<div class="mp-foc-shell"><div class="mp-foc-empty"><h1>Comic preorders are getting bagged and boarded.</h1><p>'+esc(error.message)+'</p><a class="mp-foc-button ghost" href="/">Back to the shop</a></div></div>';}
 }
@@ -92,8 +124,7 @@ function filteredFamiliesFor(entry){
 }
 function render(){
   if(!state.cycles||!state.cycles.length){
-    document.getElementById('mp-foc-app').innerHTML='<div class="mp-foc-shell"><div class="mp-foc-empty"><h1>No FOC weeks are open right now.</h1><p>Check back once the next Monday order is imported.</p></div></div><button class="mp-foc-button mp-foc-float" data-cart>Comic pulls <span>'+cartPayload().reduce(function(n,l){return n+l.quantity;},0)+'</span></button>';
-    document.querySelector('[data-cart]')?.addEventListener('click',openCart);
+    document.getElementById('mp-foc-app').innerHTML='<div class="mp-foc-shell"><div class="mp-foc-empty"><h1>No FOC weeks are open right now.</h1><p>Check back once the next Monday order is imported.</p></div></div>';
     return;
   }
   var publishers=unique(state.cycles.flatMap(function(e){return e.families.map(function(f){return f.publisher;});}));
@@ -103,7 +134,7 @@ function render(){
     (state.cycles.length>1?'<nav class="mp-foc-week-nav" aria-label="Jump to an FOC week">'+state.cycles.map(function(entry,index){return'<a href="#foc-week-'+esc(entry.cycle.id)+'">'+(index===0?'⏰ Closes soonest · ':'')+'FOC '+esc(dateLabel(entry.cycle.foc_date,false))+'</a>';}).join('')+'</nav>':'')+
     '<section class="mp-foc-controls" aria-label="Filter comic preorders"><input data-filter="q" type="search" placeholder="Search title, creator, character…" value="'+esc(state.filters.q)+'"><select data-filter="publisher"><option value="all">All publishers</option>'+publishers.map(function(v){return'<option'+(state.filters.publisher===v?' selected':'')+'>'+esc(v)+'</option>';}).join('')+'</select><select data-filter="artist"><option value="all">All cover artists</option>'+artists.map(function(v){return'<option'+(state.filters.artist===v?' selected':'')+'>'+esc(v)+'</option>';}).join('')+'</select><select data-filter="kind"><option value="all">All covers</option><option value="standard"'+(state.filters.kind==='standard'?' selected':'')+'>Standard covers</option><option value="foil"'+(state.filters.kind==='foil'?' selected':'')+'>Foil covers</option><option value="first"'+(state.filters.kind==='first'?' selected':'')+'>#1 issues</option><option value="incentive"'+(state.filters.kind==='incentive'?' selected':'')+'>Incentives</option></select><button class="mp-foc-button ghost" data-account>'+(token()?'My preorders':'Sign in')+'</button></section>'+
     state.cycles.map(function(entry,index){return weekSectionHtml(entry,index>0,index);}).join('')+
-    '</div><button class="mp-foc-button mp-foc-float" data-cart>Comic pulls <span>'+cartLines().reduce(function(n,l){return n+l.quantity;},0)+'</span></button>';
+    '</div>';
   bind();
   if(state.timer)clearInterval(state.timer);
   state.timer=setInterval(function(){
@@ -122,7 +153,7 @@ function resultLineText(families,cycle){return'<span>'+families.length+' titles 
 function familyHtml(families,cycleIsOpen){if(!families.length)return'<div class="mp-foc-empty"><h2>No covers match that search.</h2><p>Try clearing a filter.</p></div>';return families.map(function(family){var badges=(family.isFirstIssue?'<span class="mp-foc-badge hot">Issue #1</span>':'')+(family.isNewSeries?'<span class="mp-foc-badge">New series</span>':'')+(family.variants.some(function(v){return v.isFoil;})?'<span class="mp-foc-badge">Foil</span>':'')+(family.variants.some(function(v){return v.isIncentive;})?'<span class="mp-foc-badge ratio">Incentives</span>':'');return'<article class="mp-foc-family"><header class="mp-foc-family-head"><div><h2>'+esc(family.seriesName||family.title)+(family.issueNumber?' #'+esc(family.issueNumber):'')+'</h2><p>'+esc([family.writer&&'Written by '+family.writer,family.interiorArtist&&'Art by '+family.interiorArtist].filter(Boolean).join(' · '))+'</p><div class="mp-foc-badges">'+badges+'</div></div><div class="mp-foc-family-meta">'+esc(family.publisher)+'<br>On sale '+esc(dateLabel(family.onSaleDate,false))+'<br>'+family.variants.length+' cover'+(family.variants.length===1?'':'s')+'</div></header><div class="mp-foc-variants">'+family.variants.map(function(sku){return coverHtml(family,sku,cycleIsOpen);}).join('')+'</div></article>';}).join('');}
 function coverHtml(family,sku,cycleIsOpen){var image=sku.coverImageUrl?'<img loading="lazy" decoding="async" src="'+esc(sku.coverImageUrl)+'" alt="'+esc((family.seriesName||family.title)+' '+sku.variantLabel)+'">':'<span>No cover image yet</span>';var ratio=sku.isIncentive?'<div class="mp-foc-ratio">'+esc(sku.orderRequirement||('1:'+sku.ratioThreshold+' incentive'))+'<div class="mp-foc-progress"><i style="width:'+Math.min(100,100*Number(sku.qualification&&sku.qualification.total||0)/Math.max(1,Number(sku.ratioThreshold||1)))+'%"></i></div>'+(sku.waitlistOnly?'Request list only · no charge':'Secured copies available')+'</div>':'';var action=sku.waitlistOnly?'Request one':(sku.canPreorder?'Add exact cover':'Price coming soon');var price=sku.waitlistOnly?(sku.priceRequired?'Price confirmed if secured':money(sku.priceCents)+' if secured'):(sku.priceRequired?'Price coming soon':money(sku.priceCents));var actionAttr=sku.waitlistOnly?'data-waitlist="'+esc(sku.id)+'"':(sku.canPreorder?'data-add="'+esc(sku.id)+'"':'');var disabled=!cycleIsOpen||(!sku.waitlistOnly&&!sku.canPreorder);return'<section class="mp-foc-cover" data-sku-card="'+esc(sku.id)+'"><button class="mp-foc-cover-image" data-lightbox="'+esc(sku.id)+'" aria-label="Enlarge cover">'+image+'</button><h3>'+esc(sku.variantLabel||'Cover A')+'</h3><div class="mp-foc-badges">'+(sku.isFoil?'<span class="mp-foc-badge">Foil</span>':'')+(sku.isIncentive?'<span class="mp-foc-badge ratio">'+esc(sku.orderRequirement||'Incentive')+'</span>':'')+'</div><div class="artist">'+esc(sku.coverArtist?'Cover by '+sku.coverArtist:'Cover artist not listed')+'</div><div class="price '+(sku.priceRequired||sku.waitlistOnly?'request':'')+'">'+price+'</div><div class="release">UPC '+esc(sku.upc)+'<br>On sale '+esc(dateLabel(sku.onSaleDate,false))+'</div>'+ratio+'<div class="actions"><button class="mp-foc-button" '+actionAttr+' '+(disabled?'disabled':'')+'>'+action+'</button><input class="mp-foc-qty" data-qty="'+esc(sku.id)+'" type="number" value="1" min="1" max="50" aria-label="Quantity" '+(!sku.waitlistOnly&&!sku.canPreorder?'disabled':'')+'></div></section>';}
 
-function handleDeepLink(){if(state.deepLinkHandled)return;var params=new URLSearchParams(location.search),skuId=params.get('sku');if(!skuId)return;var match=findSku(skuId);if(!match)return;state.deepLinkHandled=true;state.filters.q=match.sku.upc||match.family.title;render();var card=document.querySelector('[data-sku-card="'+CSS.escape(skuId)+'"]');if(card)card.scrollIntoView({behavior:'smooth',block:'center'});if(params.get('add')==='1'&&match.sku.canPreorder){state.cart[skuId]=Math.min(50,Number(state.cart[skuId]||0)+1);saveCart();openCart();}else if(params.get('request')==='1'||match.sku.waitlistOnly){requestWaitlist(skuId,1);}}
+function handleDeepLink(){if(state.deepLinkHandled)return;var params=new URLSearchParams(location.search),skuId=params.get('sku');if(!skuId)return;var match=findSku(skuId);if(!match)return;state.deepLinkHandled=true;state.filters.q=match.sku.upc||match.family.title;render();var card=document.querySelector('[data-sku-card="'+CSS.escape(skuId)+'"]');if(card)card.scrollIntoView({behavior:'smooth',block:'center'});if(params.get('add')==='1'&&match.sku.canPreorder){addPreorderLine(skuId,1);}else if(params.get('request')==='1'||match.sku.waitlistOnly){requestWaitlist(skuId,1);}}
 
 function bind(){
   document.querySelectorAll('[data-filter]').forEach(function(control){control.addEventListener(control.tagName==='INPUT'?'input':'change',function(){
@@ -135,14 +166,28 @@ function bind(){
     bindDynamic();
   });});
   bindDynamic();
-  document.querySelector('[data-cart]')?.addEventListener('click',openCart);document.querySelector('[data-account]')?.addEventListener('click',function(){location.href=token()?'/account-preorders':'/login?next='+encodeURIComponent('/account-preorders');});
+  document.querySelector('[data-account]')?.addEventListener('click',function(){location.href=token()?'/account-preorders':'/login?next='+encodeURIComponent('/account-preorders');});
+}
+// Adds (or bumps) a preorder line directly in the shared window.WO cart --
+// bypasses window.WO.addToCart because that helper only ever adds one unit
+// at a time, and here the customer picked an exact quantity in the qty
+// input next to the cover.
+function addPreorderLine(skuId,qty){
+  var match=findSku(skuId);if(!match)return;
+  var cart=(window.WO&&typeof window.WO.getCart==='function'?window.WO.getCart():[]);
+  var lineId='foc:'+skuId,existing=cart.find(function(l){return l.id===lineId;});
+  var add=Math.max(1,Number(qty||1));
+  if(existing)existing.qty=Math.min(50,Number(existing.qty||1)+add);
+  else cart.push(preorderLineFor(match,add));
+  if(window.WO&&typeof window.WO.setCart==='function')window.WO.setCart(cart);
+  scheduleSavedPicks();
+  if(window.WO&&typeof window.WO.openCart==='function')window.WO.openCart();
 }
 function bindDynamic(){
-  document.querySelectorAll('[data-add]').forEach(function(button){button.addEventListener('click',function(){var input=document.querySelector('[data-qty="'+button.dataset.add+'"]');state.cart[button.dataset.add]=Math.min(50,(Number(state.cart[button.dataset.add]||0)+Math.max(1,Number(input&&input.value||1))));saveCart();button.textContent='Added ✓';setTimeout(function(){button.textContent='Add exact cover';},900);});});
+  document.querySelectorAll('[data-add]').forEach(function(button){button.addEventListener('click',function(){var input=document.querySelector('[data-qty="'+button.dataset.add+'"]');addPreorderLine(button.dataset.add,Number(input&&input.value||1));button.textContent='Added ✓';setTimeout(function(){button.textContent='Add exact cover';},900);});});
   document.querySelectorAll('[data-waitlist]').forEach(function(button){button.addEventListener('click',function(){requestWaitlist(button.dataset.waitlist,Number(document.querySelector('[data-qty="'+button.dataset.waitlist+'"]')?.value||1));});});
   document.querySelectorAll('[data-lightbox]').forEach(function(button){button.addEventListener('click',function(){var match=findSku(button.dataset.lightbox);if(match)dialog('<div class="mp-foc-lightbox"><img src="'+esc(match.sku.coverImageUrl)+'" alt=""><p>'+esc((match.family.seriesName||match.family.title)+' · '+match.sku.variantLabel)+'</p></div>','wide');});});
 }
-function renderFloat(){var button=document.querySelector('[data-cart]');if(button){button.innerHTML='Comic pulls <span>'+cartLines().reduce(function(n,l){return n+l.quantity;},0)+'</span>';button.title=state.pickSyncState==='saving'?'Saving your comic pulls…':state.pickSyncState==='saved'?'Comic pulls saved to My Pocket':state.pickSyncState==='error'?'Could not save — your pulls are still on this device':'';}}
 function dialog(content,className){closeDialog();var overlay=document.createElement('div');overlay.className='mp-foc-overlay';overlay.innerHTML='<section class="mp-foc-dialog '+(className||'')+'" role="dialog" aria-modal="true"><button class="mp-foc-close" aria-label="Close">×</button>'+content+'</section>';document.body.appendChild(overlay);overlay.querySelector('.mp-foc-close').addEventListener('click',closeDialog);overlay.addEventListener('click',function(event){if(event.target===overlay)closeDialog();});document.addEventListener('keydown',escapeDialog);return overlay;}
 function closeDialog(){document.querySelector('.mp-foc-overlay')?.remove();document.removeEventListener('keydown',escapeDialog);}
 function escapeDialog(event){if(event.key==='Escape')closeDialog();}
@@ -166,41 +211,62 @@ function statusWithResend(node,message,email,kind){
   });
 }
 
-function openCart(){
-  var groups=groupCartByCycle();
-  var linesHtml=!groups.length?'<p>Your pull box is empty.</p>':groups.map(function(group){
-    var label=groups.length>1?'<div class="mp-foc-result-line"><span>FOC '+esc(dateLabel(group.cycle.foc_date,false))+'</span></div>':'';
-    return label+group.lines.map(function(line){return'<div class="mp-foc-cart-line"><img src="'+esc(line.sku.coverImageUrl)+'" alt=""><div><h3>'+esc((line.family.seriesName||line.family.title)+' · '+line.sku.variantLabel)+'</h3><p>Qty '+line.quantity+' · '+money(line.sku.priceCents)+' each<br>UPC '+esc(line.sku.upc)+'</p></div><button data-remove="'+esc(line.sku.id)+'" aria-label="Remove">×</button></div>';}).join('');
-  }).join('');
-  var saveNote=token()?'<p class="mp-foc-status success">Saved to My Pocket. Add more books and come back anytime before the FOC deadline.</p>':'<p class="mp-foc-status">Sign in to save these comic pulls across devices. Payment is not taken until you check out.</p>';
-  var html='<h2>My comic pulls</h2>'+saveNote+'<div data-cart-lines>'+linesHtml+'</div><div class="mp-foc-cart-total"><span>Books subtotal</span><span>'+money(cartTotal())+'</span></div>'+(groups.length>1?'<p class="mp-foc-status">Picks span '+groups.length+' FOC weeks — each week has its own deadline and checkout.</p>':'')+'<div class="mp-foc-cart-actions"><button class="mp-foc-button ghost" data-close-cart>Keep looking</button><button class="mp-foc-button" data-checkout '+(!groups.length?'disabled':'')+'>Pay before FOC</button></div>';
-  var overlay=dialog(html);
-  overlay.querySelectorAll('[data-remove]').forEach(function(button){button.addEventListener('click',function(){delete state.cart[button.dataset.remove];saveCart();openCart();});});
-  overlay.querySelector('[data-close-cart]').addEventListener('click',closeDialog);
-  overlay.querySelector('[data-checkout]').addEventListener('click',beginCheckout);
-}
 function requireSession(next){if(token()){next();return;}openAuth(next);}
 function openAuth(next){var overlay=dialog('<h2>Collector sign in</h2><p>Use one account to save your comic pulls, pay before FOC, and see purchased preorders.</p><form class="mp-foc-auth" data-auth-form><input name="name" placeholder="Name (new collectors)"><input name="email" type="email" required placeholder="Email"><input name="password" type="password" minlength="8" required placeholder="Password · 8+ characters"><div data-auth-status></div><div class="mp-foc-cart-actions"><button class="mp-foc-button ghost" type="button" data-sign-up>Create account</button><button class="mp-foc-button" type="submit">Sign in</button></div></form>');var form=overlay.querySelector('[data-auth-form]'),out=overlay.querySelector('[data-auth-status]');async function perform(kind){var data=new FormData(form),email=String(data.get('email')||'').trim(),password=String(data.get('password')||''),name=String(data.get('name')||'').trim();if(!email||password.length<8){status(out,'Enter an email and a password with at least 8 characters.','error');return;}status(out,'Opening your pull box…');try{var session;if(kind==='signup'){var result=await auth('signup',{email:email,password:password,data:{full_name:name}});if(!result.access_token){statusWithResend(out,'If this email is new, check your inbox to confirm it. If you already have an account, sign in instead or reset your password.',email);return;}session=result;}else session=await auth('token?grant_type=password',{email:email,password:password});setSession(session);await reconcileSavedPicks();closeDialog();render();if(next)next();}catch(error){if(/confirm/i.test(error.message))statusWithResend(out,error.message,email,'error');else status(out,error.message,'error');}}form.addEventListener('submit',function(event){event.preventDefault();perform('signin');});overlay.querySelector('[data-sign-up]').addEventListener('click',function(){perform('signup');});}
 
 function requestWaitlist(skuId,quantity){requireSession(async function(){var match=findSku(skuId);var overlay=dialog('<h2>Request this incentive</h2><p>'+esc((match.family.seriesName||match.family.title)+' · '+match.sku.variantLabel)+'</p><p>This is a request, not a purchase. You will not be charged unless The Mana Pocket secures a copy and offers it to you.</p><div data-request-status></div><button class="mp-foc-button" data-confirm-request>Join request list</button>');var out=overlay.querySelector('[data-request-status]');overlay.querySelector('[data-confirm-request]').addEventListener('click',async function(){try{status(out,'Saving your request…');var result=await api('/public/preorders/waitlist',{method:'POST',body:JSON.stringify({storeId:STORE_ID,skuId:skuId,quantity:quantity})});status(out,result.message,'success');}catch(error){status(out,error.message,'error');}});});}
 
-function beginCheckout(){requireSession(function(){checkoutQueue(groupCartByCycle(),0);});}
-function checkoutQueue(groups,index){
-  if(index>=groups.length){openAccount();return;}
+// The cart is shared with the regular shop cart (storefront-checkout.js,
+// via window.WO / wo_cart_v1) -- these lines carry everything needed to
+// check out (name/price/image/upc/skuId/cycleId/focDate) right on the
+// line itself, precisely so this checkout never needs the /preorders
+// catalog (state.cycles) to be loaded, since the customer could be
+// finishing checkout from any page on the site.
+function preorderLinesTotal(lines){return lines.reduce(function(sum,line){return sum+Math.round(Number(line.price||0)*100)*Math.max(1,Number(line.qty||1));},0);}
+// Checkout has to happen one FOC week at a time -- the Worker's checkout
+// route validates every line against a single cycle_id, since each week is
+// its own distributor order with its own cutoff. Grouping here is what lets
+// someone add covers from two different weeks to one cart and still check
+// out cleanly, as two real orders back to back.
+function groupPreorderLinesByCycle(lines){
+  var groups=[],byId={};
+  lines.forEach(function(line){
+    var key=line.cycleId;
+    if(!byId[key]){byId[key]={cycleId:key,focDate:line.focDate,lines:[]};groups.push(byId[key]);}
+    byId[key].lines.push(line);
+  });
+  return groups;
+}
+// Entry point called from storefront-checkout.js (window.WO.checkoutPreorderLines)
+// once it's split kind:'preorder' lines out of the shared cart -- runs sign-in
+// first, then each FOC week as its own back-to-back checkout/payment.
+function checkoutPreorderLines(lines,onAllDone){requireSession(function(){preorderCheckoutQueue(groupPreorderLinesByCycle(lines),0,onAllDone);});}
+function preorderCheckoutQueue(groups,index,onAllDone){
+  if(index>=groups.length){if(typeof onAllDone==='function')onAllDone();return;}
   var group=groups[index];
-  openCheckout(group,index,groups.length,function(){
-    group.lines.forEach(function(line){delete state.cart[line.sku.id];});
-    saveCart();
-    checkoutQueue(groups,index+1);
+  openPreorderCheckout(group,index,groups.length,function(){
+    if(window.WO&&typeof window.WO.getCart==='function'&&typeof window.WO.setCart==='function'){
+      var paidIds={};group.lines.forEach(function(line){paidIds[line.id]=true;});
+      window.WO.setCart(window.WO.getCart().filter(function(i){return !paidIds[i.id];}));
+    }
+    scheduleSavedPicks();
+    preorderCheckoutQueue(groups,index+1,onAllDone);
   });
 }
-function openCheckout(group,index,total,onDone){var heading=total>1?'Pickup or shipping · order '+(index+1)+' of '+total+' (FOC '+esc(dateLabel(group.cycle.foc_date,false))+')':'Pickup or shipping';var html='<h2>'+heading+'</h2><form class="mp-foc-checkout" data-checkout-form><div class="mp-foc-form-grid"><input name="name" required placeholder="Collector name"><input name="phone" placeholder="Phone"><select name="method"><option value="pickup">Pick up at The Mana Pocket</option><option value="shipping">Ship to me · live carrier rate</option></select><span></span></div><label style="display:flex;align-items:flex-start;gap:8px;font-size:11px;opacity:.8;margin:-3px 0 4px;"><input type="checkbox" name="smsConsent" style="margin-top:2px;"> Optional: I agree to receive preorder, pickup, shipping, and customer-care SMS/text messages from The Mana Pocket at the number provided. Message frequency varies based on order activity. Msg &amp; data rates may apply. Reply STOP to opt out or HELP for help. Consent is not a condition of purchase. See our <a href="https://themanapocket.com/privacy-policy" target="_blank">Privacy Policy</a> and <a href="https://themanapocket.com/terms-and-conditions" target="_blank">Terms</a>.</label><div class="mp-foc-form-grid" data-address hidden><input name="line1" placeholder="Street address"><input name="line2" placeholder="Apt / suite"><input name="city" placeholder="City"><input name="state" maxlength="2" placeholder="State"><input name="zip" placeholder="ZIP code"><button class="mp-foc-button ghost" type="button" data-quote>Get live rates</button></div><div data-rates></div><div class="mp-foc-cart-total"><span>Books subtotal</span><span>'+money(linesTotal(group.lines))+'</span></div><div data-checkout-status></div><button class="mp-foc-button" type="submit">Continue to secure payment</button></form>';var overlay=dialog(html);var form=overlay.querySelector('form'),methodSelect=form.elements.namedItem('method'),address=overlay.querySelector('[data-address]'),rates=overlay.querySelector('[data-rates]'),out=overlay.querySelector('[data-checkout-status]');methodSelect.addEventListener('change',function(){address.hidden=methodSelect.value!=='shipping';rates.innerHTML='';});overlay.querySelector('[data-quote]').addEventListener('click',async function(){var data=new FormData(form);if(!data.get('line1')||!data.get('city')||!data.get('state')||!data.get('zip')){status(rates,'Complete the shipping address first.','error');return;}status(rates,'Checking current carrier rates…');try{var result=await api('/public/shipping/quotes',{method:'POST',auth:false,body:JSON.stringify({storeId:STORE_ID,quantity:group.lines.reduce(function(n,l){return n+l.quantity;},0),address:{name:data.get('name'),phone:data.get('phone'),line1:data.get('line1'),line2:data.get('line2'),city:data.get('city'),state:data.get('state'),zip:data.get('zip')}})});rates.innerHTML=result.rates.map(function(rate,index){return'<label class="mp-foc-status"><input type="radio" name="shippingRate" value="'+esc(rate.rateId)+'" data-rate-cents="'+rate.amountCents+'" '+(index===0?'checked':'')+'> <strong>'+esc(rate.carrier+' '+rate.service)+'</strong> · '+money(rate.amountCents)+(rate.estimatedDays?' · about '+rate.estimatedDays+' days':'')+'</label>';}).join('');}catch(error){status(rates,error.message,'error');}});form.addEventListener('submit',async function(event){event.preventDefault();var data=new FormData(form),method=data.get('method'),chosen=form.querySelector('[name="shippingRate"]:checked');if(method==='shipping'&&!chosen){status(out,'Get and choose a live shipping rate first.','error');return;}status(out,'Creating your secure preorder…');var fulfillment={method:method,name:data.get('name'),phone:data.get('phone')};if(method==='shipping'){fulfillment.shippingRateId=chosen.value;fulfillment.shippingAddress={name:data.get('name'),phone:data.get('phone'),line1:data.get('line1'),line2:data.get('line2'),city:data.get('city'),state:data.get('state'),zip:data.get('zip')};}try{var result=await api('/public/preorders/checkout',{method:'POST',body:JSON.stringify({storeId:STORE_ID,cycleId:group.cycle.id,items:group.lines.map(function(line){return{skuId:line.sku.id,quantity:line.quantity};}),fulfillment:fulfillment})});openPayment(result,onDone);}catch(error){status(out,error.message,'error');}});}
+function openPreorderCheckout(group,index,total,onDone){var heading=total>1?'Pickup or shipping · comic order '+(index+1)+' of '+total+' (FOC '+esc(dateLabel(group.focDate,false))+')':'Pickup or shipping · comic preorder';var html='<h2>'+heading+'</h2><form class="mp-foc-checkout" data-checkout-form><div class="mp-foc-form-grid"><input name="name" required placeholder="Collector name"><input name="phone" placeholder="Phone"><select name="method"><option value="pickup">Pick up at The Mana Pocket</option><option value="shipping">Ship to me · live carrier rate</option></select><span></span></div><label style="display:flex;align-items:flex-start;gap:8px;font-size:11px;opacity:.8;margin:-3px 0 4px;"><input type="checkbox" name="smsConsent" style="margin-top:2px;"> Optional: I agree to receive preorder, pickup, shipping, and customer-care SMS/text messages from The Mana Pocket at the number provided. Message frequency varies based on order activity. Msg &amp; data rates may apply. Reply STOP to opt out or HELP for help. Consent is not a condition of purchase. See our <a href="https://themanapocket.com/privacy-policy" target="_blank">Privacy Policy</a> and <a href="https://themanapocket.com/terms-and-conditions" target="_blank">Terms</a>.</label><div class="mp-foc-form-grid" data-address hidden><input name="line1" placeholder="Street address"><input name="line2" placeholder="Apt / suite"><input name="city" placeholder="City"><input name="state" maxlength="2" placeholder="State"><input name="zip" placeholder="ZIP code"><button class="mp-foc-button ghost" type="button" data-quote>Get live rates</button></div><div data-rates></div><div class="mp-foc-cart-total"><span>Books subtotal</span><span>'+money(preorderLinesTotal(group.lines))+'</span></div><div data-checkout-status></div><button class="mp-foc-button" type="submit">Continue to secure payment</button></form>';var overlay=dialog(html);var form=overlay.querySelector('form'),methodSelect=form.elements.namedItem('method'),address=overlay.querySelector('[data-address]'),rates=overlay.querySelector('[data-rates]'),out=overlay.querySelector('[data-checkout-status]');methodSelect.addEventListener('change',function(){address.hidden=methodSelect.value!=='shipping';rates.innerHTML='';});overlay.querySelector('[data-quote]').addEventListener('click',async function(){var data=new FormData(form);if(!data.get('line1')||!data.get('city')||!data.get('state')||!data.get('zip')){status(rates,'Complete the shipping address first.','error');return;}status(rates,'Checking current carrier rates…');try{var result=await api('/public/shipping/quotes',{method:'POST',auth:false,body:JSON.stringify({storeId:STORE_ID,quantity:group.lines.reduce(function(n,l){return n+Number(l.qty||1);},0),address:{name:data.get('name'),phone:data.get('phone'),line1:data.get('line1'),line2:data.get('line2'),city:data.get('city'),state:data.get('state'),zip:data.get('zip')}})});rates.innerHTML=result.rates.map(function(rate,index){return'<label class="mp-foc-status"><input type="radio" name="shippingRate" value="'+esc(rate.rateId)+'" data-rate-cents="'+rate.amountCents+'" '+(index===0?'checked':'')+'> <strong>'+esc(rate.carrier+' '+rate.service)+'</strong> · '+money(rate.amountCents)+(rate.estimatedDays?' · about '+rate.estimatedDays+' days':'')+'</label>';}).join('');}catch(error){status(rates,error.message,'error');}});form.addEventListener('submit',async function(event){event.preventDefault();var data=new FormData(form),method=data.get('method'),chosen=form.querySelector('[name="shippingRate"]:checked');if(method==='shipping'&&!chosen){status(out,'Get and choose a live shipping rate first.','error');return;}status(out,'Creating your secure preorder…');var fulfillment={method:method,name:data.get('name'),phone:data.get('phone')};if(method==='shipping'){fulfillment.shippingRateId=chosen.value;fulfillment.shippingAddress={name:data.get('name'),phone:data.get('phone'),line1:data.get('line1'),line2:data.get('line2'),city:data.get('city'),state:data.get('state'),zip:data.get('zip')};}try{var result=await api('/public/preorders/checkout',{method:'POST',body:JSON.stringify({storeId:STORE_ID,cycleId:group.cycleId,items:group.lines.map(function(line){return{skuId:line.skuId,quantity:line.qty};}),fulfillment:fulfillment})});openPayment(result,onDone);}catch(error){status(out,error.message,'error');}});}
 
 async function loadStripe(){if(window.Stripe)return window.Stripe;if(!document.querySelector('script[data-mp-stripe]')){var script=document.createElement('script');script.src='https://js.stripe.com/v3/';script.dataset.mpStripe='';document.head.appendChild(script);}for(var i=0;i<100&&!window.Stripe;i++)await new Promise(function(resolve){setTimeout(resolve,50);});if(!window.Stripe)throw new Error('Secure payment could not load.');return window.Stripe;}
-async function openPayment(order,onDone){var overlay=dialog('<h2>Secure payment</h2><p>Order '+esc(order.orderNumber)+' · '+money(order.amountCents)+'</p><div id="mp-foc-payment"></div><div data-payment-status></div><button class="mp-foc-button" data-pay>Pay and place preorder</button>');var out=overlay.querySelector('[data-payment-status]');try{var Stripe=await loadStripe(),stripe=Stripe(order.publishableKey),elements=stripe.elements({clientSecret:order.clientSecret}),payment=elements.create('payment');payment.mount('#mp-foc-payment');overlay.querySelector('[data-pay]').addEventListener('click',async function(){status(out,'Confirming payment…');var result=await stripe.confirmPayment({elements:elements,confirmParams:{return_url:location.origin+'/preorders?payment=success'},redirect:'if_required'});if(result.error){status(out,result.error.message,'error');return;}status(out,'Payment received. Your exact covers are in the pull box.','success');setTimeout(function(){if(onDone)onDone();else openAccount();},900);});}catch(error){status(out,error.message,'error');}}
+async function openPayment(order,onDone){var overlay=dialog('<h2>Secure payment</h2><p>Order '+esc(order.orderNumber)+' · '+money(order.amountCents)+'</p><div id="mp-foc-payment"></div><div data-payment-status></div><button class="mp-foc-button" data-pay>Pay and place preorder</button>');var out=overlay.querySelector('[data-payment-status]');try{var Stripe=await loadStripe(),stripe=Stripe(order.publishableKey),elements=stripe.elements({clientSecret:order.clientSecret}),payment=elements.create('payment');payment.mount('#mp-foc-payment');overlay.querySelector('[data-pay]').addEventListener('click',async function(){status(out,'Confirming payment…');var result=await stripe.confirmPayment({elements:elements,confirmParams:{return_url:location.origin+'/preorders?payment=success'},redirect:'if_required'});if(result.error){status(out,result.error.message,'error');return;}status(out,'Payment received. Your exact covers are in the pull box.','success');setTimeout(function(){if(onDone)onDone();},900);});}catch(error){status(out,error.message,'error');}}
 
 function openAccount(){requireSession(async function(){var overlay=dialog('<h2>My preorders</h2><div data-account-status><div class="mp-foc-loading"><b>Checking the pull box…</b></div></div><div class="mp-foc-cart-actions"><button class="mp-foc-button ghost" data-sign-out>Sign out</button></div>','wide');overlay.querySelector('[data-sign-out]').addEventListener('click',function(){setSession(null);closeDialog();render();});var out=overlay.querySelector('[data-account-status]');try{var result=await api('/public/preorders/my?store_id='+encodeURIComponent(STORE_ID));out.innerHTML=result.orders.length?result.orders.map(orderHtml).join(''):'<p>You do not have any comic preorders yet.</p>';out.querySelectorAll('[data-cancel-order]').forEach(function(button){button.addEventListener('click',async function(){if(!confirm('Cancel and refund this preorder before FOC closes?'))return;button.disabled=true;try{await api('/public/preorders/cancel',{method:'POST',body:JSON.stringify({storeId:STORE_ID,orderId:button.dataset.cancelOrder})});openAccount();}catch(error){alert(error.message);button.disabled=false;}});});}catch(error){status(out,error.message,'error');}});}
 function orderHtml(order){return'<article class="mp-foc-account-order"><header><h3>'+esc(order.order_number)+'</h3><span class="status">'+esc(order.status.replaceAll('_',' '))+'</span></header><p>'+money(order.total_cents)+' · '+esc(order.fulfillment_method)+' · ordered '+esc(dateLabel(order.created_at,true))+'</p><div class="mp-foc-account-items">'+(order.items||[]).map(function(item){return'<img src="'+esc(item.sku_snapshot&&item.sku_snapshot.coverImageUrl||'')+'" title="'+esc(item.sku_snapshot&&item.sku_snapshot.title||'')+'" alt="">';}).join('')+'</div>'+(order.canCancel?'<button class="mp-foc-button ghost" data-cancel-order="'+esc(order.id)+'">Cancel before cutoff</button>':'')+'</article>';}
 
+// Entry point storefront-checkout.js calls once it splits kind:'preorder'
+// lines out of the shared cart at checkout time -- exposed unconditionally
+// (not gated to /preorders) since checkout can be started from any page.
+window.WO=window.WO||{};
+window.WO.checkoutPreorderLines=checkoutPreorderLines;
+
+watchCartForChanges();
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
