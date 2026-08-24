@@ -656,9 +656,18 @@ function enhanceCart(){
 
 function setupTawkChat(){
   var api=window.Tawk_API=window.Tawk_API||{};
+  var TAWK_SRC='https://embed.tawk.to/6a7e3d74561ef61d48515ecd/1jvui03im';
   var pendingOpen=false;
+  var tawkLoading=false;
   var button;
   var status;
+  function loadTawk(){
+    if(tawkLoading||document.querySelector('script[src^="https://embed.tawk.to/"]'))return;
+    tawkLoading=true;
+    var script=document.createElement('script');script.async=true;script.src=TAWK_SRC;script.charset='UTF-8';script.crossOrigin='anonymous';
+    script.addEventListener('error',function(){tawkLoading=false;if(status)status.textContent='CHAT UNAVAILABLE';},{once:true});
+    document.head.appendChild(script);
+  }
   function updateStatus(value){
     value=String(value||'').toLowerCase();
     if(!status)return;
@@ -669,6 +678,7 @@ function setupTawkChat(){
     if(typeof api.hideWidget==='function')api.hideWidget();
   }
   function openChat(){
+    loadTawk();
     if(typeof api.maximize==='function'){
       if(typeof api.showWidget==='function')api.showWidget();
       api.maximize();
@@ -1071,7 +1081,11 @@ loadAccountPages();
 loadHomepageRedesign();
 loadShopPreorders();
 loadStorefrontCheckout();
-loadPreorderCartHelpers();
+if(location.pathname==='/'||location.pathname==='/index.html'){
+  var loadHomepagePreorders=function(){loadPreorderCartHelpers();};
+  if('requestIdleCallback' in window)window.requestIdleCallback(loadHomepagePreorders,{timeout:10000});
+  else window.setTimeout(loadHomepagePreorders,6000);
+}else loadPreorderCartHelpers();
 enhanceCart();
 setupTawkChat();
 polishNavigation();

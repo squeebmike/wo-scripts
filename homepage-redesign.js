@@ -7,6 +7,17 @@ var scriptUrl=(document.currentScript&&document.currentScript.src)||'';
 var SCHEDULE_URL=CONFIG.scheduleUrl||'https://still-resonance-4f87.swarnerauto.workers.dev/public/events';
 var OFF_AIR_IMAGE='https://cdn.prod.website-files.com/65b15ee0228d06647ca7e4ce/6a7ceed727942e7f2a329aff_manapocketstorefront.avif';
 
+function getInventory(){
+  if(window.ManaPocketInventory&&typeof window.ManaPocketInventory.get==='function')return window.ManaPocketInventory.get();
+  if(!window.__MP_INVENTORY_PROMISE__){
+    window.__MP_INVENTORY_PROMISE__=fetch(API_BASE+'/api/inventory',{headers:{Accept:'application/json'}})
+      .then(function(response){if(!response.ok)throw new Error('Inventory unavailable');return response.json();})
+      .then(function(payload){return(payload&&Array.isArray(payload.items)?payload.items:[]).filter(function(item){return item&&item.id&&Number(item.quantity||0)>0;});})
+      .catch(function(error){window.__MP_INVENTORY_PROMISE__=null;throw error;});
+  }
+  return window.__MP_INVENTORY_PROMISE__;
+}
+
 function isHomepage(){
   return window.location.pathname==='/'||window.location.pathname==='/index.html';
 }
@@ -146,6 +157,7 @@ function productCard(item){
     image.alt=item.name||'Collectible';
     image.loading='lazy';
     image.decoding='async';
+    image.width=400;image.height=400;
     imageLink.appendChild(image);card.appendChild(imageLink);
   }else{
     var blank=el('div','mp-product-image');
@@ -204,6 +216,8 @@ function buildBroadcastStage(hero){
   backdrop.removeAttribute('sizes');
   backdrop.alt='The Mana Pocket storefront after dark';
   backdrop.setAttribute('aria-hidden','true');
+  backdrop.width=275;backdrop.height=206;
+  backdrop.loading='eager';backdrop.decoding='async';backdrop.fetchPriority='high';
   var stage=el('section','mp-broadcast mp-broadcast--offair');stage.id='pocket-live';
   var media=el('div','mp-broadcast-media');
   media.appendChild(backdrop);
@@ -315,6 +329,7 @@ function fillHero(items){
     image.src=heroImages[index].image;
     image.alt=heroImages[index].name||'Featured inventory';
     image.decoding='async';
+    image.width=400;image.height=400;
     if(index===0)image.fetchPriority='high';else image.loading='lazy';
     slot.appendChild(image);
   });
@@ -339,7 +354,7 @@ function buildCategories(mount,items){
     var media=el('span','mp-category-media');
     var match=items.find(function(item){return categorySlug(item)===category.slug&&validImage(item);});
     if(match){
-      var image=el('img');image.src=match.image;image.alt='';image.loading='lazy';image.decoding='async';media.appendChild(image);
+      var image=el('img');image.src=match.image;image.alt='';image.loading='lazy';image.decoding='async';image.width=400;image.height=400;media.appendChild(image);
     }
     var copy=el('span','mp-category-copy');
     copy.appendChild(el('span','mp-category-label',category.label));
@@ -730,7 +745,7 @@ function init(){
   var storefrontReveal=addStorefrontReveal();
   loadSchedule(sections.happening,broadcast,storefrontReveal);
   moveLegacyShowcaseToFooter();
-  var inventoryRequest=window.ManaPocketInventory&&typeof window.ManaPocketInventory.get==='function'?window.ManaPocketInventory.get():fetch(API_BASE+'/api/inventory',{headers:{Accept:'application/json'}}).then(function(response){if(!response.ok)throw new Error('Inventory unavailable');return response.json();}).then(function(payload){return(payload&&Array.isArray(payload.items)?payload.items:[]).filter(function(item){return item&&item.id&&Number(item.quantity||0)>0;});});
+  var inventoryRequest=getInventory();
   inventoryRequest
     .then(function(items){
       fillHero(items);
