@@ -731,12 +731,13 @@ function showInventoryError(sections){
 }
 
 function init(){
-  if(!isHomepage()||document.body.classList.contains('mp-home-redesign'))return;
-  addStyles();
-  document.body.classList.add('mp-home-redesign');
+  if(!isHomepage())return true;
+  if(document.body&&document.body.classList.contains('mp-home-redesign'))return true;
   var hero=document.querySelector('.woh-hero');
   var categories=document.querySelector('.woh-cats');
-  if(!hero||!categories)return;
+  if(!document.body||!hero||!categories)return false;
+  addStyles();
+  document.body.classList.add('mp-home-redesign');
   replacePromoMessage();
   var broadcast=buildBroadcastStage(hero);
   buildHero(hero);
@@ -756,8 +757,12 @@ function init(){
       renderOriginalArt(items);
     })
     .catch(function(){showInventoryError(sections);});
+  return true;
 }
 
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
-else init();
+if(!init()){
+  var bootObserver=new MutationObserver(function(){if(init())bootObserver.disconnect();});
+  bootObserver.observe(document.documentElement,{childList:true,subtree:true});
+  document.addEventListener('DOMContentLoaded',function(){if(init())bootObserver.disconnect();},{once:true});
+}
 })();
