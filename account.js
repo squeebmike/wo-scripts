@@ -269,13 +269,13 @@ function pickListCardHtml(list){
 }
 function preorderCardHtml(order){
   var status=String(order.status||'');
-  var payable=(status==='payment_pending'||status==='payment_failed')&&order.canCancel;
+  var payable=(status==='payment_pending'||status==='payment_failed')&&order.canPay;
   var cancelLabel=(status==='payment_pending'||status==='payment_failed')?'Cancel order':'Cancel & refund';
   var actions=(payable?'<button class="mp-acct-button" type="button" data-preorder-pay="'+esc(order.id)+'">Pay now</button>':'')+(order.canCancel?'<button class="mp-acct-button ghost danger" type="button" data-preorder-cancel="'+esc(order.id)+'" data-cancel-label="'+esc(cancelLabel)+'">'+esc(cancelLabel)+'</button>':'');
   return '<article class="mp-acct-order"><header><div><h3>'+esc(order.order_number)+'</h3><span class="mp-acct-sub">ordered '+esc(dateLabel(order.created_at,true))+'</span></div><span class="mp-acct-status-pill">'+esc(String(order.status||'').replace(/_/g,' '))+'</span></header>'+
     '<div class="mp-acct-row"><span>Total</span><strong>'+money(Number(order.total_cents||0)/100)+'</strong></div>'+
     (order.items&&order.items.length?'<div class="mp-acct-items">'+order.items.map(function(item){var sku=item.sku||{};return'<div class="mp-acct-item-line">'+(sku.cover_image_url?'<img src="'+esc(sku.cover_image_url)+'" alt="">':'<span class="mp-acct-item-noimg"></span>')+'<div class="mp-acct-item-info"><span>'+esc(sku.title||'')+(sku.variant_label?' · '+esc(sku.variant_label):'')+' ×'+Number(item.quantity||1)+'</span><span>'+money(Number(item.unit_price_cents||0)/100)+' each</span></div></div>';}).join('')+'</div>':'')+
-    (actions?'<div class="mp-acct-actions mp-acct-order-actions">'+actions+'<span class="mp-acct-action-status" aria-live="polite"></span></div>':'')+
+    (actions?'<div class="mp-acct-actions mp-acct-order-actions">'+actions+'<span class="mp-acct-action-status" aria-live="polite">'+((status==='payment_pending'||status==='payment_failed')&&!order.canPay?'FOC closed — this unpaid attempt can be removed, but not charged.':'')+'</span></div>':'')+
   '</article>';
 }
 
