@@ -6,7 +6,7 @@ var STORE_ID='0f9dd4bc-42a7-487e-a972-2905d24513e9';
 var SUPABASE_URL='https://vroknjrxubsqyexngwus.supabase.co';
 var SUPABASE_KEY='sb_publishable_wbpX2nL8l-4NbXtZNG_bjA_nabSYaJ5';
 var SESSION_KEY='mp-foc-session-v1';
-var state={cycles:null,session:readJson(SESSION_KEY,null),filters:{q:'',publisher:'all',artist:'all',kind:'all'},timer:null,deepLinkHandled:false,loadingCycles:new Set()};
+var state={cycles:null,session:readJson(SESSION_KEY,null),filters:{q:'',publisher:'all',artist:'all',kind:'all'},timer:null,cycleObserver:null,lazyReady:false,lastLazyScrollY:0,scrollBound:false,deepLinkHandled:false,loadingCycles:new Set()};
 
 function readJson(key,fallback){try{return JSON.parse(localStorage.getItem(key)||'null')||fallback;}catch(_){return fallback;}}
 function saveJson(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch(_){}}
@@ -57,7 +57,8 @@ function mount(){
     document.body.prepend(nav);nav.querySelector('[data-foc-theme]').addEventListener('click',function(){if(token())location.href='/account';else if(window.WO&&typeof window.WO.openTheme==='function')window.WO.openTheme();});
   }
   var app=document.getElementById('mp-foc-app');
-  if(!app){app=document.createElement('main');app.id='mp-foc-app';app.innerHTML='<div class="mp-foc-shell"><header><div class="mp-foc-eyebrow">The Mana Pocket · Penguin Random House FOC</div><h1 class="mp-foc-title">Pick your exact covers.</h1><p class="mp-foc-intro">Prepay for the comics and covers you actually want. Active FOCs appear first; expired weeks stay at the bottom for reference. Covers load one FOC at a time so the wall opens quickly.</p></header><div data-foc-dynamic><div class="mp-foc-loading"><b>Opening the pull box…</b><span>Loading this week’s comic covers.</span></div></div></div>';var footer=document.querySelector('.footer-section,.Footer,.footer');if(footer)footer.parentNode.insertBefore(app,footer);else document.body.appendChild(app);}
+  if(!app){app=document.createElement('main');app.id='mp-foc-app';app.innerHTML='<div class="mp-foc-shell"><header><div class="mp-foc-eyebrow">The Mana Pocket · Penguin Random House FOC</div><h1 class="mp-foc-title">Pick your exact covers.</h1><p class="mp-foc-intro">Prepay for the comics and covers you actually want. Active FOCs appear first; expired weeks stay at the bottom for reference. The next FOC loads automatically as you scroll toward it.</p></header><div data-foc-dynamic><div class="mp-foc-loading"><b>Opening the pull box…</b><span>Loading this week’s comic covers.</span></div></div></div>';var footer=document.querySelector('.footer-section,.Footer,.footer');if(footer)footer.parentNode.insertBefore(app,footer);else document.body.appendChild(app);}
+  if(!state.scrollBound){state.scrollBound=true;window.addEventListener('scroll',bindCycleLazyLoading,{passive:true});}
   loadCatalog();
 }
 
@@ -66,7 +67,7 @@ async function loadCatalog(){
     var data=await api('/public/preorders/weeks?summary=1&store_id='+encodeURIComponent(STORE_ID),{auth:false});state.cycles=sortCycleEntries((data.cycles||[]).map(function(cycle){return{cycle:cycle,families:null,error:''};}));render();
     var requested=new URLSearchParams(location.search).get('cycle');var first=(requested&&state.cycles.find(function(entry){return entry.cycle.id===requested||entry.cycle.foc_date===requested;}))||state.cycles[0];
     if(first)await loadCycleCatalog(first.cycle.id);
-    await ensureDeepLinkCatalog();handleDeepLink();
+    await ensureDeepLinkCatalog();state.lazyReady=true;render();handleDeepLink();
     // "Open pulls & pay" on the account page's saved-pulls card links here
     // with ?cart=1 -- without this, that link only scrolled to the FOC week
     // and left the customer to find and click the floating cart button
@@ -115,7 +116,7 @@ function render(){
 }
 function weekSectionHtml(entry,withSeparator,index){
   var cycle=entry.cycle,loaded=Array.isArray(entry.families),families=loaded?filteredFamiliesFor(entry):[];
-  var catalog=loaded?'<div class="mp-foc-result-line" data-result-line="'+esc(cycle.id)+'">'+resultLineText(families,cycle)+'</div><div data-foc-families="'+esc(cycle.id)+'">'+familyHtml(families,cycle.isOpen)+'</div>':'<div class="mp-foc-empty mp-foc-cycle-gate"><h2>'+(state.loadingCycles.has(cycle.id)?'Opening this FOC…':entry.error?'Could not open this FOC':'Covers are ready when you are.')+'</h2><p>'+esc(entry.error||'Load this week only; the other FOCs stay out of the initial download.')+'</p><button class="mp-foc-button ghost" type="button" data-load-cycle="'+esc(cycle.id)+'" '+(state.loadingCycles.has(cycle.id)?'disabled':'')+'>'+(state.loadingCycles.has(cycle.id)?'Loading…':entry.error?'Try again':'Show this FOC')+'</button></div>';
+  var catalog=loaded?'<div class="mp-foc-result-line" data-result-line="'+esc(cycle.id)+'">'+resultLineText(families,cycle)+'</div><div data-foc-families="'+esc(cycle.id)+'">'+familyHtml(families,cycle.isOpen)+'</div>':'<div class="mp-foc-empty mp-foc-cycle-gate"><h2>'+(state.loadingCycles.has(cycle.id)?'Opening this FOC…':entry.error?'Could not open this FOC':'Covers load as you reach them.')+'</h2><p>'+esc(entry.error||'This FOC will open automatically just before it scrolls into view.')+'</p><button class="mp-foc-button ghost" type="button" data-load-cycle="'+esc(cycle.id)+'" '+(state.loadingCycles.has(cycle.id)?'disabled':'')+'>'+(state.loadingCycles.has(cycle.id)?'Loading…':entry.error?'Try again':'Load now')+'</button></div>';
   return '<section id="foc-week-'+esc(cycle.id)+'" class="mp-foc-week'+(withSeparator?' mp-foc-week-sep':'')+'" data-foc-week="'+esc(cycle.id)+'" data-week-color="'+(index%4)+'">'+
     '<div class="mp-foc-deadline"><div><strong>'+(cycle.isOpen?'Orders close '+esc(dateLabel(cycle.customer_cutoff_at,true)):'This FOC is closed')+'</strong><span>FOC '+esc(dateLabel(cycle.foc_date,false))+' · we place the distributor order every Monday · quantities, finishes, and covers are exact</span></div><div class="mp-foc-countdown" data-foc-countdown data-cycle-id="'+esc(cycle.id)+'">'+countdownHtml(cycle)+'</div></div>'+
     catalog+
@@ -161,9 +162,25 @@ function addPreorderLine(skuId,qty,sourceEl){
 }
 function bindDynamic(){
   document.querySelectorAll('[data-load-cycle]').forEach(function(button){button.addEventListener('click',function(){loadCycleCatalog(button.dataset.loadCycle);});});
+  bindCycleLazyLoading();
   document.querySelectorAll('[data-add]').forEach(function(button){button.addEventListener('click',function(){var input=document.querySelector('[data-qty="'+button.dataset.add+'"]');addPreorderLine(button.dataset.add,Number(input&&input.value||1),button);button.textContent='Added ✓';setTimeout(function(){button.textContent='Add exact cover';},900);});});
   document.querySelectorAll('[data-waitlist]').forEach(function(button){button.addEventListener('click',function(){requestWaitlist(button.dataset.waitlist,Number(document.querySelector('[data-qty="'+button.dataset.waitlist+'"]')?.value||1));});});
   document.querySelectorAll('[data-lightbox]').forEach(function(button){button.addEventListener('click',function(){var match=findSku(button.dataset.lightbox);if(match)dialog('<div class="mp-foc-lightbox"><img src="'+esc(match.sku.coverImageUrl)+'" alt=""><p>'+esc((match.family.seriesName||match.family.title)+' · '+match.sku.variantLabel)+'</p></div>','wide');});});
+}
+function bindCycleLazyLoading(){
+  if(state.cycleObserver){state.cycleObserver.disconnect();state.cycleObserver=null;}
+  if(!state.lazyReady||Math.abs(window.scrollY-state.lastLazyScrollY)<160||!('IntersectionObserver' in window))return;
+  state.cycleObserver=new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(!entry.isIntersecting)return;
+      var button=entry.target.querySelector('[data-load-cycle]');
+      if(!button)return;
+      state.lastLazyScrollY=window.scrollY;
+      state.cycleObserver.unobserve(entry.target);
+      loadCycleCatalog(button.dataset.loadCycle);
+    });
+  },{rootMargin:'900px 0px 900px',threshold:0.01});
+  var nextGate=document.querySelector('.mp-foc-cycle-gate');if(nextGate)state.cycleObserver.observe(nextGate);
 }
 function dialog(content,className){closeDialog();var overlay=document.createElement('div');overlay.className='mp-foc-overlay';overlay.innerHTML='<section class="mp-foc-dialog '+(className||'')+'" role="dialog" aria-modal="true"><button class="mp-foc-close" aria-label="Close">×</button>'+content+'</section>';document.body.appendChild(overlay);overlay.querySelector('.mp-foc-close').addEventListener('click',closeDialog);overlay.addEventListener('click',function(event){if(event.target===overlay)closeDialog();});document.addEventListener('keydown',escapeDialog);return overlay;}
 function closeDialog(){document.querySelector('.mp-foc-overlay')?.remove();document.removeEventListener('keydown',escapeDialog);}
