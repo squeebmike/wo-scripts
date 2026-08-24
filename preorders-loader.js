@@ -15,7 +15,7 @@
   document.head.appendChild(critical);
   var app=document.createElement('main');
   app.id='mp-foc-app';
-  app.innerHTML='<div class="mp-foc-shell"><header><div class="mp-foc-eyebrow">The Mana Pocket · Penguin Random House FOC</div><h1 class="mp-foc-title">Pick your exact covers.</h1><p class="mp-foc-intro">Prepay for the comics and covers you actually want. Active FOCs appear first; expired weeks stay at the bottom for reference. Covers load one FOC at a time so the wall opens quickly.</p></header><div data-foc-dynamic><div class="mp-foc-loading"><b>Opening the pull box…</b><span>Loading this week’s comic covers.</span></div></div></div>';
+  app.innerHTML='<div class="mp-foc-shell"><header><div class="mp-foc-eyebrow">The Mana Pocket · Comic preorders</div><h1 class="mp-foc-title">Preorder the cover you want.</h1><p class="mp-foc-intro">FOC means Final Order Cutoff—the weekly distributor deadline. Save comics to your account, curate your list, then pay for all or only the ones you choose before that week closes. Open weeks appear first; expired weeks stay at the bottom and cannot be ordered.</p></header><div data-foc-dynamic><div class="mp-foc-loading"><b>Opening the pull box…</b><span>Loading this week’s comic covers.</span></div></div></div>';
   var footer=document.querySelector('.footer-section,.Footer,.footer');
   if(footer)footer.parentNode.insertBefore(app,footer);else document.body.appendChild(app);
   var css=document.createElement('link');

@@ -219,6 +219,11 @@ function buildBroadcastStage(hero){
   backdrop.width=275;backdrop.height=206;
   backdrop.loading='eager';backdrop.decoding='async';backdrop.fetchPriority='high';
   var existing=document.getElementById('pocket-live');
+  // Webflow includes a small server-rendered first-paint shell. It deliberately
+  // has no redesign classes, so it must be replaced, not mistaken for an
+  // already-hydrated live stage. That mistake left the raw headings/links in
+  // flow and never moved the storefront image behind them on mobile.
+  if(existing&&!existing.querySelector('.mp-broadcast-shell')){existing.remove();existing=null;}
   if(existing){
     var existingMedia=existing.querySelector('.mp-broadcast-media');
     if(existingMedia&&!existingMedia.contains(backdrop))existingMedia.insertBefore(backdrop,existingMedia.firstChild);
