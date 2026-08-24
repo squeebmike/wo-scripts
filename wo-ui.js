@@ -874,7 +874,9 @@ function polishNavigation(){
   }
   function mount(){
     var nav=document.getElementById('navbarID');if(!nav||nav.dataset.mpCounterReady)return;nav.dataset.mpCounterReady='true';
-    function syncNavHeight(){document.documentElement.style.setProperty('--nav-height',Math.ceil(nav.getBoundingClientRect().height)+'px');}syncNavHeight();if(window.ResizeObserver)new ResizeObserver(syncNavHeight).observe(nav);else window.addEventListener('resize',syncNavHeight);
+    function setNavHeight(height){height=Math.ceil(Number(height)||0);if(height)document.documentElement.style.setProperty('--nav-height',height+'px');}
+    if(window.ResizeObserver)new ResizeObserver(function(entries){var entry=entries[0];var box=entry&&entry.borderBoxSize;var size=Array.isArray(box)?box[0]:box;setNavHeight(size&&size.blockSize||entry&&entry.contentRect&&entry.contentRect.height);}).observe(nav);
+    else window.addEventListener('load',function(){setNavHeight(nav.offsetHeight);},{once:true});
     var brand=nav.querySelector('.w-nav-brand');if(brand){brand.innerHTML='';brand.setAttribute('aria-label','The Mana Pocket home');var brandImage=document.createElement('img');brandImage.className='mp-nav-brand-image';brandImage.src=BRAND_LOGO;brandImage.alt='The Mana Pocket';brand.appendChild(brandImage);}
     var dropdowns=Array.prototype.slice.call(nav.querySelectorAll('.navbar6_menu-dropdown,.w-dropdown'));var shopDropdown=dropdowns.find(function(dropdown){var toggle=dropdown.querySelector('.w-dropdown-toggle');return/shop/i.test(toggle&&toggle.textContent||'');});var coolDropdown=dropdowns.find(function(dropdown){var toggle=dropdown.querySelector('.w-dropdown-toggle');return/cool stuff/i.test(toggle&&toggle.textContent||'');});
     var coolItems=preserveRoutes(coolDropdown,COOL_LINKS);var shopItems=preserveRoutes(shopDropdown,SHOP_LINKS);SHOP_LINKS=shopItems;var shopList=shopDropdown&&shopDropdown.querySelector('.w-dropdown-list');var coolList=coolDropdown&&coolDropdown.querySelector('.w-dropdown-list');buildDesktopShop(shopList,[]);buildDesktopCool(coolList,coolItems);

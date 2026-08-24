@@ -218,6 +218,12 @@ function buildBroadcastStage(hero){
   backdrop.setAttribute('aria-hidden','true');
   backdrop.width=275;backdrop.height=206;
   backdrop.loading='eager';backdrop.decoding='async';backdrop.fetchPriority='high';
+  var existing=document.getElementById('pocket-live');
+  if(existing){
+    var existingMedia=existing.querySelector('.mp-broadcast-media');
+    if(existingMedia&&!existingMedia.contains(backdrop))existingMedia.insertBefore(backdrop,existingMedia.firstChild);
+    return existing;
+  }
   var stage=el('section','mp-broadcast mp-broadcast--offair');stage.id='pocket-live';
   var media=el('div','mp-broadcast-media');
   media.appendChild(backdrop);
