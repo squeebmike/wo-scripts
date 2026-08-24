@@ -1001,10 +1001,15 @@ function loadHomepageRedesign(){
 function loadAccountPages(){
   var path=location.pathname.replace(/\/$/,'')||'/';
   var paths=['/account','/account-orders','/account-preorders','/account-consignments','/account-wishlist','/account-profile','/login','/signup'];
-  if(paths.indexOf(path)===-1||!WO_SCRIPT_SRC||document.querySelector('script[data-mp-account-loader]')||document.querySelector('script[data-mp-account]'))return;
-  var script=document.createElement('script');script.setAttribute('data-mp-account-loader','');
-  script.src=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'account-loader.js');
-  document.head.appendChild(script);
+  if(paths.indexOf(path)===-1||!WO_SCRIPT_SRC||document.querySelector('script[data-mp-account]'))return;
+  if(!document.querySelector('link[data-mp-account-css]')){var css=document.createElement('link');css.rel='stylesheet';css.setAttribute('data-mp-account-css','');css.href=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'account.css');document.head.appendChild(css);}
+  // Insert the guarded account.js element immediately. Loading another
+  // account-loader here leaves a download race in which Webflow's older
+  // parser-blocking page loader can execute first and pin its stale account
+  // script. The element itself is the lock, even while this current script
+  // is still downloading.
+  var script=document.createElement('script');script.setAttribute('data-mp-account','');
+  script.src=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'account.js');document.head.appendChild(script);
 }
 // /preorders has its own page-level footer script (preorders-loader.js)
 // pinned independently to wo-scripts' actual current preorders.js -- this
