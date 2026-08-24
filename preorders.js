@@ -6,7 +6,7 @@ var STORE_ID='0f9dd4bc-42a7-487e-a972-2905d24513e9';
 var SUPABASE_URL='https://vroknjrxubsqyexngwus.supabase.co';
 var SUPABASE_KEY='sb_publishable_wbpX2nL8l-4NbXtZNG_bjA_nabSYaJ5';
 var SESSION_KEY='mp-foc-session-v1';
-var state={cycles:null,session:readJson(SESSION_KEY,null),filters:{q:'',publisher:'all',artist:'all',kind:'all'},timer:null,pickSyncTimer:null,pickSyncState:'',deepLinkHandled:false,loadingCycles:new Set()};
+var state={cycles:null,session:readJson(SESSION_KEY,null),filters:{q:'',publisher:'all',artist:'all',kind:'all'},timer:null,deepLinkHandled:false,loadingCycles:new Set()};
 
 function readJson(key,fallback){try{return JSON.parse(localStorage.getItem(key)||'null')||fallback;}catch(_){return fallback;}}
 function saveJson(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch(_){}}
@@ -25,55 +25,13 @@ function api(path,options){options=options||{};var headers=Object.assign({'Conte
 function auth(path,body){return fetch(SUPABASE_URL+'/auth/v1/'+path,{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)}).then(async function(response){var data=await response.json().catch(function(){return{};});if(!response.ok)throw new Error(data.msg||data.message||data.error_description||'Account request failed.');return data;});}
 function setSession(session){state.session=session&&session.access_token?session:null;if(state.session)saveJson(SESSION_KEY,state.session);else{try{localStorage.removeItem(SESSION_KEY);}catch(_){}}}
 async function refreshSession(){if(!state.session||!state.session.refresh_token)return;try{setSession(await auth('token?grant_type=refresh_token',{refresh_token:state.session.refresh_token}));}catch(_){setSession(null);}}
-// The cart lives entirely in the shared window.WO cart (wo_cart_v1) now --
-// this file never keeps its own copy. Preorder lines are just the subset
-// tagged kind:'preorder'; everything below reads/writes through
-// window.WO.getCart()/setCart() so a change here shows up in the shared
-// drawer immediately, and a change made in the drawer (qty +/-, remove)
-// is what watchCartForChanges() below notices and re-saves to the server.
+// The cart and My Pocket's saved pull list are deliberately separate. Adding
+// an exact cover saves it to the account and also puts it in the cart, but
+// removing it from the cart must never erase the collector's curated list.
 function preorderCartLines(){return(window.WO&&typeof window.WO.getCart==='function'?window.WO.getCart():[]).filter(function(line){return line.kind==='preorder';});}
 function preorderLineFor(match,qty){var family=match.family,sku=match.sku,cycle=match.cycle;return{id:'foc:'+sku.id,kind:'preorder',skuId:sku.id,cycleId:cycle.id,focDate:cycle.foc_date,name:(family.seriesName||family.title)+' · '+(sku.variantLabel||'Cover A'),image:sku.coverImageUrl||'',upc:sku.upc||'',price:Number(sku.priceCents||0)/100,available:50,qty:Math.max(1,Math.min(50,Number(qty||1)))};}
-function cartPayload(){return preorderCartLines().map(function(line){return{skuId:line.skuId,quantity:Math.max(1,Math.min(50,Number(line.qty||1)))};});}
-function scheduleSavedPicks(){if(!token())return;if(state.pickSyncTimer)clearTimeout(state.pickSyncTimer);state.pickSyncState='saving';state.pickSyncTimer=setTimeout(syncSavedPicks,350);}
-async function syncSavedPicks(){if(!token())return;try{await api('/public/preorders/picks',{method:'PUT',body:JSON.stringify({storeId:STORE_ID,items:cartPayload()})});state.pickSyncState='saved';}catch(error){state.pickSyncState='error';console.warn('[Mana Pocket] Comic pulls could not be saved:',error.message);}}
-// Called once the FOC catalog has loaded (from loadCatalog, /preorders
-// only -- building a cart line needs name/price/image off state.cycles).
-// Merges server-saved picks into the shared cart rather than replacing it,
-// so anything already added this session survives a sign-in.
-async function reconcileSavedPicks(){
-  if(!token())return;
-  try{
-    var result=await api('/public/preorders/picks?store_id='+encodeURIComponent(STORE_ID));
-    var saved={};(result.picks||[]).filter(function(list){return list.isOpen;}).forEach(function(list){(list.items||[]).forEach(function(item){var prior=saved[item.sku_id];if(!prior||Number(item.quantity||1)>prior.qty)saved[item.sku_id]={qty:Number(item.quantity||1),item:item,cycle:list.cycle};});});
-    if(!Object.keys(saved).length)return;
-    var cart=(window.WO&&typeof window.WO.getCart==='function'?window.WO.getCart():[]);
-    var byId={};cart.forEach(function(line){byId[line.id]=line;});
-    Object.keys(saved).forEach(function(skuId){
-      var match=findSku(skuId),record=saved[skuId],sku=record.item&&record.item.sku||{};
-      var lineId='foc:'+skuId,qty=Math.max(1,Math.min(50,record.qty));
-      if(byId[lineId])byId[lineId].qty=Math.max(Number(byId[lineId].qty||1),qty);
-      else{var line=match?preorderLineFor(match,qty):{id:lineId,kind:'preorder',skuId:skuId,cycleId:record.cycle&&record.cycle.id,focDate:record.cycle&&record.cycle.foc_date,name:[sku.title,sku.variant_label].filter(Boolean).join(' · ')||'Saved comic pull',image:sku.cover_image_url||'',upc:sku.upc||'',price:Number(sku.customer_price_cents||0)/100,available:50,qty:qty};cart.push(line);byId[lineId]=line;}
-    });
-    if(window.WO&&typeof window.WO.setCart==='function')window.WO.setCart(cart);
-    lastCartSnapshot=JSON.stringify(cartPayload());
-  }catch(error){console.warn('[Mana Pocket] Saved comic pulls could not be opened:',error.message);}
-}
-// The shared drawer's own qty +/- and remove buttons mutate window.WO's
-// cart directly and have no reason to know this file's server-save exists
-// -- polling is the simplest way to notice those edits and re-save picks
-// without wiring a callback through wo-checkout for a single low-stakes
-// convenience feature (saved picks are just a cross-device nicety; the
-// cart itself is already the source of truth for checkout either way).
-var lastCartSnapshot='';
-function watchCartForChanges(){
-  setInterval(function(){
-    if(!token())return;
-    var snapshot=JSON.stringify(cartPayload());
-    if(snapshot===lastCartSnapshot)return;
-    lastCartSnapshot=snapshot;
-    scheduleSavedPicks();
-  },2000);
-}
+async function savePick(skuId,quantity){if(!token())return;try{await api('/public/preorders/picks',{method:'PATCH',body:JSON.stringify({storeId:STORE_ID,skuId:skuId,quantity:quantity})});}catch(error){console.warn('[Mana Pocket] Comic pull could not be saved:',error.message);}}
+async function removeSavedPicks(skuIds){if(!token()||!skuIds.length)return;await api('/public/preorders/picks',{method:'DELETE',body:JSON.stringify({storeId:STORE_ID,skuIds:skuIds})});}
 
 // Every helper below used to read the single state.catalog; now it reads
 // across state.cycles (one entry per open/closed FOC week, newest first --
@@ -108,7 +66,7 @@ async function loadCatalog(){
     var data=await api('/public/preorders/weeks?summary=1&store_id='+encodeURIComponent(STORE_ID),{auth:false});state.cycles=sortCycleEntries((data.cycles||[]).map(function(cycle){return{cycle:cycle,families:null,error:''};}));render();
     var requested=new URLSearchParams(location.search).get('cycle');var first=(requested&&state.cycles.find(function(entry){return entry.cycle.id===requested||entry.cycle.foc_date===requested;}))||state.cycles[0];
     if(first)await loadCycleCatalog(first.cycle.id);
-    await ensureDeepLinkCatalog();await reconcileSavedPicks();handleDeepLink();
+    await ensureDeepLinkCatalog();handleDeepLink();
     // "Open pulls & pay" on the account page's saved-pulls card links here
     // with ?cart=1 -- without this, that link only scrolled to the FOC week
     // and left the customer to find and click the floating cart button
@@ -195,7 +153,7 @@ function addPreorderLine(skuId,qty,sourceEl){
   if(existing)existing.qty=Math.min(50,Number(existing.qty||1)+add);
   else cart.push(preorderLineFor(match,add));
   if(window.WO&&typeof window.WO.setCart==='function')window.WO.setCart(cart);
-  scheduleSavedPicks();
+  savePick(skuId,existing?existing.qty:line.qty);
   // Same flourish-toward-the-cart-icon as a regular add, not a forced-open
   // drawer -- someone picking exact covers is almost always about to add
   // another, and popping the drawer here would cut that off every time.
@@ -231,7 +189,7 @@ function statusWithResend(node,message,email,kind){
 }
 
 function requireSession(next){if(token()){next();return;}openAuth(next);}
-function openAuth(next){var overlay=dialog('<h2>Collector sign in</h2><p>Use one account to save your comic pulls, pay before FOC, and see purchased preorders.</p><form class="mp-foc-auth" data-auth-form><input name="name" placeholder="Name (new collectors)"><input name="email" type="email" required placeholder="Email"><input name="password" type="password" minlength="8" required placeholder="Password · 8+ characters"><div data-auth-status></div><div class="mp-foc-cart-actions"><button class="mp-foc-button ghost" type="button" data-sign-up>Create account</button><button class="mp-foc-button" type="submit">Sign in</button></div></form>');var form=overlay.querySelector('[data-auth-form]'),out=overlay.querySelector('[data-auth-status]');async function perform(kind){var data=new FormData(form),email=String(data.get('email')||'').trim(),password=String(data.get('password')||''),name=String(data.get('name')||'').trim();if(!email||password.length<8){status(out,'Enter an email and a password with at least 8 characters.','error');return;}status(out,'Opening your pull box…');try{var session;if(kind==='signup'){var result=await auth('signup',{email:email,password:password,data:{full_name:name}});if(!result.access_token){statusWithResend(out,'If this email is new, check your inbox to confirm it. If you already have an account, sign in instead or reset your password.',email);return;}session=result;}else session=await auth('token?grant_type=password',{email:email,password:password});setSession(session);await reconcileSavedPicks();closeDialog();render();if(next)next();}catch(error){if(/confirm/i.test(error.message))statusWithResend(out,error.message,email,'error');else status(out,error.message,'error');}}form.addEventListener('submit',function(event){event.preventDefault();perform('signin');});overlay.querySelector('[data-sign-up]').addEventListener('click',function(){perform('signup');});}
+function openAuth(next){var overlay=dialog('<h2>Collector sign in</h2><p>Use one account to save your comic pulls, pay before FOC, and see purchased preorders.</p><form class="mp-foc-auth" data-auth-form><input name="name" placeholder="Name (new collectors)"><input name="email" type="email" required placeholder="Email"><input name="password" type="password" minlength="8" required placeholder="Password · 8+ characters"><div data-auth-status></div><div class="mp-foc-cart-actions"><button class="mp-foc-button ghost" type="button" data-sign-up>Create account</button><button class="mp-foc-button" type="submit">Sign in</button></div></form>');var form=overlay.querySelector('[data-auth-form]'),out=overlay.querySelector('[data-auth-status]');async function perform(kind){var data=new FormData(form),email=String(data.get('email')||'').trim(),password=String(data.get('password')||''),name=String(data.get('name')||'').trim();if(!email||password.length<8){status(out,'Enter an email and a password with at least 8 characters.','error');return;}status(out,'Opening your pull box…');try{var session;if(kind==='signup'){var result=await auth('signup',{email:email,password:password,data:{full_name:name}});if(!result.access_token){statusWithResend(out,'If this email is new, check your inbox to confirm it. If you already have an account, sign in instead or reset your password.',email);return;}session=result;}else session=await auth('token?grant_type=password',{email:email,password:password});setSession(session);closeDialog();render();if(next)next();}catch(error){if(/confirm/i.test(error.message))statusWithResend(out,error.message,email,'error');else status(out,error.message,'error');}}form.addEventListener('submit',function(event){event.preventDefault();perform('signin');});overlay.querySelector('[data-sign-up]').addEventListener('click',function(){perform('signup');});}
 
 function requestWaitlist(skuId,quantity){requireSession(async function(){var match=findSku(skuId);var overlay=dialog('<h2>Request this incentive</h2><p>'+esc((match.family.seriesName||match.family.title)+' · '+match.sku.variantLabel)+'</p><p>This is a request, not a purchase. You will not be charged unless The Mana Pocket secures a copy and offers it to you.</p><div data-request-status></div><button class="mp-foc-button" data-confirm-request>Join request list</button>');var out=overlay.querySelector('[data-request-status]');overlay.querySelector('[data-confirm-request]').addEventListener('click',async function(){try{status(out,'Saving your request…');var result=await api('/public/preorders/waitlist',{method:'POST',body:JSON.stringify({storeId:STORE_ID,skuId:skuId,quantity:quantity})});status(out,result.message,'success');}catch(error){status(out,error.message,'error');}});});}
 
@@ -276,8 +234,7 @@ function preorderCheckoutQueue(groups,index,onAllDone){
       var paidIds={};group.lines.forEach(function(line){paidIds[line.id]=true;});
       window.WO.setCart(window.WO.getCart().filter(function(i){return !paidIds[i.id];}));
     }
-    scheduleSavedPicks();
-    preorderCheckoutQueue(groups,index+1,onAllDone);
+    removeSavedPicks(group.lines.map(function(line){return line.skuId;})).catch(function(error){console.warn('[Mana Pocket] Paid pulls could not be removed from the saved list:',error.message);}).finally(function(){preorderCheckoutQueue(groups,index+1,onAllDone);});
   });
 }
 
@@ -295,6 +252,5 @@ window.WO.checkoutPreorderLines=checkoutPreorderLines;
 // route, without knowing anything about how that session is stored.
 window.WO.preorderAuthHeader=function(){var t=token();return t?{Authorization:'Bearer '+t}:{};};
 
-watchCartForChanges();
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
