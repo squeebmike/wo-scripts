@@ -201,6 +201,14 @@ function openPreorderCheckout(group,index,total,onDone){
   mode='preorder';preorderCtx={group:group,index:index,total:total,onDone:onDone,rates:[],selectedRateId:null,ratesLoading:false,ratesError:''};
   var modal=node();modal.innerHTML=panel();bind(modal);quote={cents:null,loading:false,error:'',label:''};paymentRuntime=null;modal.classList.add('is-open');document.body.style.overflow='hidden';methodChanged();
 }
+// My Pocket can resume a PaymentIntent that already belongs to an existing
+// preorder. It should use this same Stripe surface instead of inventing a
+// second checkout UI (and without creating a duplicate preorder order).
+async function openExistingPreorderPayment(data,onDone){
+  mode='preorder';preorderCtx={group:null,index:0,total:1,onDone:onDone,rates:[],selectedRateId:null,ratesLoading:false,ratesError:''};
+  var modal=node();modal.innerHTML=panel();bind(modal);quote={cents:null,loading:false,error:'',label:''};paymentRuntime=null;modal.classList.add('is-open');document.body.style.overflow='hidden';
+  try{await mountPayment(data);}catch(error){modal.querySelector('#mp-sfc-content').innerHTML='<div class="mp-sfc-status error">'+esc(error.message)+'</div><button class="mp-sfc-button" type="button" data-done>Close</button>';modal.querySelector('[data-done]').addEventListener('click',close);}
+}
 function close(){node().classList.remove('is-open');document.body.style.overflow='';mode='regular';preorderCtx=null;}
 async function loadStripe(){if(window.Stripe)return window.Stripe;await new Promise(function(resolve,reject){var existing=document.querySelector('script[src="https://js.stripe.com/v3/"]');if(existing){existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',reject,{once:true});return;}var script=document.createElement('script');script.src='https://js.stripe.com/v3/';script.onload=resolve;script.onerror=reject;document.head.appendChild(script);});return window.Stripe;}
 async function checkout(){
@@ -258,6 +266,7 @@ async function confirmPayment(){
 function install(){var button=document.getElementById('wo-cart-checkout');if(!button||button.dataset.mpStorefrontCheckout)return false;button.dataset.mpStorefrontCheckout='true';button.textContent='Secure checkout →';button.onclick=function(event){event.preventDefault();event.stopPropagation();open();};return true;}
 window.MPSFC=window.MPSFC||{};
 window.MPSFC.openPreorderCheckout=openPreorderCheckout;
+window.MPSFC.openExistingPreorderPayment=openExistingPreorderPayment;
 function start(){addStyles();install();new MutationObserver(install).observe(document.body,{childList:true,subtree:true});}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();

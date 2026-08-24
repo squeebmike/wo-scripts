@@ -6,9 +6,10 @@ var STORE_ID='0f9dd4bc-42a7-487e-a972-2905d24513e9';
 var SUPABASE_URL='https://vroknjrxubsqyexngwus.supabase.co';
 var SUPABASE_KEY='sb_publishable_wbpX2nL8l-4NbXtZNG_bjA_nabSYaJ5';
 var AUTH_REDIRECT_URL='https://themanapocket.com/account';
+var RECOVERY_REDIRECT_URL='https://themanapocket.com/account-profile';
 // Same key preorders.js uses -- signing in on either page signs in on both.
 var SESSION_KEY='mp-foc-session-v1';
-var state={session:readJson(SESSION_KEY,null),cache:{}};
+var state={session:readJson(SESSION_KEY,null),cache:{},authRedirectType:''};
 
 // One shared script drives every /account* page (real distinct URLs, not a
 // tabbed single page) -- which section renders is decided purely by
@@ -78,6 +79,7 @@ function consumeAuthRedirectSession(){
   var params=new URLSearchParams(location.hash.slice(1));
   var accessToken=params.get('access_token');
   if(!accessToken)return;
+  state.authRedirectType=params.get('type')||'';
   var expiresIn=Number(params.get('expires_in')||3600);
   setSession({
     access_token:accessToken,
@@ -154,7 +156,7 @@ function renderAuthPage(app,mode){
       '<div data-auth-status></div>'+
       '<button class="mp-acct-button" type="submit">'+(isSignup?'Create account':'Sign in')+'</button>'+
     '</form>'+
-    '<p class="mp-acct-switch">'+(isSignup?'Already have an account? <a href="/login">Sign in</a>':'New here? <a href="/signup">Create an account</a>')+'</p>'+
+    '<p class="mp-acct-switch">'+(isSignup?'Already have an account? <a href="/login">Sign in</a>':'New here? <a href="/signup">Create an account</a> · <button type="button" class="mp-acct-link-button" data-forgot-password>Forgot password?</button>')+'</p>'+
   '</div>';
   var form=app.querySelector('[data-auth-form]'),out=app.querySelector('[data-auth-status]');
   form.addEventListener('submit',async function(event){
@@ -175,6 +177,20 @@ function renderAuthPage(app,mode){
       if(/confirm/i.test(error.message))renderResend(out,error.message,email,'error');
       else out.innerHTML=statusHtml(error.message,'error');
     }
+  });
+  var forgot=app.querySelector('[data-forgot-password]');
+  if(forgot)forgot.addEventListener('click',function(){renderPasswordRecovery(app);});
+}
+
+function renderPasswordRecovery(app){
+  app.innerHTML='<div class="mp-acct-shell mp-acct-shell-narrow"><div class="mp-acct-eyebrow">The Mana Pocket</div><h1 class="mp-acct-title">Reset Password</h1><p class="mp-acct-intro">Enter the email on your account. We will send a secure reset link.</p><form class="mp-acct-auth" data-recovery-form><input name="email" type="email" autocomplete="email" required placeholder="Email"><div data-recovery-status></div><button class="mp-acct-button" type="submit">Send reset link</button></form><p class="mp-acct-switch"><a href="/login">Back to sign in</a></p></div>';
+  var form=app.querySelector('[data-recovery-form]'),out=app.querySelector('[data-recovery-status]');
+  form.addEventListener('submit',async function(event){
+    event.preventDefault();var email=String(new FormData(form).get('email')||'').trim();
+    if(!email){out.innerHTML=statusHtml('Enter your account email.','error');return;}
+    out.innerHTML=statusHtml('Sending…');
+    try{await auth('recover?redirect_to='+encodeURIComponent(RECOVERY_REDIRECT_URL),{email:email});out.innerHTML=statusHtml('If an account exists for that email, the reset link is on its way. Check spam too.','success');}
+    catch(error){out.innerHTML=statusHtml(error.message,'error');}
   });
 }
 
@@ -244,17 +260,42 @@ async function loadPreorders(){
     var saved=picks.length?'<h2 class="mp-acct-subhead">Saved comic pulls</h2><p class="mp-acct-intro">These are saved, but not purchased yet. Add more or pay before the listed FOC deadline.</p>'+picks.map(pickListCardHtml).join(''):'';
     var purchased=orders.length?'<h2 class="mp-acct-subhead">Purchased preorders</h2>'+orders.map(preorderCardHtml).join(''):'<div class="mp-acct-empty">No paid comic preorders yet. <a class="mp-acct-link" href="/preorders">Browse this week’s FOC covers</a>.</div>';
     host.innerHTML=saved+purchased;
+    host.addEventListener('click',handlePreorderAction);
   }catch(error){host.innerHTML=statusHtml(error.message,'error');}
 }
 function pickListCardHtml(list){
   var cycle=list.cycle||{},items=list.items||[],total=items.reduce(function(sum,item){return sum+Number(item.quantity||0)*Number(item.sku&&item.sku.customer_price_cents||0);},0);
-  return '<article class="mp-acct-order mp-acct-saved-pulls"><header><div><h3>'+items.reduce(function(n,item){return n+Number(item.quantity||0);},0)+' saved pull'+(items.length===1?'':'s')+'</h3><span class="mp-acct-sub">FOC '+esc(dateLabel(cycle.foc_date))+' · '+(list.isOpen?'payment still needed':'deadline closed')+'</span></div><span class="mp-acct-status-pill">unpaid</span></header>'+items.map(function(item){var sku=item.sku||{};return'<div class="mp-acct-item-line">'+(sku.cover_image_url?'<img src="'+esc(sku.cover_image_url)+'" alt="">':'<span class="mp-acct-item-noimg"></span>')+'<div class="mp-acct-item-info"><span>'+esc(sku.title||'')+(sku.variant_label?' · '+esc(sku.variant_label):'')+' ×'+Number(item.quantity||1)+'</span><span>'+money(Number(sku.customer_price_cents||0)/100)+' each</span></div></div>';}).join('')+'<div class="mp-acct-row"><span>Current subtotal</span><strong>'+money(total/100)+'</strong></div><div class="mp-acct-actions"><a class="mp-acct-button" href="/preorders?cart=1#foc-week-'+esc(cycle.id||'')+'">Open pulls &amp; pay</a></div></article>';
+  return '<article class="mp-acct-order mp-acct-saved-pulls"><header><div><h3>'+items.reduce(function(n,item){return n+Number(item.quantity||0);},0)+' saved pull'+(items.length===1?'':'s')+'</h3><span class="mp-acct-sub">FOC '+esc(dateLabel(cycle.foc_date))+' · '+(list.isOpen?'payment still needed':'deadline closed')+'</span></div><span class="mp-acct-status-pill">unpaid</span></header>'+items.map(function(item){var sku=item.sku||{};return'<div class="mp-acct-item-line">'+(sku.cover_image_url?'<img src="'+esc(sku.cover_image_url)+'" alt="">':'<span class="mp-acct-item-noimg"></span>')+'<div class="mp-acct-item-info"><span>'+esc(sku.title||'')+(sku.variant_label?' · '+esc(sku.variant_label):'')+' ×'+Number(item.quantity||1)+'</span><span>'+money(Number(sku.customer_price_cents||0)/100)+' each</span></div></div>';}).join('')+'<div class="mp-acct-row"><span>Current subtotal</span><strong>'+money(total/100)+'</strong></div><div class="mp-acct-actions"><a class="mp-acct-button" href="/preorders?cart=1#foc-week-'+esc(cycle.id||'')+'">'+(list.isOpen?'Edit, remove or pay':'View pulls')+'</a></div></article>';
 }
 function preorderCardHtml(order){
+  var status=String(order.status||'');
+  var payable=(status==='payment_pending'||status==='payment_failed')&&order.canCancel;
+  var cancelLabel=(status==='payment_pending'||status==='payment_failed')?'Cancel order':'Cancel & refund';
+  var actions=(payable?'<button class="mp-acct-button" type="button" data-preorder-pay="'+esc(order.id)+'">Pay now</button>':'')+(order.canCancel?'<button class="mp-acct-button ghost danger" type="button" data-preorder-cancel="'+esc(order.id)+'" data-cancel-label="'+esc(cancelLabel)+'">'+esc(cancelLabel)+'</button>':'');
   return '<article class="mp-acct-order"><header><div><h3>'+esc(order.order_number)+'</h3><span class="mp-acct-sub">ordered '+esc(dateLabel(order.created_at,true))+'</span></div><span class="mp-acct-status-pill">'+esc(String(order.status||'').replace(/_/g,' '))+'</span></header>'+
     '<div class="mp-acct-row"><span>Total</span><strong>'+money(Number(order.total_cents||0)/100)+'</strong></div>'+
     (order.items&&order.items.length?'<div class="mp-acct-items">'+order.items.map(function(item){var sku=item.sku||{};return'<div class="mp-acct-item-line">'+(sku.cover_image_url?'<img src="'+esc(sku.cover_image_url)+'" alt="">':'<span class="mp-acct-item-noimg"></span>')+'<div class="mp-acct-item-info"><span>'+esc(sku.title||'')+(sku.variant_label?' · '+esc(sku.variant_label):'')+' ×'+Number(item.quantity||1)+'</span><span>'+money(Number(item.unit_price_cents||0)/100)+' each</span></div></div>';}).join('')+'</div>':'')+
+    (actions?'<div class="mp-acct-actions mp-acct-order-actions">'+actions+'<span class="mp-acct-action-status" aria-live="polite"></span></div>':'')+
   '</article>';
+}
+
+async function handlePreorderAction(event){
+  var pay=event.target.closest('[data-preorder-pay]'),cancel=event.target.closest('[data-preorder-cancel]');
+  if(!pay&&!cancel)return;
+  var button=pay||cancel,card=button.closest('.mp-acct-order'),out=card.querySelector('.mp-acct-action-status'),orderId=button.getAttribute(pay?'data-preorder-pay':'data-preorder-cancel');
+  if(cancel&&!window.confirm('Cancel this preorder'+(button.dataset.cancelLabel==='Cancel & refund'?' and refund its payment':'')+'? This cannot be undone.'))return;
+  button.disabled=true;out.textContent=pay?'Opening secure payment…':'Cancelling…';out.classList.remove('error');
+  try{
+    if(pay){
+      var payment=await api('/public/preorders/resume',{method:'POST',body:JSON.stringify({orderId:orderId})});
+      if(!window.MPSFC||typeof window.MPSFC.openExistingPreorderPayment!=='function')throw new Error('The secure payment form is still loading. Please try again in a moment.');
+      window.MPSFC.openExistingPreorderPayment(payment,function(){state.cache.preorders=null;loadPreorders();});
+      out.textContent='';button.disabled=false;
+    }else{
+      var result=await api('/public/preorders/cancel',{method:'POST',body:JSON.stringify({orderId:orderId})});
+      out.textContent=result.status==='refunded'?'Refund issued.':'Order cancelled.';state.cache.preorders=null;window.setTimeout(loadPreorders,700);
+    }
+  }catch(error){out.textContent=error.message;out.classList.add('error');button.disabled=false;}
 }
 
 async function loadConsignments(){
