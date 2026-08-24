@@ -6,7 +6,7 @@ var STORE_ID='0f9dd4bc-42a7-487e-a972-2905d24513e9';
 var SUPABASE_URL='https://vroknjrxubsqyexngwus.supabase.co';
 var SUPABASE_KEY='sb_publishable_wbpX2nL8l-4NbXtZNG_bjA_nabSYaJ5';
 var SESSION_KEY='mp-foc-session-v1';
-var state={cycles:null,session:readJson(SESSION_KEY,null),filters:{q:'',publisher:'all',artist:'all',kind:'all'},timer:null,pickSyncTimer:null,pickSyncState:'',deepLinkHandled:false};
+var state={cycles:null,session:readJson(SESSION_KEY,null),filters:{q:'',publisher:'all',artist:'all',kind:'all'},timer:null,pickSyncTimer:null,pickSyncState:'',deepLinkHandled:false,loadingCycles:new Set()};
 
 function readJson(key,fallback){try{return JSON.parse(localStorage.getItem(key)||'null')||fallback;}catch(_){return fallback;}}
 function saveJson(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch(_){}}
@@ -44,19 +44,18 @@ async function reconcileSavedPicks(){
   if(!token())return;
   try{
     var result=await api('/public/preorders/picks?store_id='+encodeURIComponent(STORE_ID));
-    var saved={};(result.picks||[]).forEach(function(list){(list.items||[]).forEach(function(item){saved[item.sku_id]=Math.max(Number(saved[item.sku_id]||0),Number(item.quantity||1));});});
+    var saved={};(result.picks||[]).filter(function(list){return list.isOpen;}).forEach(function(list){(list.items||[]).forEach(function(item){var prior=saved[item.sku_id];if(!prior||Number(item.quantity||1)>prior.qty)saved[item.sku_id]={qty:Number(item.quantity||1),item:item,cycle:list.cycle};});});
     if(!Object.keys(saved).length)return;
     var cart=(window.WO&&typeof window.WO.getCart==='function'?window.WO.getCart():[]);
     var byId={};cart.forEach(function(line){byId[line.id]=line;});
     Object.keys(saved).forEach(function(skuId){
-      var match=findSku(skuId);if(!match)return;
-      var lineId='foc:'+skuId,qty=Math.max(1,Math.min(50,saved[skuId]));
+      var match=findSku(skuId),record=saved[skuId],sku=record.item&&record.item.sku||{};
+      var lineId='foc:'+skuId,qty=Math.max(1,Math.min(50,record.qty));
       if(byId[lineId])byId[lineId].qty=Math.max(Number(byId[lineId].qty||1),qty);
-      else{var line=preorderLineFor(match,qty);cart.push(line);byId[lineId]=line;}
+      else{var line=match?preorderLineFor(match,qty):{id:lineId,kind:'preorder',skuId:skuId,cycleId:record.cycle&&record.cycle.id,focDate:record.cycle&&record.cycle.foc_date,name:[sku.title,sku.variant_label].filter(Boolean).join(' · ')||'Saved comic pull',image:sku.cover_image_url||'',upc:sku.upc||'',price:Number(sku.customer_price_cents||0)/100,available:50,qty:qty};cart.push(line);byId[lineId]=line;}
     });
     if(window.WO&&typeof window.WO.setCart==='function')window.WO.setCart(cart);
     lastCartSnapshot=JSON.stringify(cartPayload());
-    await syncSavedPicks();
   }catch(error){console.warn('[Mana Pocket] Saved comic pulls could not be opened:',error.message);}
 }
 // The shared drawer's own qty +/- and remove buttons mutate window.WO's
@@ -80,9 +79,11 @@ function watchCartForChanges(){
 // across state.cycles (one entry per open/closed FOC week, newest first --
 // see loadCatalog). A cart can hold picks from more than one week at once,
 // so anything id-keyed (findSku) has to search every week, not just one.
-function allSkus(){return(state.cycles||[]).flatMap(function(entry){return entry.families.flatMap(function(family){return family.variants.map(function(sku){return{family:family,sku:sku,cycle:entry.cycle};});});});}
+function allSkus(){return(state.cycles||[]).flatMap(function(entry){return(entry.families||[]).flatMap(function(family){return family.variants.map(function(sku){return{family:family,sku:sku,cycle:entry.cycle};});});});}
 function findSku(id){var match=allSkus().find(function(entry){return entry.sku.id===id;});return match||null;}
 function cycleById(id){var entry=(state.cycles||[]).find(function(e){return e.cycle.id===id;});return entry?entry.cycle:null;}
+function cycleOpen(cycle){return!!(cycle&&cycle.status==='open'&&new Date(cycle.customer_cutoff_at).getTime()>Date.now());}
+function sortCycleEntries(entries){return entries.sort(function(a,b){var ao=cycleOpen(a.cycle),bo=cycleOpen(b.cycle);if(ao!==bo)return ao?-1:1;var at=new Date(a.cycle.customer_cutoff_at).getTime()||0,bt=new Date(b.cycle.customer_cutoff_at).getTime()||0;return ao?at-bt:bt-at;});}
 function mount(){
   // This file now loads site-wide (wo-ui.js's loadPreorderCartHelpers) so
   // its cart/checkout functions are reachable from the shared cart drawer
@@ -106,7 +107,10 @@ function mount(){
 
 async function loadCatalog(){
   try{
-    var data=await api('/public/preorders/weeks?store_id='+encodeURIComponent(STORE_ID),{auth:false});state.cycles=(data.cycles||[]).slice().sort(function(a,b){return new Date(a.cycle.customer_cutoff_at)-new Date(b.cycle.customer_cutoff_at);});await reconcileSavedPicks();render();handleDeepLink();
+    var data=await api('/public/preorders/weeks?summary=1&store_id='+encodeURIComponent(STORE_ID),{auth:false});state.cycles=sortCycleEntries((data.cycles||[]).map(function(cycle){return{cycle:cycle,families:null,error:''};}));render();
+    var requested=new URLSearchParams(location.search).get('cycle');var first=(requested&&state.cycles.find(function(entry){return entry.cycle.id===requested||entry.cycle.foc_date===requested;}))||state.cycles[0];
+    if(first)await loadCycleCatalog(first.cycle.id);
+    await ensureDeepLinkCatalog();await reconcileSavedPicks();handleDeepLink();
     // "Open pulls & pay" on the account page's saved-pulls card links here
     // with ?cart=1 -- without this, that link only scrolled to the FOC week
     // and left the customer to find and click the floating cart button
@@ -114,6 +118,20 @@ async function loadCatalog(){
     if(new URLSearchParams(location.search).get('cart')==='1'&&window.WO&&typeof window.WO.openCart==='function')window.WO.openCart();
   }
   catch(error){document.getElementById('mp-foc-app').innerHTML='<div class="mp-foc-shell"><div class="mp-foc-empty"><h1>Comic preorders are getting bagged and boarded.</h1><p>'+esc(error.message)+'</p><a class="mp-foc-button ghost" href="/">Back to the shop</a></div></div>';}
+}
+
+async function loadCycleCatalog(cycleId){
+  var entry=(state.cycles||[]).find(function(item){return item.cycle.id===cycleId;});
+  if(!entry||Array.isArray(entry.families)||state.loadingCycles.has(cycleId))return;
+  state.loadingCycles.add(cycleId);entry.error='';render();
+  try{var data=await api('/public/preorders?store_id='+encodeURIComponent(STORE_ID)+'&cycle='+encodeURIComponent(cycleId),{auth:false});entry.cycle=data.cycle;entry.families=data.families||[];}
+  catch(error){entry.error=error.message||'This FOC could not be loaded.';}
+  finally{state.loadingCycles.delete(cycleId);sortCycleEntries(state.cycles);render();}
+}
+
+async function ensureDeepLinkCatalog(){
+  var skuId=new URLSearchParams(location.search).get('sku');if(!skuId||findSku(skuId))return;
+  for(var i=0;i<(state.cycles||[]).length;i++){if(!Array.isArray(state.cycles[i].families))await loadCycleCatalog(state.cycles[i].cycle.id);if(findSku(skuId))return;}
 }
 
 function countdownHtml(cycle){
@@ -127,11 +145,11 @@ function render(){
     document.getElementById('mp-foc-app').innerHTML='<div class="mp-foc-shell"><div class="mp-foc-empty"><h1>No FOC weeks are open right now.</h1><p>Check back once the next Monday order is imported.</p></div></div>';
     return;
   }
-  var publishers=unique(state.cycles.flatMap(function(e){return e.families.map(function(f){return f.publisher;});}));
+  var publishers=unique(state.cycles.flatMap(function(e){return(e.families||[]).map(function(f){return f.publisher;});}));
   var artists=unique(allSkus().map(function(e){return e.sku.coverArtist;}));
   document.getElementById('mp-foc-app').innerHTML='<div class="mp-foc-shell">'+
-    '<header><div class="mp-foc-eyebrow">The Mana Pocket · Penguin Random House FOC</div><h1 class="mp-foc-title">Pick your exact covers.</h1><p class="mp-foc-intro">Prepay for the comics and covers you actually want. Every foil has its own selling price. Ratio incentives stay request-only until we secure a copy and confirm its price. Every open week is shown below, each with its own order deadline.</p></header>'+
-    (state.cycles.length>1?'<nav class="mp-foc-week-nav" aria-label="Jump to an FOC week">'+state.cycles.map(function(entry,index){return'<a href="#foc-week-'+esc(entry.cycle.id)+'">'+(index===0?'⏰ Closes soonest · ':'')+'FOC '+esc(dateLabel(entry.cycle.foc_date,false))+'</a>';}).join('')+'</nav>':'')+
+    '<header><div class="mp-foc-eyebrow">The Mana Pocket · Penguin Random House FOC</div><h1 class="mp-foc-title">Pick your exact covers.</h1><p class="mp-foc-intro">Prepay for the comics and covers you actually want. Active FOCs appear first; expired weeks stay at the bottom for reference. Covers load one FOC at a time so the wall opens quickly.</p></header>'+
+    (state.cycles.length>1?'<nav class="mp-foc-week-nav" aria-label="Jump to an FOC week">'+state.cycles.map(function(entry,index){return'<a href="#foc-week-'+esc(entry.cycle.id)+'">'+(index===0&&entry.cycle.isOpen?'⏰ Closes soonest · ':'')+(entry.cycle.isOpen?'':'Expired · ')+'FOC '+esc(dateLabel(entry.cycle.foc_date,false))+'</a>';}).join('')+'</nav>':'')+
     '<section class="mp-foc-controls" aria-label="Filter comic preorders"><input data-filter="q" type="search" placeholder="Search title, creator, character…" value="'+esc(state.filters.q)+'"><select data-filter="publisher"><option value="all">All publishers</option>'+publishers.map(function(v){return'<option'+(state.filters.publisher===v?' selected':'')+'>'+esc(v)+'</option>';}).join('')+'</select><select data-filter="artist"><option value="all">All cover artists</option>'+artists.map(function(v){return'<option'+(state.filters.artist===v?' selected':'')+'>'+esc(v)+'</option>';}).join('')+'</select><select data-filter="kind"><option value="all">All covers</option><option value="standard"'+(state.filters.kind==='standard'?' selected':'')+'>Standard covers</option><option value="foil"'+(state.filters.kind==='foil'?' selected':'')+'>Foil covers</option><option value="first"'+(state.filters.kind==='first'?' selected':'')+'>#1 issues</option><option value="incentive"'+(state.filters.kind==='incentive'?' selected':'')+'>Incentives</option></select><button class="mp-foc-button ghost" data-account>'+(token()?'My preorders':'Sign in')+'</button></section>'+
     state.cycles.map(function(entry,index){return weekSectionHtml(entry,index>0,index);}).join('')+
     '</div>';
@@ -142,11 +160,11 @@ function render(){
   },1000);
 }
 function weekSectionHtml(entry,withSeparator,index){
-  var cycle=entry.cycle,families=filteredFamiliesFor(entry);
+  var cycle=entry.cycle,loaded=Array.isArray(entry.families),families=loaded?filteredFamiliesFor(entry):[];
+  var catalog=loaded?'<div class="mp-foc-result-line" data-result-line="'+esc(cycle.id)+'">'+resultLineText(families,cycle)+'</div><div data-foc-families="'+esc(cycle.id)+'">'+familyHtml(families,cycle.isOpen)+'</div>':'<div class="mp-foc-empty mp-foc-cycle-gate"><h2>'+(state.loadingCycles.has(cycle.id)?'Opening this FOC…':entry.error?'Could not open this FOC':'Covers are ready when you are.')+'</h2><p>'+esc(entry.error||'Load this week only; the other FOCs stay out of the initial download.')+'</p><button class="mp-foc-button ghost" type="button" data-load-cycle="'+esc(cycle.id)+'" '+(state.loadingCycles.has(cycle.id)?'disabled':'')+'>'+(state.loadingCycles.has(cycle.id)?'Loading…':entry.error?'Try again':'Show this FOC')+'</button></div>';
   return '<section id="foc-week-'+esc(cycle.id)+'" class="mp-foc-week'+(withSeparator?' mp-foc-week-sep':'')+'" data-foc-week="'+esc(cycle.id)+'" data-week-color="'+(index%4)+'">'+
     '<div class="mp-foc-deadline"><div><strong>'+(cycle.isOpen?'Orders close '+esc(dateLabel(cycle.customer_cutoff_at,true)):'This FOC is closed')+'</strong><span>FOC '+esc(dateLabel(cycle.foc_date,false))+' · we place the distributor order every Monday · quantities, finishes, and covers are exact</span></div><div class="mp-foc-countdown" data-foc-countdown data-cycle-id="'+esc(cycle.id)+'">'+countdownHtml(cycle)+'</div></div>'+
-    '<div class="mp-foc-result-line" data-result-line="'+esc(cycle.id)+'">'+resultLineText(families,cycle)+'</div>'+
-    '<div data-foc-families="'+esc(cycle.id)+'">'+familyHtml(families,cycle.isOpen)+'</div>'+
+    catalog+
   '</section>';
 }
 function resultLineText(families,cycle){return'<span>'+families.length+' titles · '+families.reduce(function(n,f){return n+f.variants.length;},0)+' exact covers</span><span>FOC '+esc(dateLabel(cycle.foc_date,false))+'</span>';}
@@ -159,6 +177,7 @@ function bind(){
   document.querySelectorAll('[data-filter]').forEach(function(control){control.addEventListener(control.tagName==='INPUT'?'input':'change',function(){
     state.filters[control.dataset.filter]=control.value;
     state.cycles.forEach(function(entry){
+      if(!Array.isArray(entry.families))return;
       var families=filteredFamiliesFor(entry);
       var host=document.querySelector('[data-foc-families="'+entry.cycle.id+'"]');if(host)host.innerHTML=familyHtml(families,entry.cycle.isOpen);
       var line=document.querySelector('[data-result-line="'+entry.cycle.id+'"]');if(line)line.innerHTML=resultLineText(families,entry.cycle);
@@ -187,6 +206,7 @@ function addPreorderLine(skuId,qty,sourceEl){
   if(window.WO&&typeof window.WO.playAddToCartFlourish==='function')window.WO.playAddToCartFlourish(sourceEl);
 }
 function bindDynamic(){
+  document.querySelectorAll('[data-load-cycle]').forEach(function(button){button.addEventListener('click',function(){loadCycleCatalog(button.dataset.loadCycle);});});
   document.querySelectorAll('[data-add]').forEach(function(button){button.addEventListener('click',function(){var input=document.querySelector('[data-qty="'+button.dataset.add+'"]');addPreorderLine(button.dataset.add,Number(input&&input.value||1),button);button.textContent='Added ✓';setTimeout(function(){button.textContent='Add exact cover';},900);});});
   document.querySelectorAll('[data-waitlist]').forEach(function(button){button.addEventListener('click',function(){requestWaitlist(button.dataset.waitlist,Number(document.querySelector('[data-qty="'+button.dataset.waitlist+'"]')?.value||1));});});
   document.querySelectorAll('[data-lightbox]').forEach(function(button){button.addEventListener('click',function(){var match=findSku(button.dataset.lightbox);if(match)dialog('<div class="mp-foc-lightbox"><img src="'+esc(match.sku.coverImageUrl)+'" alt=""><p>'+esc((match.family.seriesName||match.family.title)+' · '+match.sku.variantLabel)+'</p></div>','wide');});});
