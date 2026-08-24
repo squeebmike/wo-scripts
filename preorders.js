@@ -92,16 +92,14 @@ function mount(){
   // itself, or every other page on the site would grow a comic-covers
   // section nobody asked for.
   if((location.pathname.replace(/\/$/,'')||'/')!=='/preorders')return;
-  if(document.getElementById('mp-foc-app'))return;
   document.body.classList.add('mp-page-preorders');
   if(!document.getElementById('navbarID')){
     var nav=document.createElement('nav');nav.className='mp-foc-nav';nav.setAttribute('aria-label','Main navigation');
     nav.innerHTML='<a class="mp-foc-brand" href="/" aria-label="The Mana Pocket home"><img src="https://cdn.prod.website-files.com/65b15ee0228d06647ca7e4ce/6a7ce98ab3d4819b7565620e_the_mana_pocket_patch_1024x1024.png" alt="The Mana Pocket"></a><div><a href="/">Home</a><a href="/shop">Shop</a><button type="button" data-foc-theme>My Pocket</button></div>';
     document.body.prepend(nav);nav.querySelector('[data-foc-theme]').addEventListener('click',function(){if(token())location.href='/account';else if(window.WO&&typeof window.WO.openTheme==='function')window.WO.openTheme();});
   }
-  var app=document.createElement('main');app.id='mp-foc-app';app.innerHTML='<div class="mp-foc-shell"><div class="mp-foc-loading"><b>Opening the pull box…</b><span>Loading this week’s comic covers.</span></div></div>';
-  var footer=document.querySelector('.footer-section,.Footer,.footer');
-  if(footer)footer.parentNode.insertBefore(app,footer);else document.body.appendChild(app);
+  var app=document.getElementById('mp-foc-app');
+  if(!app){app=document.createElement('main');app.id='mp-foc-app';app.innerHTML='<div class="mp-foc-shell"><header><div class="mp-foc-eyebrow">The Mana Pocket · Penguin Random House FOC</div><h1 class="mp-foc-title">Pick your exact covers.</h1><p class="mp-foc-intro">Prepay for the comics and covers you actually want. Active FOCs appear first; expired weeks stay at the bottom for reference. Covers load one FOC at a time so the wall opens quickly.</p></header><div data-foc-dynamic><div class="mp-foc-loading"><b>Opening the pull box…</b><span>Loading this week’s comic covers.</span></div></div></div>';var footer=document.querySelector('.footer-section,.Footer,.footer');if(footer)footer.parentNode.insertBefore(app,footer);else document.body.appendChild(app);}
   loadCatalog();
 }
 
@@ -117,7 +115,7 @@ async function loadCatalog(){
     // themselves to actually reach payment, which read as "does nothing."
     if(new URLSearchParams(location.search).get('cart')==='1'&&window.WO&&typeof window.WO.openCart==='function')window.WO.openCart();
   }
-  catch(error){document.getElementById('mp-foc-app').innerHTML='<div class="mp-foc-shell"><div class="mp-foc-empty"><h1>Comic preorders are getting bagged and boarded.</h1><p>'+esc(error.message)+'</p><a class="mp-foc-button ghost" href="/">Back to the shop</a></div></div>';}
+  catch(error){document.querySelector('[data-foc-dynamic]').innerHTML='<div class="mp-foc-empty"><h2>Comic preorders are getting bagged and boarded.</h2><p>'+esc(error.message)+'</p><a class="mp-foc-button ghost" href="/">Back to the shop</a></div>';}
 }
 
 async function loadCycleCatalog(cycleId){
@@ -142,17 +140,15 @@ function filteredFamiliesFor(entry){
 }
 function render(){
   if(!state.cycles||!state.cycles.length){
-    document.getElementById('mp-foc-app').innerHTML='<div class="mp-foc-shell"><div class="mp-foc-empty"><h1>No FOC weeks are open right now.</h1><p>Check back once the next Monday order is imported.</p></div></div>';
+    document.querySelector('[data-foc-dynamic]').innerHTML='<div class="mp-foc-empty"><h2>No FOC weeks are open right now.</h2><p>Check back once the next Monday order is imported.</p></div>';
     return;
   }
   var publishers=unique(state.cycles.flatMap(function(e){return(e.families||[]).map(function(f){return f.publisher;});}));
   var artists=unique(allSkus().map(function(e){return e.sku.coverArtist;}));
-  document.getElementById('mp-foc-app').innerHTML='<div class="mp-foc-shell">'+
-    '<header><div class="mp-foc-eyebrow">The Mana Pocket · Penguin Random House FOC</div><h1 class="mp-foc-title">Pick your exact covers.</h1><p class="mp-foc-intro">Prepay for the comics and covers you actually want. Active FOCs appear first; expired weeks stay at the bottom for reference. Covers load one FOC at a time so the wall opens quickly.</p></header>'+
+  document.querySelector('[data-foc-dynamic]').innerHTML=
     (state.cycles.length>1?'<nav class="mp-foc-week-nav" aria-label="Jump to an FOC week">'+state.cycles.map(function(entry,index){return'<a href="#foc-week-'+esc(entry.cycle.id)+'">'+(index===0&&entry.cycle.isOpen?'⏰ Closes soonest · ':'')+(entry.cycle.isOpen?'':'Expired · ')+'FOC '+esc(dateLabel(entry.cycle.foc_date,false))+'</a>';}).join('')+'</nav>':'')+
     '<section class="mp-foc-controls" aria-label="Filter comic preorders"><input data-filter="q" type="search" placeholder="Search title, creator, character…" value="'+esc(state.filters.q)+'"><select data-filter="publisher"><option value="all">All publishers</option>'+publishers.map(function(v){return'<option'+(state.filters.publisher===v?' selected':'')+'>'+esc(v)+'</option>';}).join('')+'</select><select data-filter="artist"><option value="all">All cover artists</option>'+artists.map(function(v){return'<option'+(state.filters.artist===v?' selected':'')+'>'+esc(v)+'</option>';}).join('')+'</select><select data-filter="kind"><option value="all">All covers</option><option value="standard"'+(state.filters.kind==='standard'?' selected':'')+'>Standard covers</option><option value="foil"'+(state.filters.kind==='foil'?' selected':'')+'>Foil covers</option><option value="first"'+(state.filters.kind==='first'?' selected':'')+'>#1 issues</option><option value="incentive"'+(state.filters.kind==='incentive'?' selected':'')+'>Incentives</option></select><button class="mp-foc-button ghost" data-account>'+(token()?'My preorders':'Sign in')+'</button></section>'+
-    state.cycles.map(function(entry,index){return weekSectionHtml(entry,index>0,index);}).join('')+
-    '</div>';
+    state.cycles.map(function(entry,index){return weekSectionHtml(entry,index>0,index);}).join('');
   bind();
   if(state.timer)clearInterval(state.timer);
   state.timer=setInterval(function(){
