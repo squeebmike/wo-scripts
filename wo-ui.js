@@ -993,6 +993,19 @@ function loadHomepageRedesign(){
   script.src=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'homepage-redesign.js');
   document.head.appendChild(script);
 }
+// Some older Webflow account pages still carry page-level loader pins. The
+// site-wide bundle runs first, so load the account bundle from this exact
+// commit and let those older loaders safely no-op when they reach their
+// data-mp-account guard. This keeps login/signup/profile/preorders on one
+// version even when Webflow temporarily rejects page custom-code writes.
+function loadAccountPages(){
+  var path=location.pathname.replace(/\/$/,'')||'/';
+  var paths=['/account','/account-orders','/account-preorders','/account-consignments','/account-wishlist','/account-profile','/login','/signup'];
+  if(paths.indexOf(path)===-1||!WO_SCRIPT_SRC||document.querySelector('script[data-mp-account-loader]')||document.querySelector('script[data-mp-account]'))return;
+  var script=document.createElement('script');script.setAttribute('data-mp-account-loader','');
+  script.src=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'account-loader.js');
+  document.head.appendChild(script);
+}
 // /preorders has its own page-level footer script (preorders-loader.js)
 // pinned independently to wo-scripts' actual current preorders.js -- this
 // used to ALSO auto-inject a preorders.js from wo-ui.js's own (unrelated,
@@ -1049,6 +1062,7 @@ function loadSitePolish(){
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}
 else{init();}
 loadSitePolish();
+loadAccountPages();
 loadHomepageRedesign();
 loadShopPreorders();
 loadStorefrontCheckout();
