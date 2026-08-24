@@ -37,9 +37,12 @@ body.mp-page-account *,body.mp-page-account *::before,body.mp-page-account *::af
 .mp-acct-item-line{display:flex;align-items:center;gap:10px;font:700 12px/1.6 inherit;opacity:.85;padding:5px 0}
 .mp-acct-item-line img{width:34px;height:46px;object-fit:cover;border-radius:4px;background:var(--mp-line);flex:none}
 .mp-acct-saved-head{display:flex;align-items:end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:12px}.mp-acct-saved-head .mp-acct-subhead{margin-bottom:8px}.mp-acct-saved-head .mp-acct-intro{margin-bottom:0;max-width:760px}
-.mp-acct-pick-line{display:grid;grid-template-columns:auto 34px minmax(0,1fr) auto;opacity:1;padding:10px 0;border-bottom:1px solid var(--mp-line)}
-.mp-acct-pick-check{display:grid;place-items:center;min-width:32px;min-height:44px}.mp-acct-pick-check input{width:20px;height:20px;accent-color:var(--mp-accent)}
-.mp-acct-pick-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}.mp-acct-mini{appearance:none;border:1px solid var(--mp-line);border-radius:999px;min-height:36px;padding:7px 10px;background:transparent;color:var(--mp-ink);font:900 8px/1 ui-monospace,monospace;letter-spacing:.05em;text-transform:uppercase;cursor:pointer}.mp-acct-mini.primary{background:var(--mp-accent);border-color:transparent;color:var(--mp-on-accent)}.mp-acct-mini.danger{border-color:rgba(255,127,152,.5);color:#ff9aac}.mp-acct-mini:disabled{opacity:.45;cursor:not-allowed}
+.mp-acct-pick-line{display:grid;grid-template-columns:28px 46px minmax(0,1fr);gap:8px;align-items:start;opacity:1;padding:10px 0;border-bottom:1px solid var(--mp-line)}
+.mp-acct-pick-line>img,.mp-acct-pick-line>.mp-acct-item-noimg{width:46px;height:62px}
+.mp-acct-pick-check{display:grid;place-items:start center;min-width:28px;min-height:44px;padding-top:2px}.mp-acct-pick-check input{width:20px;height:20px;accent-color:var(--mp-accent)}
+.mp-acct-pick-check .sr-only{border:0!important;clip:rect(0,0,0,0)!important;clip-path:inset(50%)!important;height:1px!important;margin:-1px!important;overflow:hidden!important;padding:0!important;position:absolute!important;white-space:nowrap!important;width:1px!important}
+.mp-acct-pick-line .mp-acct-item-info{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:start}
+.mp-acct-pick-actions{grid-column:3;display:flex;align-items:center;justify-content:flex-start;gap:6px;flex-wrap:wrap;min-width:0}.mp-acct-mini{appearance:none;border:1px solid var(--mp-line);border-radius:999px;min-height:36px;padding:7px 10px;background:transparent;color:var(--mp-ink);font:900 8px/1 ui-monospace,monospace;letter-spacing:.05em;text-transform:uppercase;cursor:pointer}.mp-acct-mini.primary{background:var(--mp-accent);border-color:transparent;color:var(--mp-on-accent)}.mp-acct-mini.danger{border-color:rgba(255,127,152,.5);color:#ff9aac}.mp-acct-mini:disabled{opacity:.45;cursor:not-allowed}
 .mp-acct-item-noimg{width:34px;height:46px;border-radius:4px;background:var(--mp-line);flex:none;opacity:.4}
 .mp-acct-item-info{flex:1;min-width:0;display:flex;justify-content:space-between;align-items:center;gap:10px;overflow-wrap:anywhere}
 .mp-acct-item-info span:first-child{font-size:clamp(11px,2.9vw,13px)}
@@ -55,10 +58,7 @@ body.mp-page-account *,body.mp-page-account *::before,body.mp-page-account *::af
 .mp-acct-actions{display:flex;gap:8px;flex-wrap:wrap}
 @media(max-width:700px){
   .mp-acct-tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin}.mp-acct-tabs a{flex:0 0 auto}
-  .mp-acct-pick-line{grid-template-columns:28px 46px minmax(0,1fr);gap:8px;align-items:start}
-  .mp-acct-pick-line>img,.mp-acct-pick-line>.mp-acct-item-noimg{width:46px;height:62px}
-  .mp-acct-pick-check{min-width:28px}
-  .mp-acct-pick-line .mp-acct-item-info{display:grid;gap:3px;align-content:start}
+  .mp-acct-pick-line .mp-acct-item-info{grid-template-columns:1fr;gap:3px;align-content:start}
   .mp-acct-pick-line .mp-acct-item-info span:last-child{text-align:left}
   .mp-acct-pick-actions{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));width:100%;gap:7px}
   .mp-acct-mini{width:100%;min-width:0;white-space:normal;line-height:1.2;padding-inline:8px}
