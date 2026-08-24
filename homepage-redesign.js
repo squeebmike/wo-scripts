@@ -247,6 +247,7 @@ function renderBroadcast(stage,data){
   stage.classList.toggle('mp-broadcast--live',live);stage.classList.toggle('mp-broadcast--inperson',inPerson);stage.classList.toggle('mp-broadcast--offair',!live&&!inPerson);
   stage.classList.toggle('mp-broadcast--portrait',live&&data.videoOrientation==='portrait');stage.classList.toggle('mp-broadcast--landscape',live&&data.videoOrientation!=='portrait');
   var shell=stage.querySelector('.mp-broadcast-shell');if(!shell)return;
+  if(!live&&!inPerson&&stage.hasAttribute('data-mp-prerendered'))return;
   shell.innerHTML='';
   if(live){
     var viewer=el('div','mp-live-viewer mp-live-viewer--'+data.videoOrientation);
