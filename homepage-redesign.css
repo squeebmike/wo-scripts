@@ -99,7 +99,7 @@ html.mp-home-boot body:not(.mp-home-redesign) .footer {
 .mp-live-status { align-items: center; color: var(--mp-highlight) !important; display: inline-flex; font-size: 12px; font-weight: 950; gap: 9px; letter-spacing: .14em; margin-bottom: 18px; text-transform: uppercase; }
 .mp-live-status::before { background: currentColor; border-radius: 50%; content: ''; height: 10px; width: 10px; }
 .mp-live-status--on::before { box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 22%, transparent); }
-.mp-broadcast-title { color: inherit !important; font-family: Exo, system-ui, sans-serif; font-size: clamp(48px, 7vw, 108px); font-weight: 950; letter-spacing: -.065em; line-height: .86; margin: 0; max-width: 980px; text-transform: uppercase; }
+.mp-broadcast-title { color: inherit !important; font-family: system-ui, sans-serif; font-size: clamp(48px, 7vw, 108px); font-weight: 950; letter-spacing: -.065em; line-height: .86; margin: 0; max-width: 980px; text-transform: uppercase; }
 .mp-broadcast-text { color: inherit !important; font-size: clamp(17px, 1.7vw, 22px); line-height: 1.5; margin: 24px 0 0; max-width: 660px; opacity: .82; }
 .mp-next-shows { display: grid; gap: 10px; margin: 22px 0 0; max-width: 760px; }
 .mp-next-show { backdrop-filter: blur(12px); background: color-mix(in srgb, var(--mp-hero) 72%, transparent); border: 1px solid color-mix(in srgb, var(--mp-highlight) 34%, transparent); border-radius: 15px; display: grid; gap: 3px; padding: 13px 16px; }
