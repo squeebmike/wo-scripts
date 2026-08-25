@@ -1074,6 +1074,9 @@ function loadStorefrontCheckout(){
 // this costs one extra script fetch elsewhere, nothing more.
 function loadPreorderCartHelpers(){
   if(!WO_SCRIPT_SRC||document.querySelector('script[data-mp-preorders]'))return;
+  var path=location.pathname.replace(/\/$/,'')||'/',cart=typeof WO.getCart==='function'?WO.getCart():[];
+  var needsHelpers=path==='/shop'||path==='/preorders'||path==='/account-preorders'||cart.some(function(line){return line&&line.kind==='preorder';});
+  if(!needsHelpers)return;
   var css=document.createElement('link');css.rel='stylesheet';css.setAttribute('data-mp-preorders-css','');
   css.href=WO_SCRIPT_SRC.replace(/wo-ui\.js(?:\?.*)?$/,'preorders.css');document.head.appendChild(css);
   var script=document.createElement('script');script.async=true;script.setAttribute('data-mp-preorders','');
