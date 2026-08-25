@@ -9,6 +9,9 @@ assert.doesNotMatch(shop,/preorders\?sku=.*&add=1/,'adding an ordinary preorder 
 assert.match(shop,/window\.WO\.addComicPreorder/,'the shop must save through the shared preorder helper');
 assert.match(shop,/Synopsis/,'preorder details must expose the distributor synopsis');
 assert.match(shop,/Preorder deadline/,'preorder details must explain the deadline');
+assert.match(shop,/batchSize=24/,'the shop must render a bounded initial preorder batch');
+assert.match(shop,/IntersectionObserver/,'additional preorder cards must load near the scroll boundary');
+assert.match(shop,/Show more preorders/,'customers need an accessible manual fallback for incremental loading');
 assert.match(ui,/Sports cards/,'the main shop filter must include sports cards');
 assert.match(ui,/Collectibles/,'the main shop filter must include collectibles');
 assert.match(ui,/Graphic novels & manga/,'comic product-type filters must be restored');
