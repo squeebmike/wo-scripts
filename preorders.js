@@ -30,7 +30,7 @@ async function refreshSession(){if(!state.session||!state.session.refresh_token)
 // removing it from the cart must never erase the collector's curated list.
 function preorderCartLines(){return(window.WO&&typeof window.WO.getCart==='function'?window.WO.getCart():[]).filter(function(line){return line.kind==='preorder';});}
 function preorderLineFor(match,qty){var family=match.family,sku=match.sku,cycle=match.cycle;return{id:'foc:'+sku.id,kind:'preorder',skuId:sku.id,cycleId:cycle.id,focDate:cycle.foc_date,name:(family.seriesName||family.title)+' · '+(sku.variantLabel||'Cover A'),image:sku.coverImageUrl||'',upc:sku.upc||'',price:Number(sku.priceCents||0)/100,available:50,qty:Math.max(1,Math.min(50,Number(qty||1)))};}
-async function savePick(skuId,quantity){if(!token())return;try{await api('/public/preorders/picks',{method:'PATCH',body:JSON.stringify({storeId:STORE_ID,skuId:skuId,quantity:quantity})});}catch(error){console.warn('[Mana Pocket] Comic pull could not be saved:',error.message);}}
+async function savePick(skuId,quantity){if(!token())return false;try{await api('/public/preorders/picks',{method:'PATCH',body:JSON.stringify({storeId:STORE_ID,skuId:skuId,quantity:quantity})});return true;}catch(error){console.warn('[Mana Pocket] Comic pull could not be saved:',error.message);return false;}}
 
 // Every helper below used to read the single state.catalog; now it reads
 // across state.cycles (one entry per open/closed FOC week, newest first --
@@ -41,6 +41,7 @@ function findSku(id){var match=allSkus().find(function(entry){return entry.sku.i
 function cycleById(id){var entry=(state.cycles||[]).find(function(e){return e.cycle.id===id;});return entry?entry.cycle:null;}
 function cycleOpen(cycle){return!!(cycle&&cycle.status==='open'&&new Date(cycle.customer_cutoff_at).getTime()>Date.now());}
 function sortCycleEntries(entries){return entries.sort(function(a,b){var ao=cycleOpen(a.cycle),bo=cycleOpen(b.cycle);if(ao!==bo)return ao?-1:1;var at=new Date(a.cycle.customer_cutoff_at).getTime()||0,bt=new Date(b.cycle.customer_cutoff_at).getTime()||0;return ao?at-bt:bt-at;});}
+function onPreordersPage(){return(location.pathname.replace(/\/$/,'')||'/')==='/preorders';}
 function mount(){
   // This file now loads site-wide (wo-ui.js's loadPreorderCartHelpers) so
   // its cart/checkout functions are reachable from the shared cart drawer
@@ -48,7 +49,7 @@ function mount(){
   // catalog fetch, DOM mount) must still only ever render on /preorders
   // itself, or every other page on the site would grow a comic-covers
   // section nobody asked for.
-  if((location.pathname.replace(/\/$/,'')||'/')!=='/preorders')return;
+  if(!onPreordersPage())return;
   document.body.classList.add('mp-page-preorders');
   if(!document.getElementById('navbarID')){
     var nav=document.createElement('nav');nav.className='mp-foc-nav';nav.setAttribute('aria-label','Main navigation');
@@ -174,6 +175,25 @@ function bindDynamic(){
   document.querySelectorAll('[data-waitlist]').forEach(function(button){button.addEventListener('click',function(){requestWaitlist(button.dataset.waitlist,Number(document.querySelector('[data-qty="'+button.dataset.waitlist+'"]')?.value||1));});});
   document.querySelectorAll('[data-lightbox]').forEach(function(button){button.addEventListener('click',function(){var match=findSku(button.dataset.lightbox);if(match)dialog('<div class="mp-foc-lightbox"><img src="'+esc(match.sku.coverImageUrl)+'" alt=""><p>'+esc((match.family.seriesName||match.family.title)+' · '+match.sku.variantLabel)+'</p></div>','wide');});});
 }
+
+// The regular /shop catalog already has the full public PRH record. Let it
+// add a preorder without sending the customer to a second catalog page.
+// Sign-in happens in place so the same click writes both the shared cart and
+// the collector's persistent My Pocket list.
+function addExternalPreorder(payload,sourceEl,done){
+  requireSession(async function(){
+    try{
+      var qty=Math.max(1,Math.min(50,Number(payload.quantity||1)));
+      var line={id:'foc:'+payload.skuId,kind:'preorder',skuId:payload.skuId,cycleId:payload.cycleId,focDate:payload.focDate,name:payload.name||'Comic preorder',image:payload.image||'',upc:payload.upc||'',price:Number(payload.price||0),available:50,qty:qty};
+      var cart=(window.WO&&typeof window.WO.getCart==='function'?window.WO.getCart():[]),existing=cart.find(function(item){return item.id===line.id;});
+      if(existing)existing.qty=Math.min(50,Number(existing.qty||1)+qty);else cart.push(line);
+      if(!await savePick(payload.skuId,existing?existing.qty:line.qty))throw new Error('My Pocket could not save this preorder. Please try again.');
+      if(window.WO&&typeof window.WO.setCart==='function')window.WO.setCart(cart);
+      if(window.WO&&typeof window.WO.playAddToCartFlourish==='function')window.WO.playAddToCartFlourish(sourceEl);
+      if(done)done(null,existing?existing.qty:line.qty);
+    }catch(error){if(done)done(error);else window.alert(error.message);}
+  });
+}
 function bindCycleLazyLoading(){
   if(state.cycleObserver){state.cycleObserver.disconnect();state.cycleObserver=null;}
   if(!state.lazyReady||Math.abs(window.scrollY-state.lastLazyScrollY)<160||!('IntersectionObserver' in window))return;
@@ -213,7 +233,7 @@ function statusWithResend(node,message,email,kind){
 }
 
 function requireSession(next){if(token()){next();return;}openAuth(next);}
-function openAuth(next){var overlay=dialog('<h2>Collector sign in</h2><p>Use one account to save your comic pulls, pay before FOC, and see purchased preorders.</p><form class="mp-foc-auth" data-auth-form><input name="name" placeholder="Name (new collectors)"><input name="email" type="email" required placeholder="Email"><input name="password" type="password" minlength="8" required placeholder="Password · 8+ characters"><div data-auth-status></div><div class="mp-foc-cart-actions"><button class="mp-foc-button ghost" type="button" data-sign-up>Create account</button><button class="mp-foc-button" type="submit">Sign in</button></div></form>');var form=overlay.querySelector('[data-auth-form]'),out=overlay.querySelector('[data-auth-status]');async function perform(kind){var data=new FormData(form),email=String(data.get('email')||'').trim(),password=String(data.get('password')||''),name=String(data.get('name')||'').trim();if(!email||password.length<8){status(out,'Enter an email and a password with at least 8 characters.','error');return;}status(out,'Opening your pull box…');try{var session;if(kind==='signup'){var result=await auth('signup',{email:email,password:password,data:{full_name:name}});if(!result.access_token){statusWithResend(out,'If this email is new, check your inbox to confirm it. If you already have an account, sign in instead or reset your password.',email);return;}session=result;}else session=await auth('token?grant_type=password',{email:email,password:password});setSession(session);closeDialog();render();if(next)next();}catch(error){if(/confirm/i.test(error.message))statusWithResend(out,error.message,email,'error');else status(out,error.message,'error');}}form.addEventListener('submit',function(event){event.preventDefault();perform('signin');});overlay.querySelector('[data-sign-up]').addEventListener('click',function(){perform('signup');});}
+function openAuth(next){var overlay=dialog('<h2>Collector sign in</h2><p>Use one account to save your comic pulls, pay before FOC, and see purchased preorders.</p><form class="mp-foc-auth" data-auth-form><input name="name" placeholder="Name (new collectors)"><input name="email" type="email" required placeholder="Email"><input name="password" type="password" minlength="8" required placeholder="Password · 8+ characters"><div data-auth-status></div><div class="mp-foc-cart-actions"><button class="mp-foc-button ghost" type="button" data-sign-up>Create account</button><button class="mp-foc-button" type="submit">Sign in</button></div></form>');var form=overlay.querySelector('[data-auth-form]'),out=overlay.querySelector('[data-auth-status]');async function perform(kind){var data=new FormData(form),email=String(data.get('email')||'').trim(),password=String(data.get('password')||''),name=String(data.get('name')||'').trim();if(!email||password.length<8){status(out,'Enter an email and a password with at least 8 characters.','error');return;}status(out,'Opening your pull box…');try{var session;if(kind==='signup'){var result=await auth('signup',{email:email,password:password,data:{full_name:name}});if(!result.access_token){statusWithResend(out,'If this email is new, check your inbox to confirm it. If you already have an account, sign in instead or reset your password.',email);return;}session=result;}else session=await auth('token?grant_type=password',{email:email,password:password});setSession(session);closeDialog();if(onPreordersPage())render();if(next)next();}catch(error){if(/confirm/i.test(error.message))statusWithResend(out,error.message,email,'error');else status(out,error.message,'error');}}form.addEventListener('submit',function(event){event.preventDefault();perform('signin');});overlay.querySelector('[data-sign-up]').addEventListener('click',function(){perform('signup');});}
 
 function requestWaitlist(skuId,quantity){requireSession(async function(){var match=findSku(skuId);var overlay=dialog('<h2>Request this incentive</h2><p>'+esc((match.family.seriesName||match.family.title)+' · '+match.sku.variantLabel)+'</p><p>This is a request, not a purchase. You will not be charged unless The Mana Pocket secures a copy and offers it to you.</p><div data-request-status></div><button class="mp-foc-button" data-confirm-request>Join request list</button>');var out=overlay.querySelector('[data-request-status]');overlay.querySelector('[data-confirm-request]').addEventListener('click',async function(){try{status(out,'Saving your request…');var result=await api('/public/preorders/waitlist',{method:'POST',body:JSON.stringify({storeId:STORE_ID,skuId:skuId,quantity:quantity})});status(out,result.message,'success');}catch(error){status(out,error.message,'error');}});});}
 
@@ -272,6 +292,7 @@ function orderHtml(order){return'<article class="mp-foc-account-order"><header><
 // (not gated to /preorders) since checkout can be started from any page.
 window.WO=window.WO||{};
 window.WO.checkoutPreorderLines=checkoutPreorderLines;
+window.WO.addComicPreorder=addExternalPreorder;
 // preorders.js owns the FOC sign-in session (a separate Supabase Auth
 // token from any regular-shop identity) -- storefront-checkout.js needs a
 // Bearer header from it to call the authenticated /public/preorders/checkout

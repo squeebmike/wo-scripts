@@ -14,7 +14,9 @@ assert.match(account,/window\.WO\.checkoutPreorderLines\(lines/,'account checkou
 assert.doesNotMatch(account,/href="\/preorders\?cart=1/,'the old Open pulls & pay redirect must be removed');
 
 assert.match(preorders,/method:'PATCH'.*skuId:skuId,quantity:quantity/s,'adding a cover must upsert the durable saved list explicitly');
-assert.match(preorders,/method:'DELETE'.*skuIds:skuIds/s,'successful payment must explicitly remove only the paid saved pulls');
+assert.doesNotMatch(preorders,/method:'DELETE'.*skuIds:skuIds/s,'the browser must not erase saved pulls before the Worker confirms payment');
+assert.match(preorders,/window\.WO\.addComicPreorder=addExternalPreorder/,'the shop must be able to add and save a preorder without redirecting');
+assert.match(account,/reconcilePreorderCart\(result\)/,'My Pocket must reconcile signed-in cart preorders into the durable saved list');
 assert.doesNotMatch(preorders,/watchCartForChanges/,'cart edits must not be mirrored back into the durable saved list');
 assert.doesNotMatch(preorders,/reconcileSavedPicks/,'opening a page must not automatically force every saved pull into the cart');
 

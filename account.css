@@ -74,5 +74,6 @@ body.mp-page-account *,body.mp-page-account *::before,body.mp-page-account *::af
 .mp-acct-status.error{color:#ff7f98;border-color:rgba(255,127,152,.4)}
 .mp-acct-status.success{color:#83f0b3;border-color:rgba(131,240,179,.4)}
 .mp-acct-link{color:var(--mp-accent);text-decoration:underline}
+.mp-acct-past-orders{margin-top:22px;border:1px solid var(--mp-line);border-radius:14px;padding:14px}.mp-acct-past-orders>summary{cursor:pointer;font:800 11px/1.2 ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;opacity:.7}.mp-acct-past-orders>.mp-acct-order{margin-top:14px;opacity:.72}
 @media(max-width:600px){.mp-acct-shell{padding:16px 10px 70px}.mp-acct-title{font-size:38px}.mp-acct-tabs{gap:4px}.mp-acct-tabs a{padding:8px 10px;font-size:9px}.mp-acct-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.mp-acct-nav{min-height:66px;padding:5px 8px}.mp-acct-brand img{width:76px;height:54px}.mp-acct-nav>div{gap:2px}.mp-acct-nav a,.mp-acct-nav button{padding:9px 8px;font-size:8px}}

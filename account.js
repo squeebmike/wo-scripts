@@ -251,14 +251,28 @@ function orderCardHtml(order){
   '</article>';
 }
 
+async function reconcilePreorderCart(result){
+  if(!window.WO||typeof window.WO.getCart!=='function'||typeof window.WO.setCart!=='function')return false;
+  var settled={},saved={};
+  (result.orders||[]).forEach(function(order){if(!/^(paid|reserved|confirmed|processing|ready|ready_for_pickup|fulfilled|shipped|picked_up|completed)$/.test(String(order.status||'')))return;(order.items||[]).forEach(function(item){var sku=item.sku||{};settled[sku.id||item.sku_id]=true;});});
+  (result.picks||[]).forEach(function(list){(list.items||[]).forEach(function(item){var sku=item.sku||{};saved[sku.id||item.sku_id]=Number(item.quantity||1);});});
+  var cart=window.WO.getCart(),clean=cart.filter(function(line){return line.kind!=='preorder'||!settled[line.skuId];});
+  if(clean.length!==cart.length)window.WO.setCart(clean);
+  var pending=clean.filter(function(line){return line.kind==='preorder'&&line.skuId&&!settled[line.skuId]&&saved[line.skuId]!==Number(line.qty||1);});
+  if(!pending.length)return false;
+  var outcomes=await Promise.all(pending.map(function(line){return api('/public/preorders/picks',{method:'PATCH',body:JSON.stringify({storeId:STORE_ID,skuId:line.skuId,quantity:Math.max(1,Number(line.qty||1))})}).then(function(){return true;}).catch(function(){return false;});}));
+  return outcomes.some(Boolean);
+}
 async function loadPreorders(){
   var host=panel();host.innerHTML='<div class="mp-acct-loading">Loading your comic preorders…</div>';
   try{
     var result=state.cache.preorders||await api('/public/preorders/my?store_id='+encodeURIComponent(STORE_ID));
+    if(!state.cache.preorders&&await reconcilePreorderCart(result))result=await api('/public/preorders/my?store_id='+encodeURIComponent(STORE_ID));
     state.cache.preorders=result;
     var orders=result.orders||[],picks=(result.picks||[]).filter(function(list){return(list.items||[]).length;});
     var saved=picks.length?'<div class="mp-acct-saved-head"><div><h2 class="mp-acct-subhead">Saved comic preorders</h2><p class="mp-acct-intro">Build your list before paying. Cart changes do not remove saved comics; they stay here until payment succeeds or you remove them. FOC means Final Order Cutoff—the distributor deadline.</p></div><div class="mp-acct-actions"><button class="mp-acct-button ghost" type="button" data-picks-add-all>Add all to cart</button><button class="mp-acct-button" type="button" data-picks-pay-selected>Pay selected</button></div></div><div class="mp-acct-action-status" data-picks-status aria-live="polite"></div>'+picks.map(pickListCardHtml).join(''):'';
-    var purchased=orders.length?'<h2 class="mp-acct-subhead">Comic preorder orders</h2>'+orders.map(preorderCardHtml).join(''):'<div class="mp-acct-empty">No comic preorder orders yet. <a class="mp-acct-link" href="/preorders">Browse available preorder covers</a>.</div>';
+    var currentOrders=orders.filter(function(order){return!/^(cancelled|refunded)$/.test(String(order.status||''));}),pastOrders=orders.filter(function(order){return/^(cancelled|refunded)$/.test(String(order.status||''));});
+    var purchased=(currentOrders.length?'<h2 class="mp-acct-subhead">Comic preorder orders</h2>'+currentOrders.map(preorderCardHtml).join(''):'<div class="mp-acct-empty">No active comic preorder orders yet. <a class="mp-acct-link" href="/preorders">Browse available preorder covers</a>.</div>')+(pastOrders.length?'<details class="mp-acct-past-orders"><summary>Past cancelled or refunded attempts ('+pastOrders.length+')</summary>'+pastOrders.map(preorderCardHtml).join('')+'</details>':'');
     host.innerHTML=saved+purchased;
     host.onclick=handlePreorderAction;
   }catch(error){host.innerHTML=statusHtml(error.message,'error');}
