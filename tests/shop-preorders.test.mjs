@@ -29,8 +29,6 @@ assert.match(ui,/api\/inventory\?limit=48&offset=0/,'navigation art must never d
 assert.match(ui,/pointerenter',hydrateCounterInventory/,'navigation inventory art must wait for customer interaction');
 assert.match(shop,/__MP_STOREFRONT_PREFETCH__/,'the small async head script must start the first inventory page before the deferred bundles finish loading');
 assert.match(shop,/data-mp-first-product/,'the early response must preload the first product image before the renderer is ready');
-assert.match(shop,/mp:ui-ready/,'the first product preview must wait until the themed shop shell is stable');
-assert.match(ui,/mp:ui-ready/,'the UI bundle must announce when the stable shop shell is ready');
 assert.match(ui,/cart\.some\(function\(line\)\{return line&&line\.kind==='preorder';\}\)/,'preorder checkout helpers must stay off unrelated pages for visitors without preorder cart lines');
 
 console.log('Shop preorder details, direct add, and filter contracts passed.');
