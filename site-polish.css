@@ -108,7 +108,8 @@
 /* The compliance proof sits after the live grid in Webflow. Keep it visually
    reserved until the first server page lands so it cannot become LCP and then
    jump tens of thousands of pixels when cards are inserted. */
-#wo-live-shop[data-wo-server-paged="true"]:not([data-wo-loaded="true"]) ~ #sms-consent-information { visibility: hidden; }
+#wo-live-shop ~ #sms-consent-information { visibility: hidden; }
+#wo-live-shop[data-wo-loaded="true"] ~ #sms-consent-information { visibility: visible; }
 
 /* Hamburger: a theme-colored "patch" badge (matches the team/theme button
    pill) instead of three bare lines, morphing to an X on open. Scoped to
