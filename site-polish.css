@@ -84,6 +84,27 @@
 }
 .mp-nav-icon { background: transparent; border: 0; border-radius: 8px; display: block; flex: 0 0 34px; height: 34px; object-fit: contain; padding: 0; width: 34px; }
 .mp-nav-label { min-width: 0; }
+@media (min-width: 992px) {
+  #navbarID :is(#wo-cart-toggle,#wo-account-toggle,.wo-team-btn) {
+    align-items: center !important;
+    border: 1px solid color-mix(in srgb,var(--wo-on-button) 22%,transparent) !important;
+    border-radius: 999px !important;
+    display: inline-flex !important;
+    font-size: 14px !important;
+    gap: 8px !important;
+    justify-content: center !important;
+    min-height: 44px !important;
+    min-width: 44px !important;
+    padding: 8px 13px !important;
+  }
+  #navbarID :is(#wo-cart-toggle,#wo-account-toggle,.wo-team-btn) img { height: 25px !important; object-fit: contain; width: 25px !important; }
+}
+
+/* Server-paged cards keep every action on one baseline regardless of title
+   length, and reserve image/card space before lazy images arrive. */
+#wo-live-shop[data-wo-server-paged="true"] .wo-live-card { min-height: 100%; }
+#wo-live-shop[data-wo-server-paged="true"] .wo-live-card-body { min-height: 190px; }
+#wo-live-shop[data-wo-server-paged="true"] .wo-store-controls > :is(input,select) { min-height: 46px; }
 
 /* Hamburger: a theme-colored "patch" badge (matches the team/theme button
    pill) instead of three bare lines, morphing to an X on open. Scoped to

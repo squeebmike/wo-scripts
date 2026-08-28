@@ -914,8 +914,9 @@ function polishCommerceDialogs(){
       var target=-(drawer.getBoundingClientRect().width+24);
       if(right<0&&Math.abs(right-target)>1)drawer.style.right=target+'px';
     }
-    correctClosedPosition();
-    new MutationObserver(correctClosedPosition).observe(drawer,{attributes:true,attributeFilter:['style']});
+    var scheduled=false;function scheduleCorrection(){if(scheduled)return;scheduled=true;requestAnimationFrame(function(){scheduled=false;correctClosedPosition();});}
+    scheduleCorrection();
+    new MutationObserver(scheduleCorrection).observe(drawer,{attributes:true,attributeFilter:['style']});
     var checkout=drawer.querySelector('#wo-cart-checkout');if(checkout)checkout.textContent='Secure checkout →';
   }
   function scan(){
@@ -986,7 +987,7 @@ function polishShopInventory(){
     };return sets[kind]||[['all','All item types']];
   }
   function mount(){
-    var host=document.getElementById('wo-live-shop');var select=host&&host.querySelector('.wo-store-control-field');var cards=host&&host.querySelectorAll('.wo-live-card');
+    var host=document.getElementById('wo-live-shop');if(host&&host.getAttribute('data-wo-server-paged')==='true')return true;var select=host&&host.querySelector('.wo-store-control-field');var cards=host&&host.querySelectorAll('.wo-live-card');
     if(!select||!cards||!cards.length)return false;if(select.dataset.mpExactCategories)return true;
     select.dataset.mpExactCategories='true';
     select.innerHTML='<option value="all">All departments</option><option value="sports-cards">Sports cards</option><option value="pokemon">Pokémon</option><option value="mtg">MTG</option><option value="comics">Comics</option><option value="collectibles">Collectibles</option><option value="supplies">Supplies</option>';
