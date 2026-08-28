@@ -16,6 +16,9 @@ assert.match(shop,/prioritizeImage\?'eager':'lazy'/,'the first visible preorder 
 assert.match(shop,/fetchpriority="high"/,'the first visible preorder cover must receive high network priority');
 assert.match(shop,/mp-shop-preorder-grid/,'preorders must live outside the inventory grid that resets during server filtering');
 assert.doesNotMatch(shop,/select\.dispatchEvent\(new Event\('change'/,'mounting preorders must not trigger an inventory reset that erases them');
+assert.match(shop,/host\.dataset\.woLoaded!=='true'/,'FOC loading must wait until the first inventory page has settled');
+assert.match(shop,/mp-shop-preorder-lazy-trigger/,'customers need an explicit fallback to load the deferred FOC section');
+assert.match(shop,/observer\.observe\(lazyTrigger\)/,'the initial FOC page must load only when its scroll boundary approaches');
 assert.match(shop,/IntersectionObserver/,'additional preorder cards must load near the scroll boundary');
 assert.match(shop,/Show more preorders/,'customers need an accessible manual fallback for incremental loading');
 assert.match(ui,/Sports cards/,'the main shop filter must include sports cards');
