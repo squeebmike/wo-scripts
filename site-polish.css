@@ -533,3 +533,5 @@ body.mp-chat-enabled #mp-floating-cart { bottom: calc(max(18px, env(safe-area-in
   .mp-counter-grid::after,.mp-counter-item,.mp-cool-object { transition: none !important; }
   .mp-counter-zone:hover .mp-counter-item,.mp-counter-zone:focus-visible .mp-counter-item,.mp-cool-object:hover,.mp-cool-object:focus-visible { transform: none !important; }
 }
+/* Reserve the paged shop mount before its first server response arrives. */
+#wo-live-shop { min-height: 110vh; }

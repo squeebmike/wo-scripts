@@ -1123,5 +1123,7 @@ buildReceiptFooter();
 polishCommerceDialogs();
 disableLegacyFlatRateShipping();
 polishShopInventory();
+window.__MP_UI_READY__=true;
+document.dispatchEvent(new Event('mp:ui-ready'));
 
 })();

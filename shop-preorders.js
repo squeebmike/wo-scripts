@@ -22,7 +22,8 @@ if((location.pathname.replace(/\/$/,'')||'/')==='/shop'&&!window.__MP_STOREFRONT
       image.style.cssText='width:100%;aspect-ratio:1/1;object-fit:contain;background:var(--wo-surface,#f2f2f2);';
       card.appendChild(image);grid.appendChild(card);mount.appendChild(grid);
     }
-    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',render,{once:true});else render();
+    if(window.__MP_UI_READY__)render();
+    else document.addEventListener('mp:ui-ready',render,{once:true});
   }
   var inventoryParams=new URLSearchParams({
     limit:String(window.matchMedia&&window.matchMedia('(max-width: 767px)').matches?12:36),
