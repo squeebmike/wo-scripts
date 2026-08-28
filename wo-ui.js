@@ -619,6 +619,8 @@ function init(){
     el.addEventListener('click',onThemeTrigger);
   });
   if(!applied)showThemeNudge();
+  window.__MP_UI_READY__=true;
+  document.dispatchEvent(new Event('mp:ui-ready'));
 }
 
 function showThemeNudge(){
@@ -1123,7 +1125,5 @@ buildReceiptFooter();
 polishCommerceDialogs();
 disableLegacyFlatRateShipping();
 polishShopInventory();
-window.__MP_UI_READY__=true;
-document.dispatchEvent(new Event('mp:ui-ready'));
 
 })();
