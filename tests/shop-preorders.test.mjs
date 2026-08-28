@@ -14,6 +14,8 @@ assert.match(shop,/&limit='\+initialLimit\+'&offset=0/,'the initial request must
 assert.match(shop,/&limit='\+batchSize\+'&offset='\+nextOffset/,'scroll loading must fetch the next preorder page from the server');
 assert.match(shop,/prioritizeImage\?'eager':'lazy'/,'the first visible preorder cover must not be lazy loaded');
 assert.match(shop,/fetchpriority="high"/,'the first visible preorder cover must receive high network priority');
+assert.match(shop,/mp-shop-preorder-grid/,'preorders must live outside the inventory grid that resets during server filtering');
+assert.doesNotMatch(shop,/select\.dispatchEvent\(new Event\('change'/,'mounting preorders must not trigger an inventory reset that erases them');
 assert.match(shop,/IntersectionObserver/,'additional preorder cards must load near the scroll boundary');
 assert.match(shop,/Show more preorders/,'customers need an accessible manual fallback for incremental loading');
 assert.match(ui,/Sports cards/,'the main shop filter must include sports cards');
