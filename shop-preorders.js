@@ -25,7 +25,7 @@ function mount(catalog){
   var host=document.getElementById('wo-live-shop'),controls=host&&host.querySelector('.wo-store-controls'),grid=controls&&controls.nextElementSibling;if(!grid)return false;if(grid.querySelector('[data-preorder-sku]'))return true;
   var variants=[];(catalog.families||[]).forEach(function(family){(family.variants||[]).forEach(function(sku){records[sku.id]={family:family,sku:sku,cycle:catalog.cycle};variants.push({family:family,sku:sku});});});if(!variants.length)return true;
   var heading=document.createElement('section');heading.className='mp-shop-preorder-heading';heading.innerHTML='<div><span>ORDER AHEAD · THIS WEEK\'S FOC</span><h2>Comic preorders</h2><p>Pick the cover you want, save it to My Pocket, and pay before the preorder deadline. Ratio incentives stay request-only until secured.</p></div><a href="/preorders">Browse all FOC weeks →</a>';
-  var batchSize=24,rendered=0,more=document.createElement('button'),observer=null;
+  var batchSize=window.matchMedia&&window.matchMedia('(max-width: 767px)').matches?8:12,rendered=0,more=document.createElement('button'),observer=null;
   more.type='button';more.className='mp-shop-preorder-more';more.textContent='Show more preorders';more.setAttribute('aria-label','Show more comic preorders');
   grid.appendChild(heading);grid.appendChild(more);
   function renderNext(){
@@ -35,7 +35,7 @@ function mount(catalog){
     if(more.disabled&&observer)observer.disconnect();
   }
   renderNext();more.addEventListener('click',renderNext);
-  if('IntersectionObserver' in window){observer=new IntersectionObserver(function(entries){if(entries[0]&&entries[0].isIntersecting&&!more.disabled)renderNext();},{rootMargin:'700px 0px'});observer.observe(more);}
+  if('IntersectionObserver' in window){observer=new IntersectionObserver(function(entries){if(entries[0]&&entries[0].isIntersecting&&!more.disabled)renderNext();},{rootMargin:(batchSize===8?'320px 0px':'700px 0px')});observer.observe(more);}
   grid.addEventListener('click',function(event){var detail=event.target.closest('[data-preorder-details]'),add=event.target.closest('[data-shop-preorder-add]');if(detail){openDetails(detail.dataset.preorderDetails);return;}if(add)addPreorder(add.dataset.shopPreorderAdd,add);});
   var select=controls.querySelector('.wo-store-control-field'),sub=controls.querySelector('.mp-shop-subcategory'),search=controls.querySelector('input');function sync(){window.setTimeout(function(){var category=String(select&&select.value||'all'),subtype=String(sub&&sub.value||'all'),showCategory=(category==='all'||category==='comics')&&(subtype==='all'||subtype==='preorders'),any=Array.prototype.some.call(grid.querySelectorAll('[data-preorder-sku]'),function(card){return card.style.display!=='none';});heading.hidden=!showCategory||!any;more.hidden=!showCategory||!any;},20);}if(select){select.addEventListener('change',sync);select.dispatchEvent(new Event('change',{bubbles:true}));}if(sub)sub.addEventListener('change',sync);if(search)search.addEventListener('input',sync);sync();return true;
 }
