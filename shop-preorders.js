@@ -1,5 +1,28 @@
 (function(){
 'use strict';
+
+// Start the first in-stock shop request from this small, async head script.
+// wo-ui.js and the checkout renderer are substantially larger deferred
+// bundles, so waiting for either of them makes the first product image a late
+// LCP candidate on mobile. The renderer consumes this exact promise later.
+if((location.pathname.replace(/\/$/,'')||'/')==='/shop'&&!window.__MP_STOREFRONT_PREFETCH__){
+  var inventoryParams=new URLSearchParams({
+    limit:String(window.matchMedia&&window.matchMedia('(max-width: 767px)').matches?12:36),
+    offset:'0'
+  });
+  var shopParams=new URLSearchParams(location.search);
+  var shopCategory=shopParams.get('cat');
+  var shopType=shopParams.get('type')||shopParams.get('subcat');
+  var shopQuery=shopParams.get('q')||shopParams.get('search');
+  if(shopCategory&&shopCategory!=='all')inventoryParams.set('category',shopCategory);
+  if(shopType&&shopType!=='all')inventoryParams.set('type',shopType);
+  if(shopQuery)inventoryParams.set('q',shopQuery);
+  var inventoryKey=inventoryParams.toString();
+  window.__MP_STOREFRONT_PREFETCH__={
+    key:inventoryKey,
+    promise:fetch('https://wo-checkout.swarnerauto.workers.dev/api/inventory?'+inventoryKey,{headers:{Accept:'application/json'}})
+  };
+}
 if((location.pathname.replace(/\/$/,'')||'/')!=='/shop')return;
 var API='https://still-resonance-4f87.swarnerauto.workers.dev',STORE_ID='0f9dd4bc-42a7-487e-a972-2905d24513e9',records={},lazyTrigger=null;
 function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,function(ch){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
