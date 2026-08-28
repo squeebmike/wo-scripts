@@ -6,6 +6,24 @@
 // bundles, so waiting for either of them makes the first product image a late
 // LCP candidate on mobile. The renderer consumes this exact promise later.
 if((location.pathname.replace(/\/$/,'')||'/')==='/shop'&&!window.__MP_STOREFRONT_PREFETCH__){
+  function renderFirstInventoryPreview(first){
+    function render(){
+      var mount=document.getElementById('wo-live-shop');
+      if(!mount||mount.children.length||!first||!first.image)return;
+      var grid=document.createElement('div');
+      grid.className='wo-live-grid';grid.setAttribute('data-mp-inventory-preview','');
+      grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px;align-items:stretch;min-height:110vh;';
+      var card=document.createElement('article');
+      card.className='wo-live-card';card.setAttribute('data-mp-first-card','');
+      card.style.cssText='border:1px solid rgba(255,255,255,.12);border-radius:12px;overflow:hidden;background:var(--wo-surface-alt,#fff);color:var(--wo-text,#1a1a1a);display:flex;flex-direction:column;cursor:pointer;content-visibility:auto;contain-intrinsic-size:420px;';
+      var image=document.createElement('img');
+      image.setAttribute('data-mp-first-product-image','');image.loading='eager';image.fetchPriority='high';image.decoding='async';
+      image.src=first.image;image.alt=first.name||'';image.width=440;image.height=440;
+      image.style.cssText='width:100%;aspect-ratio:1/1;object-fit:contain;background:var(--wo-surface,#f2f2f2);';
+      card.appendChild(image);grid.appendChild(card);mount.appendChild(grid);
+    }
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',render,{once:true});else render();
+  }
   var inventoryParams=new URLSearchParams({
     limit:String(window.matchMedia&&window.matchMedia('(max-width: 767px)').matches?12:36),
     offset:'0'
@@ -28,6 +46,7 @@ if((location.pathname.replace(/\/$/,'')||'/')==='/shop'&&!window.__MP_STOREFRONT
       imagePreload.rel='preload';imagePreload.as='image';imagePreload.href=first.image;
       imagePreload.fetchPriority='high';imagePreload.setAttribute('data-mp-first-product','');
       document.head.appendChild(imagePreload);
+      renderFirstInventoryPreview(first);
     }).catch(function(){});
   }).catch(function(){});
   window.__MP_STOREFRONT_PREFETCH__={
