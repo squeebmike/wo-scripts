@@ -3,6 +3,8 @@
 var WO_SCRIPT_SRC=(document.currentScript&&document.currentScript.src)||'';
 var WO=window.WO={};window.__WO__=true;
 var MP_INVENTORY_API='https://wo-checkout.swarnerauto.workers.dev/api/inventory?limit=48&offset=0';
+var MP_STOREFRONT_API='https://wo-checkout.swarnerauto.workers.dev/api/inventory';
+if((location.pathname.replace(/\/$/,'')||'/')==='/shop'&&!window.__MP_STOREFRONT_PREFETCH__){var prefetchParams=new URLSearchParams({limit:String(window.matchMedia&&window.matchMedia('(max-width: 767px)').matches?12:36),offset:'0'}),prefetchUrl=new URLSearchParams(location.search),prefetchCategory=prefetchUrl.get('cat'),prefetchType=prefetchUrl.get('type')||prefetchUrl.get('subcat'),prefetchQuery=prefetchUrl.get('q')||prefetchUrl.get('search');if(prefetchCategory&&prefetchCategory!=='all')prefetchParams.set('category',prefetchCategory);if(prefetchType&&prefetchType!=='all')prefetchParams.set('type',prefetchType);if(prefetchQuery)prefetchParams.set('q',prefetchQuery);var prefetchKey=prefetchParams.toString();window.__MP_STOREFRONT_PREFETCH__={key:prefetchKey,promise:fetch(MP_STOREFRONT_API+'?'+prefetchKey,{headers:{Accept:'application/json'}})};}
 function getManaPocketInventory(){
   if(!window.__MP_INVENTORY_PROMISE__){
     window.__MP_INVENTORY_PROMISE__=fetch(MP_INVENTORY_API,{headers:{Accept:'application/json'}})

@@ -27,6 +27,7 @@ assert.match(ui,/Graphic novels & manga/,'comic product-type filters must be res
 assert.match(ui,/Sealed product/,'TCG product-type filters must be restored');
 assert.match(ui,/api\/inventory\?limit=48&offset=0/,'navigation art must never download the entire inventory catalog');
 assert.match(ui,/pointerenter',hydrateCounterInventory/,'navigation inventory art must wait for customer interaction');
+assert.match(ui,/__MP_STOREFRONT_PREFETCH__/,'the first inventory page must start before the cart renderer finishes loading');
 assert.match(ui,/cart\.some\(function\(line\)\{return line&&line\.kind==='preorder';\}\)/,'preorder checkout helpers must stay off unrelated pages for visitors without preorder cart lines');
 
 console.log('Shop preorder details, direct add, and filter contracts passed.');
