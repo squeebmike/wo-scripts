@@ -28,6 +28,7 @@ assert.match(ui,/Sealed product/,'TCG product-type filters must be restored');
 assert.match(ui,/api\/inventory\?limit=48&offset=0/,'navigation art must never download the entire inventory catalog');
 assert.match(ui,/pointerenter',hydrateCounterInventory/,'navigation inventory art must wait for customer interaction');
 assert.match(shop,/__MP_STOREFRONT_PREFETCH__/,'the small async head script must start the first inventory page before the deferred bundles finish loading');
+assert.match(shop,/data-mp-first-product/,'the early response must preload the first product image before the renderer is ready');
 assert.match(ui,/cart\.some\(function\(line\)\{return line&&line\.kind==='preorder';\}\)/,'preorder checkout helpers must stay off unrelated pages for visitors without preorder cart lines');
 
 console.log('Shop preorder details, direct add, and filter contracts passed.');

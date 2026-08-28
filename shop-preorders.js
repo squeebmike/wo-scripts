@@ -18,9 +18,21 @@ if((location.pathname.replace(/\/$/,'')||'/')==='/shop'&&!window.__MP_STOREFRONT
   if(shopType&&shopType!=='all')inventoryParams.set('type',shopType);
   if(shopQuery)inventoryParams.set('q',shopQuery);
   var inventoryKey=inventoryParams.toString();
+  var inventoryPromise=fetch('https://wo-checkout.swarnerauto.workers.dev/api/inventory?'+inventoryKey,{headers:{Accept:'application/json'}});
+  inventoryPromise.then(function(response){
+    if(!response.ok)return;
+    response.clone().json().then(function(data){
+      var first=data&&data.items&&data.items[0];
+      if(!first||!first.image||document.querySelector('link[data-mp-first-product]'))return;
+      var imagePreload=document.createElement('link');
+      imagePreload.rel='preload';imagePreload.as='image';imagePreload.href=first.image;
+      imagePreload.fetchPriority='high';imagePreload.setAttribute('data-mp-first-product','');
+      document.head.appendChild(imagePreload);
+    }).catch(function(){});
+  }).catch(function(){});
   window.__MP_STOREFRONT_PREFETCH__={
     key:inventoryKey,
-    promise:fetch('https://wo-checkout.swarnerauto.workers.dev/api/inventory?'+inventoryKey,{headers:{Accept:'application/json'}})
+    promise:inventoryPromise
   };
 }
 if((location.pathname.replace(/\/$/,'')||'/')!=='/shop')return;
