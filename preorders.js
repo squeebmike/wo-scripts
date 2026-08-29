@@ -20,6 +20,23 @@ function money(cents){return new Intl.NumberFormat('en-US',{style:'currency',cur
 // (customer_cutoff_at, which does carry a time) still convert to Pacific.
 function dateLabel(value,withTime){if(!value)return'TBA';var dateOnly=/^\d{4}-\d{2}-\d{2}$/.test(value);var d=new Date(value);return new Intl.DateTimeFormat('en-US',{timeZone:dateOnly?'UTC':'America/Los_Angeles',weekday:'short',month:'short',day:'numeric',year:'numeric',hour:withTime?'numeric':undefined,minute:withTime?'2-digit':undefined,timeZoneName:withTime?'short':undefined}).format(d);}
 function unique(values){return Array.from(new Set(values.filter(Boolean))).sort(function(a,b){return a.localeCompare(b);});}
+function titleForFamily(family){return(family.seriesName||family.title)+(family.issueNumber?' #'+family.issueNumber:'');}
+function priceForSku(sku){return sku.waitlistOnly?(sku.priceRequired?'Price confirmed if secured':money(sku.priceCents)+' if secured'):(sku.priceRequired?'Price coming soon':money(sku.priceCents));}
+// Points at the Worker's server-rendered /preorder/{id} page, never directly
+// at /preorders?sku=... -- that query string only ever gets filled in by
+// client JS after the page has already loaded, so a link-preview scraper
+// (Facebook, iMessage, Discord...) that fetches it gets nothing but this
+// page's one generic, sitewide meta description and no image. /preorder/{id}
+// is real server-rendered HTML with this exact cover's own og:title/
+// og:description/og:image already in the response, and bounces a real
+// visitor straight back into this same deep-linked view (see handleDeepLink).
+function shareUrlFor(skuId){return'https://themanapocket.com/preorder/'+encodeURIComponent(skuId);}
+function shareSku(family,sku,button){
+  var name=titleForFamily(family)+' · '+(sku.variantLabel||'Cover A'),url=shareUrlFor(sku.id);
+  if(navigator.share){navigator.share({title:name+' | The Mana Pocket',text:'Preorder '+name+' at The Mana Pocket',url:url}).catch(function(){});return;}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(function(){var original=button.textContent;button.textContent='Link copied ✓';setTimeout(function(){button.textContent=original;},1400);}).catch(function(){window.prompt('Copy this link:',url);});return;}
+  window.prompt('Copy this link:',url);
+}
 function token(){return state.session&&state.session.access_token||'';}
 function api(path,options){options=options||{};var headers=Object.assign({'Content-Type':'application/json'},options.headers||{});if(options.auth!==false&&token())headers.Authorization='Bearer '+token();return fetch(API+path,Object.assign({},options,{headers:headers})).then(async function(response){var data=await response.json().catch(function(){return{};});if(response.status===401&&state.session&&state.session.refresh_token&&!options.retried){await refreshSession();return api(path,Object.assign({},options,{retried:true}));}if(!response.ok)throw new Error(data.error||'The request could not be completed.');return data;});}
 function auth(path,body){return fetch(SUPABASE_URL+'/auth/v1/'+path,{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)}).then(async function(response){var data=await response.json().catch(function(){return{};});if(!response.ok)throw new Error(data.msg||data.message||data.error_description||'Account request failed.');return data;});}
@@ -134,7 +151,7 @@ function coverHtml(family,sku,cycleIsOpen){
   return'<section class="mp-foc-cover" data-sku-card="'+esc(sku.id)+'"><button class="mp-foc-cover-image" data-lightbox="'+esc(sku.id)+'" aria-label="Enlarge cover">'+image+'</button><h3>'+esc(sku.variantLabel||'Cover A')+'</h3><div class="mp-foc-badges">'+(sku.isFoil?'<span class="mp-foc-badge">Foil</span>':'')+(sku.isIncentive?'<span class="mp-foc-badge ratio">'+esc(sku.orderRequirement||'Incentive')+'</span>':'')+'</div><div class="artist">'+esc(sku.coverArtist?'Cover by '+sku.coverArtist:'Cover artist not listed')+'</div><div class="price '+(sku.priceRequired||sku.waitlistOnly?'request':'')+'">'+price+'</div><div class="release">UPC '+esc(sku.upc)+'<br>Releases '+esc(dateLabel(sku.onSaleDate,false))+'</div>'+ratio+'<div class="actions"><button class="mp-foc-button" '+actionAttr+' '+(disabled?'disabled':'')+'>'+action+'</button><input class="mp-foc-qty" data-qty="'+esc(sku.id)+'" type="number" value="1" min="1" max="50" aria-label="Quantity" '+(!sku.waitlistOnly&&!sku.canPreorder?'disabled':'')+'></div></section>';
 }
 
-function handleDeepLink(){if(state.deepLinkHandled)return;var params=new URLSearchParams(location.search),skuId=params.get('sku');if(!skuId)return;var match=findSku(skuId);if(!match)return;state.deepLinkHandled=true;state.filters.q=match.sku.upc||match.family.title;render();var card=document.querySelector('[data-sku-card="'+CSS.escape(skuId)+'"]');if(card)card.scrollIntoView({behavior:'smooth',block:'center'});if(params.get('add')==='1'&&match.sku.canPreorder){addPreorderLine(skuId,1);}else if(params.get('request')==='1'||match.sku.waitlistOnly){requestWaitlist(skuId,1);}}
+function handleDeepLink(){if(state.deepLinkHandled)return;var params=new URLSearchParams(location.search),skuId=params.get('sku');if(!skuId)return;var match=findSku(skuId);if(!match)return;state.deepLinkHandled=true;state.filters.q=match.sku.upc||match.family.title;render();var card=document.querySelector('[data-sku-card="'+CSS.escape(skuId)+'"]');if(card)card.scrollIntoView({behavior:'smooth',block:'center'});if(params.get('add')==='1'&&match.sku.canPreorder){addPreorderLine(skuId,1);}else if(params.get('request')==='1'||match.sku.waitlistOnly){requestWaitlist(skuId,1);}else{openSkuDetail(skuId);}}
 
 function bind(){
   document.querySelectorAll('[data-filter]').forEach(function(control){control.addEventListener(control.tagName==='INPUT'?'input':'change',function(){
@@ -173,8 +190,27 @@ function bindDynamic(){
   bindCycleLazyLoading();
   document.querySelectorAll('[data-add]').forEach(function(button){button.addEventListener('click',function(){var input=document.querySelector('[data-qty="'+button.dataset.add+'"]');addPreorderLine(button.dataset.add,Number(input&&input.value||1),button);button.textContent='Saved ✓';setTimeout(function(){button.textContent='Preorder this cover';},900);});});
   document.querySelectorAll('[data-waitlist]').forEach(function(button){button.addEventListener('click',function(){requestWaitlist(button.dataset.waitlist,Number(document.querySelector('[data-qty="'+button.dataset.waitlist+'"]')?.value||1));});});
-  document.querySelectorAll('[data-lightbox]').forEach(function(button){button.addEventListener('click',function(){var match=findSku(button.dataset.lightbox);if(match)dialog('<div class="mp-foc-lightbox"><img src="'+esc(match.sku.coverImageUrl)+'" alt=""><p>'+esc((match.family.seriesName||match.family.title)+' · '+match.sku.variantLabel)+'</p></div>','wide');});});
+  document.querySelectorAll('[data-lightbox]').forEach(function(button){button.addEventListener('click',function(){openSkuDetail(button.dataset.lightbox);});});
 }
+
+// Full detail view for one cover -- price, preorder deadline, release date,
+// publisher, creators, and synopsis, same information a collector gets on
+// the /shop page's own comic-preorder cards (shop-preorders.js openDetails).
+// The plain cover-image-only lightbox this replaced didn't carry enough for
+// someone to decide whether to preorder without leaving to search elsewhere.
+function skuDetailHtml(family,sku,cycle){
+  var creators=[family.writer&&'Writer: '+family.writer,family.interiorArtist&&'Artist: '+family.interiorArtist,sku.coverArtist&&'Cover: '+sku.coverArtist].filter(Boolean);
+  var request=sku.waitlistOnly||!sku.canPreorder;
+  var action=request?'<a class="mp-foc-button" href="/preorders?sku='+encodeURIComponent(sku.id)+'&request=1">Request this cover</a>':'<button class="mp-foc-button" type="button" data-detail-add="'+esc(sku.id)+'">Preorder this cover</button>';
+  return'<div class="mp-foc-detail"><div class="mp-foc-detail-media">'+(sku.coverImageUrl?'<img src="'+esc(sku.coverImageUrl)+'" alt="'+esc(titleForFamily(family)+' '+sku.variantLabel)+'">':'<span>Cover coming soon</span>')+'</div><div class="mp-foc-detail-copy"><p class="mp-foc-detail-kicker">Comic preorder · specific cover shown</p><h2>'+esc(titleForFamily(family))+'</h2><h3>'+esc(sku.variantLabel||'Cover A')+'</h3><div class="mp-foc-detail-grid"><span><b>Price</b>'+esc(priceForSku(sku))+'</span><span><b>Preorder deadline</b>'+esc(dateLabel(cycle.foc_date,false))+'</span><span><b>Release date</b>'+esc(dateLabel(sku.onSaleDate,false))+'</span><span><b>Publisher</b>'+esc([family.publisher,family.imprint].filter(Boolean).join(' · ')||'TBA')+'</span></div><p class="mp-foc-detail-creators">'+esc(creators.join(' · ')||'Creator details have not been supplied yet.')+'</p><h4>Synopsis</h4><p class="mp-foc-detail-synopsis">'+esc(sku.description||family.description||'The distributor has not supplied a synopsis yet. Check back as release information is updated.')+'</p><p class="mp-foc-detail-note">FOC means Final Order Cutoff—the distributor deadline. Adding this preorder saves the shown cover to My Pocket and also puts it in your cart; you are not charged until checkout.</p><div class="mp-foc-detail-actions">'+action+'<button class="mp-foc-button ghost" type="button" data-detail-share="'+esc(sku.id)+'">Share</button></div></div></div>';
+}
+function bindSkuDetail(overlay,match){
+  var addBtn=overlay.querySelector('[data-detail-add]');
+  if(addBtn)addBtn.addEventListener('click',function(){addPreorderLine(match.sku.id,1,addBtn);addBtn.textContent='Saved ✓';setTimeout(function(){addBtn.textContent='Preorder this cover';},900);});
+  var shareBtn=overlay.querySelector('[data-detail-share]');
+  if(shareBtn)shareBtn.addEventListener('click',function(){shareSku(match.family,match.sku,shareBtn);});
+}
+function openSkuDetail(skuId){var match=findSku(skuId);if(!match)return;bindSkuDetail(dialog(skuDetailHtml(match.family,match.sku,match.cycle),'wide'),match);}
 
 // The regular /shop catalog already has the full public PRH record. Let it
 // add a preorder without sending the customer to a second catalog page.
