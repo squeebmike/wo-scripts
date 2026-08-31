@@ -11,7 +11,10 @@ assert.match(shop,/Synopsis/,'preorder details must expose the distributor synop
 assert.match(shop,/Preorder deadline/,'preorder details must explain the deadline');
 assert.match(shop,/\?8:12/,'the shop must render a smaller bounded preorder batch on mobile');
 assert.match(shop,/&limit='\+initialLimit\+'&offset=0/,'the initial request must download only the first visible preorder page');
-assert.match(shop,/&limit='\+batchSize\+'&offset='\+nextOffset/,'scroll loading must fetch the next preorder page from the server');
+assert.match(shop,/&cycle='\+encodeURIComponent\(source\.cycleId\)\+'&limit='\+batchSize\+'&offset='\+source\.nextOffset/,'scroll loading must fetch the next page from the correct FOC cycle');
+assert.match(shop,/public\/preorders\/weeks\?summary=1/,'the shop must discover every open FOC week instead of silently loading only the latest cycle');
+assert.match(shop,/filter\(function\(cycle\)\{return cycle\.isOpen;\}\)/,'closed preorder weeks must stay off the normal Comic shop section');
+assert.match(shop,/Promise\.all\(open\.map/,'the first bounded page from every open week must be loaded');
 assert.match(shop,/prioritizeImage\?'eager':'lazy'/,'the first visible preorder cover must not be lazy loaded');
 assert.match(shop,/fetchpriority="high"/,'the first visible preorder cover must receive high network priority');
 assert.match(shop,/mp-shop-preorder-grid/,'preorders must live outside the inventory grid that resets during server filtering');
@@ -25,6 +28,7 @@ assert.match(shop,/preordersOnly=isComicCategory\(category\)&&subtype==='preorde
 assert.match(shop,/inventoryGrid\.hidden=preordersOnly/,'the dedicated preorder view must contain preorder cards only');
 assert.match(shop,/IntersectionObserver/,'additional preorder cards must load near the scroll boundary');
 assert.match(shop,/Show more preorders/,'customers need an accessible manual fallback for incremental loading');
+assert.match(shop,/ALL OPEN FOC WEEKS/,'the shop heading must explain that multiple active weeks are included');
 assert.match(ui,/Sports cards/,'the main shop filter must include sports cards');
 assert.match(ui,/Collectibles/,'the main shop filter must include collectibles');
 assert.match(ui,/Graphic novels & manga/,'comic product-type filters must be restored');

@@ -30,7 +30,7 @@ function priceForSku(sku){return sku.waitlistOnly?(sku.priceRequired?'Price conf
 // is real server-rendered HTML with this exact cover's own og:title/
 // og:description/og:image already in the response, and bounces a real
 // visitor straight back into this same deep-linked view (see handleDeepLink).
-function shareUrlFor(skuId){return'https://themanapocket.com/preorder/'+encodeURIComponent(skuId);}
+function shareUrlFor(skuId){return API+'/preorder/'+encodeURIComponent(skuId);}
 function shareSku(family,sku,button){
   var name=titleForFamily(family)+' · '+(sku.variantLabel||'Cover A'),url=shareUrlFor(sku.id);
   if(navigator.share){navigator.share({title:name+' | The Mana Pocket',text:'Preorder '+name+' at The Mana Pocket',url:url}).catch(function(){});return;}

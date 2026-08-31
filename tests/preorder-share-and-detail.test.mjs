@@ -14,7 +14,7 @@ const foc=fs.readFileSync(new URL('../preorders.js',import.meta.url),'utf8');
 // ── /shop page: detail modal must offer Share, pointed at the server-
 // rendered per-cover page (not this page's own client-rendered URL, which a
 // non-JS scraper can never see item-specific content on) ──
-assert.match(shop,/function shareUrlFor\(skuId\)\{return'https:\/\/themanapocket\.com\/preorder\/'\+encodeURIComponent\(skuId\);\}/,'shop share must link to the server-rendered /preorder/{id} page, not a client-only URL');
+assert.match(shop,/function shareUrlFor\(skuId\)\{return API\+'\/preorder\/'\+encodeURIComponent\(skuId\);\}/,'shop share must use the directly reachable Worker preview route instead of Webflow\'s 404 path');
 assert.match(shop,/function shareSku\(family,sku,button\)\{/,'missing shareSku on the shop page');
 assert.match(shop,/navigator\.share\(\{title:name\+' \| The Mana Pocket',text:'Preorder '\+name\+' at The Mana Pocket',url:url\}\)/,'shop share must use the native share sheet when available');
 assert.match(shop,/navigator\.clipboard&&navigator\.clipboard\.writeText/,'shop share must fall back to copying the link on desktop');
@@ -28,7 +28,7 @@ console.log('Shop preorder share button contract checks passed');
 // deadline, release date, publisher, creators, synopsis) the shop page's
 // modal already has -- a plain enlarged image wasn't enough to decide
 // whether to preorder without leaving to look the title up elsewhere ──
-assert.match(foc,/function shareUrlFor\(skuId\)\{return'https:\/\/themanapocket\.com\/preorder\/'\+encodeURIComponent\(skuId\);\}/,'FOC page share must link to the server-rendered /preorder/{id} page');
+assert.match(foc,/function shareUrlFor\(skuId\)\{return API\+'\/preorder\/'\+encodeURIComponent\(skuId\);\}/,'FOC page share must use the directly reachable Worker preview route');
 assert.match(foc,/function shareSku\(family,sku,button\)\{/,'missing shareSku on the FOC page');
 assert.match(foc,/function skuDetailHtml\(family,sku,cycle\)\{/,'missing the rich detail-modal renderer');
 assert.match(foc,/<b>Price<\/b>/,'FOC detail modal must show price');
