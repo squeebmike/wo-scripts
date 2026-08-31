@@ -19,6 +19,10 @@ assert.doesNotMatch(shop,/select\.dispatchEvent\(new Event\('change'/,'mounting 
 assert.match(shop,/host\.dataset\.woLoaded!=='true'/,'FOC loading must wait until the first inventory page has settled');
 assert.match(shop,/mp-shop-preorder-lazy-trigger/,'customers need an explicit fallback to load the deferred FOC section');
 assert.match(shop,/observer\.observe\(lazyTrigger\)/,'the initial FOC page must load only when its scroll boundary approaches');
+assert.match(shop,/show=isComicCategory\(select&&select\.value\)/,'the preorder loader must only appear inside the Comic category');
+assert.doesNotMatch(shop,/category==='all'\|\|category==='comics'/,'preorders must not appear below the unfiltered all-items catalog');
+assert.match(shop,/preordersOnly=isComicCategory\(category\)&&subtype==='preorders'/,'the dedicated preorder filter must hide the ordinary inventory grid');
+assert.match(shop,/inventoryGrid\.hidden=preordersOnly/,'the dedicated preorder view must contain preorder cards only');
 assert.match(shop,/IntersectionObserver/,'additional preorder cards must load near the scroll boundary');
 assert.match(shop,/Show more preorders/,'customers need an accessible manual fallback for incremental loading');
 assert.match(ui,/Sports cards/,'the main shop filter must include sports cards');
