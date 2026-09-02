@@ -731,7 +731,7 @@ function polishNavigationLegacy(){
     {label:'Pokémon',href:'/shop?cat=pokemon',image:NAV_ART.pokemon},
     {label:'MTG',href:'/shop?cat=mtg',image:NAV_ART.mtg},
     {label:'Comics',href:'/shop?cat=comics',image:NAV_ART.comics},
-    {label:'Supplies',href:'/shop?cat=supplies',image:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/660ba51ad445f22b83625c86_Walk-off-sportscards-toploader.webp'}
+    {label:'Sports',href:'/shop?cat=sports-cards',image:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/660ba51ad445f22b83625c86_Walk-off-sportscards-toploader.webp'}
   ];
   function decorate(link,label,imageSrc){
     if(!link)return;
@@ -788,7 +788,7 @@ function polishNavigation(){
     {slug:'pokemon',label:'Pok\u00e9mon',href:'/shop?cat=pokemon',image:NAV_ART.pokemon,meta:'Singles, slabs & sealed'},
     {slug:'mtg',label:'MTG',href:'/shop?cat=mtg',image:NAV_ART.mtg,meta:'Cards, decks & sealed'},
     {slug:'comics',label:'Comics',href:'/shop?cat=comics',image:NAV_ART.comics,meta:'Keys, variants & new books'},
-    {slug:'supplies',label:'Supplies',href:'/shop?cat=supplies',image:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/660ba51ad445f22b83625c86_Walk-off-sportscards-toploader.webp',meta:'Sleeves, binders & protection'}
+    {slug:'sports-cards',label:'Sports',href:'/shop?cat=sports-cards',image:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/660ba51ad445f22b83625c86_Walk-off-sportscards-toploader.webp',meta:'Baseball, basketball, football & hockey'}
   ];
   var COOL_LINKS=[
     {slug:'preorders',label:'Comic Preorders',href:'/preorders',image:NAV_ART.comics,meta:'Pick exact covers before FOC'},
