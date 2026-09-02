@@ -622,13 +622,16 @@ function init(){
 }
 
 function showThemeNudge(){
-  try{if(sessionStorage.getItem('wo-theme-nudge-dismissed'))return;}catch(e){}
+  // Keep the invitation on the homepage, where it does not compete with the
+  // shop filters, preorder dialogs, authentication, or checkout controls.
+  if((location.pathname.replace(/\/$/,'')||'/')!=='/')return;
+  try{if(localStorage.getItem('wo-theme-nudge-dismissed'))return;}catch(e){}
   window.setTimeout(function(){
-    if(document.getElementById('mp-theme-nudge'))return;
+    if(document.getElementById('mp-theme-nudge')||document.querySelector('[aria-modal="true"]')||document.querySelector('#mp-floating-cart.is-visible'))return;
     var nudge=document.createElement('aside');nudge.id='mp-theme-nudge';nudge.setAttribute('aria-label','Choose your site theme');
     nudge.innerHTML='<strong>Make The Pocket yours.</strong><span>Pick a team, Pokémon, or MTG theme.</span><div><button type="button" data-mp-pick-theme>Pick a theme</button><button type="button" data-mp-dismiss-theme aria-label="Dismiss theme suggestion">Not now</button></div>';
     document.body.appendChild(nudge);
-    function dismiss(){nudge.remove();try{sessionStorage.setItem('wo-theme-nudge-dismissed','1');}catch(e){}}
+    function dismiss(){nudge.remove();try{localStorage.setItem('wo-theme-nudge-dismissed','1');}catch(e){}}
     nudge.querySelector('[data-mp-pick-theme]').addEventListener('click',function(){dismiss();openModal();});
     nudge.querySelector('[data-mp-dismiss-theme]').addEventListener('click',dismiss);
   },1600);
