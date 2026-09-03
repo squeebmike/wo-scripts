@@ -790,10 +790,14 @@ html.mp-home-boot body:not(.mp-home-redesign) .footer {
   .mp-next-show { padding: 11px 13px; }
   .mp-broadcast--player { min-height: 0; }
   .mp-broadcast--player .mp-broadcast-shell { min-height: 0; padding-block: 18px; }
-  .mp-broadcast--player .mp-live-viewer--landscape { aspect-ratio: auto; min-height: 300px; width: 100%; }
-  .mp-broadcast-player-copy { padding-top: 24px; }
-  .mp-broadcast-player-copy .mp-actions { width: 100%; }
-  .mp-broadcast-player-copy .mp-button { width: 100%; }
+  .mp-broadcast--player .mp-live-viewer--landscape { aspect-ratio: 16 / 9; min-height: 0; width: 100%; }
+  .mp-broadcast-player-copy { padding-top: 18px; }
+  .mp-broadcast-player-copy .mp-live-status { font-size: 9px; letter-spacing: .1em; margin-bottom: 10px; }
+  .mp-broadcast-player-copy .mp-live-status::before { height: 7px; width: 7px; }
+  .mp-broadcast-player-title { font-size: clamp(28px, 9vw, 38px); line-height: 1; }
+  .mp-broadcast-player-copy .mp-broadcast-text { font-size: 14px; line-height: 1.4; margin-top: 12px; max-width: 34rem; }
+  .mp-broadcast-player-copy .mp-actions { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; margin-top: 16px; width: 100%; }
+  .mp-broadcast-player-copy .mp-button { font-size: 10px; min-height: 44px; padding: 10px 8px; width: 100%; }
   .mp-next-show-details,
   .mp-next-show-empty { font-size: 13px; }
   .mp-shell { padding: 54px 16px; }
