@@ -126,16 +126,20 @@ html.mp-home-boot body:not(.mp-home-redesign) .footer {
 .mp-next-show-empty { color: inherit !important; font-size: 14px; line-height: 1.4; opacity: .78; white-space: pre-line; }
 .mp-broadcast--offair + .woh-hero { border-radius: 34px 34px 0 0; box-shadow: 0 -26px 64px var(--mp-shadow); margin-top: 0; z-index: 3; }
 .mp-broadcast--inperson + .woh-hero { border-radius: 34px 34px 0 0; box-shadow: 0 -26px 64px var(--mp-shadow); margin-top: 0; z-index: 3; }
-.mp-broadcast--live { min-height: 0; }
-.mp-broadcast--live .mp-broadcast-media { display: none; }
-.mp-broadcast--live .mp-broadcast-shell { align-items: center; display: grid; gap: clamp(28px, 5vw, 70px); grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); min-height: 0; padding-block: clamp(46px, 7vw, 96px); }
+.mp-broadcast--live,
+.mp-broadcast--player { min-height: 0; }
+.mp-broadcast--live .mp-broadcast-media,
+.mp-broadcast--player .mp-broadcast-media { display: none; }
+.mp-broadcast--live .mp-broadcast-shell,
+.mp-broadcast--player .mp-broadcast-shell { align-items: center; display: grid; gap: clamp(28px, 5vw, 70px); grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); min-height: 0; padding-block: clamp(46px, 7vw, 96px); }
 .mp-live-viewer { aspect-ratio: 16 / 9; background: var(--mp-panel); border: 1px solid var(--mp-line-strong); border-radius: 22px; box-shadow: 0 24px 70px var(--mp-shadow); overflow: hidden; }
 .mp-broadcast--portrait .mp-broadcast-shell { grid-template-columns: minmax(280px, .72fr) minmax(300px, 1fr); }
 .mp-live-viewer--portrait { aspect-ratio: 9 / 16; justify-self: center; max-height: min(76svh, 820px); width: min(100%, 460px); }
 .mp-live-viewer--landscape { aspect-ratio: 16 / 9; }
 .mp-live-viewer iframe { border: 0; height: 100%; width: 100%; }
 .mp-live-viewer-placeholder { align-items: center; color: var(--mp-copy-soft); display: flex; height: 100%; justify-content: center; padding: 28px; text-align: center; }
-.mp-broadcast--live + .woh-hero { margin-top: 0; }
+.mp-broadcast--live + .woh-hero,
+.mp-broadcast--player + .woh-hero { margin-top: 0; }
 
 .mp-home-redesign .woh-hero::before,
 .mp-home-redesign .mp-editorial::before {

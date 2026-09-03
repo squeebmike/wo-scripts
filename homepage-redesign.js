@@ -135,6 +135,20 @@ function prepareSchedule(data){
       data.videoOrientation=videoOrientation(active.videoOrientation||active.orientation||data.videoOrientation);
     }
   }
+  // Keep the channel player in the hero between shows. Prefer an active
+  // stream, then the next scheduled online show, then the most recent online
+  // event with a playable URL. This lets Twitch display its configured
+  // offline banner instead of replacing the entire player with site artwork.
+  var onlineEvents=events.filter(isOnlineEvent);
+  var recentOnline=onlineEvents.slice().sort(function(a,b){return(eventMoment(b,'start')||0)-(eventMoment(a,'start')||0);});
+  var playerEvent=(active&&isOnlineEvent(active)?active:null)||data.nextLive||recentOnline.find(function(event){return embedHref(event.embedUrl||event.embed||event.href||event.url);})||null;
+  if(!data.embedUrl&&playerEvent)data.embedUrl=embedHref(playerEvent.embedUrl||playerEvent.embed||playerEvent.href||playerEvent.url);
+  if(playerEvent){
+    data.playerTitle=playerEvent.title||data.playerTitle||'The Mana Pocket stream';
+    data.playerDescription=playerEvent.copy||playerEvent.description||data.playerDescription||'';
+    data.playerUrl=playerEvent.href||playerEvent.url||data.playerUrl||'';
+    data.videoOrientation=videoOrientation(playerEvent.videoOrientation||playerEvent.orientation||data.videoOrientation);
+  }
   if(data.embedUrl)data.embedUrl=embedHref(data.embedUrl)||data.embedUrl;
   if(data.live&&!data.embedUrl)data.embedUrl=embedHref(data.liveUrl);
   data.videoOrientation=videoOrientation(data.videoOrientation);
@@ -280,17 +294,23 @@ function renderBroadcast(stage,data){
   data=prepareSchedule(data);
   var active=data&&data.activeEvent;
   var live=Boolean(data&&data.live);
+  var hasPlayer=Boolean(data&&data.embedUrl);
   var inPerson=Boolean(active&&!isOnlineEvent(active));
-  stage.classList.toggle('mp-broadcast--live',live);stage.classList.toggle('mp-broadcast--inperson',inPerson);stage.classList.toggle('mp-broadcast--offair',!live&&!inPerson);
-  stage.classList.toggle('mp-broadcast--portrait',live&&data.videoOrientation==='portrait');stage.classList.toggle('mp-broadcast--landscape',live&&data.videoOrientation!=='portrait');
+  stage.classList.toggle('mp-broadcast--live',live);stage.classList.toggle('mp-broadcast--player',hasPlayer);stage.classList.toggle('mp-broadcast--inperson',inPerson);stage.classList.toggle('mp-broadcast--offair',!live&&!inPerson);
+  stage.classList.toggle('mp-broadcast--portrait',hasPlayer&&data.videoOrientation==='portrait');stage.classList.toggle('mp-broadcast--landscape',hasPlayer&&data.videoOrientation!=='portrait');
   var shell=stage.querySelector('.mp-broadcast-shell');if(!shell)return;
-  if(!live&&!inPerson&&stage.hasAttribute('data-mp-prerendered'))return;
+  if(!live&&!inPerson&&!hasPlayer&&stage.hasAttribute('data-mp-prerendered'))return;
   shell.innerHTML='';
-  if(live){
+  function streamViewer(){
     var viewer=el('div','mp-live-viewer mp-live-viewer--'+data.videoOrientation);
-    if(data.embedUrl){
-      var frame=document.createElement('iframe');frame.src=data.embedUrl;frame.title=data.liveTitle||'The Mana Pocket live show';frame.allow='autoplay; encrypted-media; picture-in-picture';frame.allowFullscreen=true;viewer.appendChild(frame);
-    }else{
+    var frame=document.createElement('iframe');frame.src=data.embedUrl;frame.title=data.liveTitle||data.playerTitle||'The Mana Pocket stream';frame.allow='autoplay; encrypted-media; picture-in-picture';frame.allowFullscreen=true;viewer.appendChild(frame);
+    return viewer;
+  }
+  if(live){
+    var viewer;
+    if(hasPlayer)viewer=streamViewer();
+    else{
+      viewer=el('div','mp-live-viewer mp-live-viewer--'+data.videoOrientation);
       viewer.appendChild(el('div','mp-live-viewer-placeholder','The live show is happening now. Open Whatnot to watch and shop.'));
     }
     var liveCopy=el('div','mp-broadcast-copy');liveCopy.appendChild(el('span','mp-live-status mp-live-status--on','Live now'));
@@ -299,6 +319,7 @@ function renderBroadcast(stage,data){
     var liveLink=link('Watch and shop live →',data.liveUrl||'https://www.whatnot.com/user/walkoffsportscards','mp-button');liveLink.target='_blank';liveLink.rel='noopener';liveCopy.appendChild(liveLink);
     shell.appendChild(viewer);shell.appendChild(liveCopy);
   }else if(inPerson){
+    if(hasPlayer)shell.appendChild(streamViewer());
     var eventCopy=el('div','mp-broadcast-copy');
     eventCopy.appendChild(el('span','mp-live-status mp-live-status--on','In person · Happening now'));
     eventCopy.appendChild(el('h2','mp-broadcast-title',active.title||'Come find The Mana Pocket.'));
@@ -308,6 +329,16 @@ function renderBroadcast(stage,data){
     var map=mapsHref(active);if(map){var mapLink=link('Open in Maps →',map,'mp-button');mapLink.target='_blank';mapLink.rel='noopener';eventActions.appendChild(mapLink);}
     eventActions.appendChild(link('See the full schedule ↓','#pocket-calendar','mp-button mp-button--ghost'));
     eventCopy.appendChild(eventActions);shell.appendChild(eventCopy);
+  }else if(hasPlayer){
+    shell.appendChild(streamViewer());
+    var channelCopy=el('div','mp-broadcast-copy');
+    channelCopy.appendChild(el('span','mp-live-status','Channel player · Currently offline'));
+    channelCopy.appendChild(el('h2','mp-broadcast-title',data.playerTitle||'Watch The Mana Pocket.'));
+    channelCopy.appendChild(el('p','mp-broadcast-text',data.playerDescription||'The player stays ready here between shows. Follow the channel to know when the lights come on.'));
+    var channelActions=el('div','mp-actions');
+    var channelLink=link('Open the channel →',data.playerUrl||'https://www.twitch.tv/ShopTheManaPocket','mp-button');channelLink.target='_blank';channelLink.rel='noopener';channelActions.appendChild(channelLink);
+    channelActions.appendChild(link('See the schedule ↓','#pocket-calendar','mp-button mp-button--ghost'));
+    channelCopy.appendChild(channelActions);shell.appendChild(channelCopy);
   }else{
     var copy=el('div','mp-broadcast-copy');copy.appendChild(el('span','mp-live-status','Off air · The lights are out'));
     copy.appendChild(el('h2','mp-broadcast-title','The shop is dark. For now.'));
