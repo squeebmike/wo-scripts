@@ -306,9 +306,19 @@ function renderBroadcast(stage,data){
     var frame=document.createElement('iframe');frame.src=data.embedUrl;frame.title=data.liveTitle||data.playerTitle||'The Mana Pocket stream';frame.allow='autoplay; encrypted-media; picture-in-picture';frame.allowFullscreen=true;viewer.appendChild(frame);
     return viewer;
   }
-  // The player is the hero. Event names, offline instructions, and buttons
-  // belong in the calendar below, where they cannot squeeze the video.
-  if(hasPlayer){shell.appendChild(streamViewer());return;}
+  // Keep the player full width, then place the useful show information below
+  // it. The most recent event title is not reused while the channel is off.
+  if(hasPlayer){
+    shell.appendChild(streamViewer());
+    var playerCopy=el('div','mp-broadcast-copy mp-broadcast-player-copy');
+    playerCopy.appendChild(el('span','mp-live-status'+(live?' mp-live-status--on':''),live?'Live now':'Channel player · Currently offline'));
+    playerCopy.appendChild(el('h2','mp-broadcast-player-title',live?(data.liveTitle||'The Mana Pocket is live.'):'The Mana Pocket Live'));
+    playerCopy.appendChild(el('p','mp-broadcast-text',live?(data.liveDescription||'Watch the show right here.'):'The player stays ready here between shows. Follow the channel to know when the lights come on.'));
+    var playerActions=el('div','mp-actions');
+    var playerLink=link(live?'Watch on the channel →':'Open the channel →',data.liveUrl||data.playerUrl||'https://www.twitch.tv/ShopTheManaPocket','mp-button');playerLink.target='_blank';playerLink.rel='noopener';playerActions.appendChild(playerLink);
+    playerActions.appendChild(link('See the schedule ↓','#pocket-calendar','mp-button mp-button--ghost'));
+    playerCopy.appendChild(playerActions);shell.appendChild(playerCopy);return;
+  }
   if(live){
     var viewer=el('div','mp-live-viewer mp-live-viewer--'+data.videoOrientation);
     viewer.appendChild(el('div','mp-live-viewer-placeholder','The live show is happening now. Open Whatnot to watch and shop.'));

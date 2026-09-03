@@ -17,7 +17,8 @@ assert.match(context.embedHref('https://player.twitch.tv/?channel=manapocket'),/
 assert.match(source,/embedHref\(active\.embedUrl\|\|active\.embed\)/,'CMS embed fields must be normalized, not trusted as iframe-ready URLs');
 assert.match(source,/recentOnline\.find\(function\(event\)\{return embedHref/,'the most recent playable online event must keep the player available between shows');
 assert.match(source,/stage\.classList\.toggle\('mp-broadcast--player',hasPlayer\)/,'the broadcast stage must enter persistent player layout whenever an embed is available');
-assert.match(source,/if\(hasPlayer\)\{shell\.appendChild\(streamViewer\(\)\);return;\}/,'the persistent player must take the full hero without a competing information column');
-assert.doesNotMatch(source,/Channel player · Currently offline/,'offline event copy must not squeeze the player or expose an old event title');
+assert.match(source,/if\(hasPlayer\)\{[\s\S]*shell\.appendChild\(streamViewer\(\)\)/,'the persistent player must render before its information section');
+assert.match(source,/mp-broadcast-copy mp-broadcast-player-copy/,'player information must use a dedicated below-player layout');
+assert.match(source,/'The Mana Pocket Live'/,'the offline player must use a stable title instead of an expired event name');
 
 console.log('Homepage YouTube and Twitch embed checks passed');
