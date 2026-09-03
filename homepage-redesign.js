@@ -306,20 +306,18 @@ function renderBroadcast(stage,data){
     var frame=document.createElement('iframe');frame.src=data.embedUrl;frame.title=data.liveTitle||data.playerTitle||'The Mana Pocket stream';frame.allow='autoplay; encrypted-media; picture-in-picture';frame.allowFullscreen=true;viewer.appendChild(frame);
     return viewer;
   }
+  // The player is the hero. Event names, offline instructions, and buttons
+  // belong in the calendar below, where they cannot squeeze the video.
+  if(hasPlayer){shell.appendChild(streamViewer());return;}
   if(live){
-    var viewer;
-    if(hasPlayer)viewer=streamViewer();
-    else{
-      viewer=el('div','mp-live-viewer mp-live-viewer--'+data.videoOrientation);
-      viewer.appendChild(el('div','mp-live-viewer-placeholder','The live show is happening now. Open Whatnot to watch and shop.'));
-    }
+    var viewer=el('div','mp-live-viewer mp-live-viewer--'+data.videoOrientation);
+    viewer.appendChild(el('div','mp-live-viewer-placeholder','The live show is happening now. Open Whatnot to watch and shop.'));
     var liveCopy=el('div','mp-broadcast-copy');liveCopy.appendChild(el('span','mp-live-status mp-live-status--on','Live now'));
     liveCopy.appendChild(el('h2','mp-broadcast-title',data.liveTitle||'We are live at The Mana Pocket.'));
     if(data.liveDescription)liveCopy.appendChild(el('p','mp-broadcast-text',data.liveDescription));
     var liveLink=link('Watch and shop live →',data.liveUrl||'https://www.whatnot.com/user/walkoffsportscards','mp-button');liveLink.target='_blank';liveLink.rel='noopener';liveCopy.appendChild(liveLink);
     shell.appendChild(viewer);shell.appendChild(liveCopy);
   }else if(inPerson){
-    if(hasPlayer)shell.appendChild(streamViewer());
     var eventCopy=el('div','mp-broadcast-copy');
     eventCopy.appendChild(el('span','mp-live-status mp-live-status--on','In person · Happening now'));
     eventCopy.appendChild(el('h2','mp-broadcast-title',active.title||'Come find The Mana Pocket.'));
@@ -329,16 +327,6 @@ function renderBroadcast(stage,data){
     var map=mapsHref(active);if(map){var mapLink=link('Open in Maps →',map,'mp-button');mapLink.target='_blank';mapLink.rel='noopener';eventActions.appendChild(mapLink);}
     eventActions.appendChild(link('See the full schedule ↓','#pocket-calendar','mp-button mp-button--ghost'));
     eventCopy.appendChild(eventActions);shell.appendChild(eventCopy);
-  }else if(hasPlayer){
-    shell.appendChild(streamViewer());
-    var channelCopy=el('div','mp-broadcast-copy');
-    channelCopy.appendChild(el('span','mp-live-status','Channel player · Currently offline'));
-    channelCopy.appendChild(el('h2','mp-broadcast-title',data.playerTitle||'Watch The Mana Pocket.'));
-    channelCopy.appendChild(el('p','mp-broadcast-text',data.playerDescription||'The player stays ready here between shows. Follow the channel to know when the lights come on.'));
-    var channelActions=el('div','mp-actions');
-    var channelLink=link('Open the channel →',data.playerUrl||'https://www.twitch.tv/ShopTheManaPocket','mp-button');channelLink.target='_blank';channelLink.rel='noopener';channelActions.appendChild(channelLink);
-    channelActions.appendChild(link('See the schedule ↓','#pocket-calendar','mp-button mp-button--ghost'));
-    channelCopy.appendChild(channelActions);shell.appendChild(channelCopy);
   }else{
     var copy=el('div','mp-broadcast-copy');copy.appendChild(el('span','mp-live-status','Off air · The lights are out'));
     copy.appendChild(el('h2','mp-broadcast-title','The shop is dark. For now.'));

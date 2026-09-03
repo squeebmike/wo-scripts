@@ -130,8 +130,8 @@ html.mp-home-boot body:not(.mp-home-redesign) .footer {
 .mp-broadcast--player { min-height: 0; }
 .mp-broadcast--live .mp-broadcast-media,
 .mp-broadcast--player .mp-broadcast-media { display: none; }
-.mp-broadcast--live .mp-broadcast-shell,
-.mp-broadcast--player .mp-broadcast-shell { align-items: center; display: grid; gap: clamp(28px, 5vw, 70px); grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); min-height: 0; padding-block: clamp(46px, 7vw, 96px); }
+.mp-broadcast--live .mp-broadcast-shell { align-items: center; display: grid; gap: clamp(28px, 5vw, 70px); grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); min-height: 0; padding-block: clamp(46px, 7vw, 96px); }
+.mp-broadcast--player .mp-broadcast-shell { display: block; min-height: 0; padding-block: clamp(26px, 4vw, 58px); }
 .mp-live-viewer { aspect-ratio: 16 / 9; background: var(--mp-panel); border: 1px solid var(--mp-line-strong); border-radius: 22px; box-shadow: 0 24px 70px var(--mp-shadow); overflow: hidden; }
 .mp-broadcast--portrait .mp-broadcast-shell { grid-template-columns: minmax(280px, .72fr) minmax(300px, 1fr); }
 .mp-live-viewer--portrait { aspect-ratio: 9 / 16; justify-self: center; max-height: min(76svh, 820px); width: min(100%, 460px); }
@@ -758,7 +758,8 @@ html.mp-home-boot body:not(.mp-home-redesign) .footer {
 }
 
 @media (max-width: 840px) {
-  .mp-broadcast--live .mp-broadcast-shell { grid-template-columns: 1fr; }
+  .mp-broadcast--live .mp-broadcast-shell,
+  .mp-broadcast--player .mp-broadcast-shell { grid-template-columns: 1fr; }
   .mp-live-viewer--portrait { max-height: 68svh; width: min(100%, 410px); }
   .mp-hero-grid { grid-template-columns: 1fr; padding-top: 28px; }
   .mp-hero-art { min-height: 0; }
@@ -783,6 +784,9 @@ html.mp-home-boot body:not(.mp-home-redesign) .footer {
   .mp-broadcast-text{font-size:16px;line-height:1.42;margin-top:16px}
   .mp-next-shows { gap: 8px; margin-top: 18px; }
   .mp-next-show { padding: 11px 13px; }
+  .mp-broadcast--player { min-height: 0; }
+  .mp-broadcast--player .mp-broadcast-shell { min-height: 0; padding-block: 18px; }
+  .mp-broadcast--player .mp-live-viewer--landscape { aspect-ratio: auto; min-height: 300px; width: 100%; }
   .mp-next-show-details,
   .mp-next-show-empty { font-size: 13px; }
   .mp-shell { padding: 54px 16px; }
