@@ -21,7 +21,7 @@ assert.match(source,/stage\.classList\.toggle\('mp-broadcast--player',hasPlayer\
 assert.match(source,/if\(hasPlayer\)\{[\s\S]*var persistentViewer=streamViewer\(\);shell\.appendChild\(persistentViewer\)/,'the persistent player must render before its information section');
 assert.match(source,/mp-broadcast-copy mp-broadcast-player-copy/,'player information must use a dedicated below-player layout');
 assert.match(source,/'The Mana Pocket Live'/,'the offline player must use a stable title instead of an expired event name');
-assert.match(source,/OFFLINE_STREAM_IMAGE=CONFIG\.offlineStreamImage\|\|assetBase\+'assets\/mana-pocket-offline\.png'/,'the offline poster must be served alongside the pinned homepage script');
+assert.match(source,/OFFLINE_STREAM_IMAGE=CONFIG\.offlineStreamImage\|\|assetBase\+'assets\/mana-pocket-offline\.avif'/,'the offline poster must be served alongside the pinned homepage script');
 assert.match(source,/new Twitch\.Player\(host\.id,\{width:'100%',height:'100%',channel:channel/,'Twitch channels must use the player SDK so live state can be detected');
 assert.match(source,/Twitch\.Player\.OFFLINE/,'the Twitch player must switch to the custom poster when the channel is offline');
 assert.match(source,/Twitch\.Player\.ONLINE/,'the Twitch player must reveal the live stream when the channel comes online');

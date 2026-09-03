@@ -7,7 +7,7 @@ var scriptUrl=(document.currentScript&&document.currentScript.src)||'';
 var assetBase=scriptUrl.replace(/homepage-redesign\.js(?:\?.*)?$/,'');
 var SCHEDULE_URL=CONFIG.scheduleUrl||'https://still-resonance-4f87.swarnerauto.workers.dev/public/events';
 var OFF_AIR_IMAGE='https://cdn.prod.website-files.com/65b15ee0228d06647ca7e4ce/6a7ceed727942e7f2a329aff_manapocketstorefront.avif';
-var OFFLINE_STREAM_IMAGE=CONFIG.offlineStreamImage||assetBase+'assets/mana-pocket-offline.png';
+var OFFLINE_STREAM_IMAGE=CONFIG.offlineStreamImage||assetBase+'assets/mana-pocket-offline.avif';
 
 function getInventory(){
   if(window.ManaPocketInventory&&typeof window.ManaPocketInventory.get==='function')return window.ManaPocketInventory.get();
