@@ -50,10 +50,41 @@ function mapsHref(event){
   return location?'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(location):'';
 }
 
+function twitchParent(){
+  var host=String(window.location&&window.location.hostname||'').trim().toLowerCase();
+  return host||'themanapocket.com';
+}
+
 function embedHref(url){
   url=String(url||'').trim();if(!url)return'';
   var match=url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|live\/|shorts\/|embed\/))([\w-]{6,})/i);
-  if(match)return'https://www.youtube.com/embed/'+match[1]+'?autoplay=1';
+  if(match)return'https://www.youtube.com/embed/'+match[1]+'?autoplay=1&mute=1&playsinline=1';
+  try{
+    var parsed=new URL(url,/^https?:/i.test(url)?undefined:'https://www.twitch.tv');
+    var host=parsed.hostname.toLowerCase().replace(/^www\.|^m\./,'');
+    var parts=parsed.pathname.split('/').filter(Boolean);
+    var parent=encodeURIComponent(twitchParent());
+    if(host==='clips.twitch.tv'&&parts[0]&&parts[0].toLowerCase()!=='embed'){
+      return'https://clips.twitch.tv/embed?clip='+encodeURIComponent(parts[0])+'&parent='+parent+'&autoplay=true&muted=true';
+    }
+    if(host==='twitch.tv'){
+      if(parts[0]&&parts[1]&&parts[1].toLowerCase()==='clip'&&parts[2]){
+        return'https://clips.twitch.tv/embed?clip='+encodeURIComponent(parts[2])+'&parent='+parent+'&autoplay=true&muted=true';
+      }
+      if(parts[0]&&parts[0].toLowerCase()==='videos'&&parts[1]){
+        return'https://player.twitch.tv/?video=v'+encodeURIComponent(parts[1].replace(/^v/i,''))+'&parent='+parent+'&autoplay=true&muted=true';
+      }
+      if(parts[0]&&!/^(?:directory|downloads|jobs|p|search|settings|subscriptions|videos)$/i.test(parts[0])){
+        return'https://player.twitch.tv/?channel='+encodeURIComponent(parts[0])+'&parent='+parent+'&autoplay=true&muted=true';
+      }
+    }
+    if(host==='player.twitch.tv'||(host==='clips.twitch.tv'&&parts[0]&&parts[0].toLowerCase()==='embed')){
+      parsed.searchParams.set('parent',twitchParent());
+      parsed.searchParams.set('autoplay','true');
+      parsed.searchParams.set('muted','true');
+      return parsed.toString();
+    }
+  }catch(error){}
   return/\/embed\//i.test(url)?url:'';
 }
 
@@ -100,10 +131,11 @@ function prepareSchedule(data){
       data.liveTitle=active.title||data.liveTitle;
       data.liveDescription=active.copy||active.description||[active.when,active.location].filter(Boolean).join(' · ')||data.liveDescription;
       data.liveUrl=active.href||active.url||data.liveUrl;
-      data.embedUrl=active.embedUrl||active.embed||embedHref(active.href||active.url)||data.embedUrl||embedHref(data.liveUrl);
+      data.embedUrl=embedHref(active.embedUrl||active.embed)||embedHref(active.href||active.url)||embedHref(data.embedUrl)||embedHref(data.liveUrl);
       data.videoOrientation=videoOrientation(active.videoOrientation||active.orientation||data.videoOrientation);
     }
   }
+  if(data.embedUrl)data.embedUrl=embedHref(data.embedUrl)||data.embedUrl;
   if(data.live&&!data.embedUrl)data.embedUrl=embedHref(data.liveUrl);
   data.videoOrientation=videoOrientation(data.videoOrientation);
   return data;
@@ -543,7 +575,7 @@ function readCmsSchedule(){
       location:field(item,'location'),
       copy:field(item,'description'),
       href:href||'',
-      embedUrl:embedUrl||embedHref(href),
+      embedUrl:embedHref(embedUrl)||embedHref(href),
       videoOrientation:videoOrientation(orientation),
       mapsUrl:mapsUrl,
       cta:href?(online?'Watch or view show →':'View event details →'):'',
