@@ -142,7 +142,7 @@ html.mp-home-boot body:not(.mp-home-redesign) .footer {
 .mp-live-viewer--landscape { aspect-ratio: 16 / 9; }
 .mp-live-viewer iframe { border: 0; height: 100%; width: 100%; }
 .mp-stream-offline-still { display: block; height: 100%; inset: 0; object-fit: cover; object-position: center; position: absolute; transition: opacity .25s ease; width: 100%; }
-.mp-stream-offline-badge { backdrop-filter: blur(10px); background: color-mix(in srgb, var(--mp-bg) 82%, transparent); border: 1px solid color-mix(in srgb, var(--mp-highlight) 52%, transparent); border-radius: 999px; color: var(--mp-copy) !important; font-size: 11px; font-weight: 900; left: 18px; letter-spacing: .11em; padding: 9px 13px; position: absolute; text-transform: uppercase; top: 18px; transition: opacity .2s ease; z-index: 2; }
+.mp-stream-offline-badge { backdrop-filter: blur(10px); background: color-mix(in srgb, var(--mp-bg) 82%, transparent); border: 1px solid color-mix(in srgb, var(--mp-highlight) 52%, transparent); border-radius: 999px; color: var(--mp-copy) !important; font-size: 11px; font-weight: 900; letter-spacing: .11em; padding: 9px 13px; position: absolute; right: 18px; text-transform: uppercase; top: 18px; transition: opacity .2s ease; z-index: 2; }
 .mp-twitch-player-host { height: 100%; inset: 0; opacity: 0; pointer-events: none; position: absolute; transition: opacity .25s ease; width: 100%; }
 .mp-twitch-player-host iframe { display: block; }
 .mp-live-viewer--twitch.is-online .mp-stream-offline-still,
