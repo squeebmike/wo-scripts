@@ -4,8 +4,10 @@
 var API_BASE='https://wo-checkout.swarnerauto.workers.dev';
 var CONFIG=window.MANA_HOMEPAGE_CONFIG||{};
 var scriptUrl=(document.currentScript&&document.currentScript.src)||'';
+var assetBase=scriptUrl.replace(/homepage-redesign\.js(?:\?.*)?$/,'');
 var SCHEDULE_URL=CONFIG.scheduleUrl||'https://still-resonance-4f87.swarnerauto.workers.dev/public/events';
 var OFF_AIR_IMAGE='https://cdn.prod.website-files.com/65b15ee0228d06647ca7e4ce/6a7ceed727942e7f2a329aff_manapocketstorefront.avif';
+var OFFLINE_STREAM_IMAGE=CONFIG.offlineStreamImage||assetBase+'assets/mana-pocket-offline.png';
 
 function getInventory(){
   if(window.ManaPocketInventory&&typeof window.ManaPocketInventory.get==='function')return window.ManaPocketInventory.get();
@@ -88,6 +90,31 @@ function embedHref(url){
   return/\/embed\//i.test(url)?url:'';
 }
 
+function twitchChannel(embedUrl){
+  try{
+    var parsed=new URL(String(embedUrl||''));
+    return parsed.hostname.toLowerCase()==='player.twitch.tv'?String(parsed.searchParams.get('channel')||'').trim():'';
+  }catch(error){return'';}
+}
+
+function loadTwitchPlayer(){
+  if(window.Twitch&&window.Twitch.Player)return Promise.resolve(window.Twitch);
+  if(window.__MP_TWITCH_PLAYER_PROMISE__)return window.__MP_TWITCH_PLAYER_PROMISE__;
+  window.__MP_TWITCH_PLAYER_PROMISE__=new Promise(function(resolve,reject){
+    var sdk=document.querySelector('script[data-mp-twitch-player]');
+    if(!sdk){
+      sdk=document.createElement('script');
+      sdk.src='https://player.twitch.tv/js/embed/v1.js';
+      sdk.async=true;
+      sdk.setAttribute('data-mp-twitch-player','');
+      document.head.appendChild(sdk);
+    }
+    sdk.addEventListener('load',function(){if(window.Twitch&&window.Twitch.Player)resolve(window.Twitch);else reject(new Error('Twitch player unavailable'));},{once:true});
+    sdk.addEventListener('error',function(){reject(new Error('Twitch player failed to load'));},{once:true});
+  }).catch(function(error){window.__MP_TWITCH_PLAYER_PROMISE__=null;throw error;});
+  return window.__MP_TWITCH_PLAYER_PROMISE__;
+}
+
 function videoOrientation(value){
   value=String(value||'').trim().toLowerCase();
   return/portrait|vertical|9\s*[:x/]\s*16/.test(value)?'portrait':'landscape';
@@ -137,8 +164,8 @@ function prepareSchedule(data){
   }
   // Keep the channel player in the hero between shows. Prefer an active
   // stream, then the next scheduled online show, then the most recent online
-  // event with a playable URL. This lets Twitch display its configured
-  // offline banner instead of replacing the entire player with site artwork.
+  // event with a playable URL. Twitch channels use our own offline poster and
+  // reveal the embedded player only after Twitch reports that the channel is live.
   var onlineEvents=events.filter(isOnlineEvent);
   var recentOnline=onlineEvents.slice().sort(function(a,b){return(eventMoment(b,'start')||0)-(eventMoment(a,'start')||0);});
   var playerEvent=(active&&isOnlineEvent(active)?active:null)||data.nextLive||recentOnline.find(function(event){return embedHref(event.embedUrl||event.embed||event.href||event.url);})||null;
@@ -303,21 +330,47 @@ function renderBroadcast(stage,data){
   shell.innerHTML='';
   function streamViewer(){
     var viewer=el('div','mp-live-viewer mp-live-viewer--'+data.videoOrientation);
-    var frame=document.createElement('iframe');frame.src=data.embedUrl;frame.title=data.liveTitle||data.playerTitle||'The Mana Pocket stream';frame.allow='autoplay; encrypted-media; picture-in-picture';frame.allowFullscreen=true;viewer.appendChild(frame);
+    var channel=twitchChannel(data.embedUrl);
+    if(channel){
+      viewer.classList.add('mp-live-viewer--twitch','is-offline');
+      var still=document.createElement('img');still.className='mp-stream-offline-still';still.src=OFFLINE_STREAM_IMAGE;still.alt='Inside The Mana Pocket card, comic, and collectibles shop';still.decoding='async';still.fetchPriority='high';viewer.appendChild(still);
+      viewer.appendChild(el('span','mp-stream-offline-badge','Offline · The Mana Pocket'));
+      var host=el('div','mp-twitch-player-host');host.id='mp-twitch-player-'+Math.random().toString(36).slice(2);viewer.appendChild(host);
+      function setOnline(online){
+        viewer.classList.toggle('is-online',online);viewer.classList.toggle('is-offline',!online);
+        viewer.dispatchEvent(new CustomEvent('mp:twitch-state',{detail:{online:online}}));
+      }
+      loadTwitchPlayer().then(function(Twitch){
+        var player=new Twitch.Player(host.id,{width:'100%',height:'100%',channel:channel,parent:[twitchParent()],autoplay:true,muted:true});
+        player.addEventListener(Twitch.Player.ONLINE,function(){setOnline(true);});
+        player.addEventListener(Twitch.Player.PLAYING,function(){setOnline(true);});
+        player.addEventListener(Twitch.Player.OFFLINE,function(){setOnline(false);});
+      }).catch(function(){setOnline(false);});
+    }else{
+      var frame=document.createElement('iframe');frame.src=data.embedUrl;frame.title=data.liveTitle||data.playerTitle||'The Mana Pocket stream';frame.allow='autoplay; encrypted-media; picture-in-picture';frame.allowFullscreen=true;viewer.appendChild(frame);
+    }
     return viewer;
   }
   // Keep the player full width, then place the useful show information below
   // it. The most recent event title is not reused while the channel is off.
   if(hasPlayer){
-    shell.appendChild(streamViewer());
+    var persistentViewer=streamViewer();shell.appendChild(persistentViewer);
     var playerCopy=el('div','mp-broadcast-copy mp-broadcast-player-copy');
-    playerCopy.appendChild(el('span','mp-live-status'+(live?' mp-live-status--on':''),live?'Live now':'Channel player · Currently offline'));
-    playerCopy.appendChild(el('h2','mp-broadcast-player-title',live?(data.liveTitle||'The Mana Pocket is live.'):'The Mana Pocket Live'));
-    playerCopy.appendChild(el('p','mp-broadcast-text',live?(data.liveDescription||'Watch the show right here.'):'The player stays ready here between shows. Follow the channel to know when the lights come on.'));
+    var playerStatus=el('span','mp-live-status'+(live?' mp-live-status--on':''),live?'Live now':'Channel player · Currently offline');playerCopy.appendChild(playerStatus);
+    var playerTitle=el('h2','mp-broadcast-player-title',live?(data.liveTitle||'The Mana Pocket is live.'):'The Mana Pocket Live');playerCopy.appendChild(playerTitle);
+    var playerText=el('p','mp-broadcast-text',live?(data.liveDescription||'Watch the show right here.'):'The player stays ready here between shows. Follow the channel to know when the lights come on.');playerCopy.appendChild(playerText);
     var playerActions=el('div','mp-actions');
     var playerLink=link(live?'Watch on the channel →':'Open the channel →',data.liveUrl||data.playerUrl||'https://www.twitch.tv/ShopTheManaPocket','mp-button');playerLink.target='_blank';playerLink.rel='noopener';playerActions.appendChild(playerLink);
     playerActions.appendChild(link('See the schedule ↓','#pocket-calendar','mp-button mp-button--ghost'));
-    playerCopy.appendChild(playerActions);shell.appendChild(playerCopy);return;
+    playerCopy.appendChild(playerActions);shell.appendChild(playerCopy);
+    persistentViewer.addEventListener('mp:twitch-state',function(event){
+      var online=Boolean(event.detail&&event.detail.online);
+      playerStatus.className='mp-live-status'+(online?' mp-live-status--on':'');playerStatus.textContent=online?'Live now':'Channel player · Currently offline';
+      playerTitle.textContent=online?(data.liveTitle||'The Mana Pocket is live.'):'The Mana Pocket Live';
+      playerText.textContent=online?(data.liveDescription||'Watch the show right here.'):'The player stays ready here between shows. Follow the channel to know when the lights come on.';
+      playerLink.textContent=online?'Watch on the channel →':'Open the channel →';
+    });
+    return;
   }
   if(live){
     var viewer=el('div','mp-live-viewer mp-live-viewer--'+data.videoOrientation);
