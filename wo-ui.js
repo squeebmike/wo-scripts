@@ -725,7 +725,7 @@ function setupTawkChat(){
 
 function polishNavigationLegacy(){
   var BRAND_LOGO='https://cdn.prod.website-files.com/65b15ee0228d06647ca7e4ce/6a7ce98ab3d4819b7565620e_the_mana_pocket_patch_1024x1024.png';
-  var NAV_ART={pokemon:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/689e2e9b0b61d05b57a6a18c_528101.png',mtg:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/689e2f59be5af6c64cb995fa_kUGrOfO52dHzh1dVagvNC_g5oxgbj54hRC1yXYglWEqJqFUOkY27B1TwR8BNlwA2eXgrS5w6DceZLxF0vRxkmA.webp',publishing:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/689e2ec0304edc5e3eeb23fc_17901866.png',comics:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/689e2e890d0df61202404a9c_4683513.png'};
+  var NAV_ART={pokemon:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/689e2e9b0b61d05b57a6a18c_528101.png',mtg:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/689e2f59be5af6c64cb995fa_kUGrOfO52dHzh1dVagvNC_g5oxgbj54hRC1yXYglWEqJqFUOkY27B1TwR8BNlwA2eXgrS5w6DceZLxF0vRxkmA.webp',publishing:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/689e2ec0304edc5e3eeb23fc_17901866.png',comics:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/689e2e890d0df61202404a9c_4683513.png',sports:'https://still-resonance-4f87.swarnerauto.workers.dev/pocket-scout/photo/pocket-scout/0f9dd4bc-42a7-487e-a972-2905d24513e9/3b0d65b0-4ed9-4cb2-9b0d-e389f01381a5/1787953880877-919a03f2-1279-4ce8-b117-4868667a13a9.jpeg'};
   var SHOP_LINKS=[
     {label:'All',href:'/shop',image:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/6a7ce98ab3d4819b7565620e_the_mana_pocket_patch_1024x1024.png'},
     {label:'Pokémon',href:'/shop?cat=pokemon',image:NAV_ART.pokemon},
@@ -788,7 +788,7 @@ function polishNavigation(){
     {slug:'pokemon',label:'Pok\u00e9mon',href:'/shop?cat=pokemon',image:NAV_ART.pokemon,meta:'Singles, slabs & sealed'},
     {slug:'mtg',label:'MTG',href:'/shop?cat=mtg',image:NAV_ART.mtg,meta:'Cards, decks & sealed'},
     {slug:'comics',label:'Comics',href:'/shop?cat=comics',image:NAV_ART.comics,meta:'Keys, variants & new books'},
-    {slug:'sports-cards',label:'Sports',href:'/shop?cat=sports-cards',image:'https://s3.amazonaws.com/webflow-prod-assets/65b15ee0228d06647ca7e4ce/660ba51ad445f22b83625c86_Walk-off-sportscards-toploader.webp',meta:'Baseball, basketball, football & hockey'}
+    {slug:'sports-cards',label:'Sports',href:'/shop?cat=sports-cards',image:NAV_ART.sports,meta:'Baseball, basketball, football & hockey'}
   ];
   var COOL_LINKS=[
     {slug:'preorders',label:'Comic Preorders',href:'/preorders',image:NAV_ART.comics,meta:'Pick exact covers before FOC'},
@@ -802,6 +802,7 @@ function polishNavigation(){
     if(/pokemon|pok\u00e9mon/.test(value))return'pokemon';
     if(/magic|mtg/.test(value))return'mtg';
     if(/comic/.test(value))return'comics';
+    if(/sport|baseball|basketball|football|hockey|soccer|topps|panini|bowman/.test(value))return'sports-cards';
     if(/supply|sleeve|binder|toploader|playmat|storage/.test(value))return'supplies';
     return'all';
   }

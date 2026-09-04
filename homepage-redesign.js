@@ -467,7 +467,7 @@ var CATEGORY_CONFIG=[
   {slug:'sports-cards',label:'Sports',meta:'Baseball · basketball · football',href:'/shop?cat=sports-cards'},
   {slug:'comics',label:'Comics',meta:'Keys · variants · signed books',href:'/shop?cat=comics'},
   {slug:'collectibles',label:'Collectibles',meta:'Figures · apparel · weird stuff',href:'/shop?cat=collectibles'},
-  {slug:'sports-cards',label:'Sports',meta:'Baseball · basketball · football · hockey',href:'/shop?cat=sports-cards'}
+  {slug:'supplies',label:'Supplies',meta:'Sleeves · toploaders · binders',href:'/shop?cat=supplies'}
 ];
 
 function buildCategories(mount,items){
