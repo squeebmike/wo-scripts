@@ -8,6 +8,8 @@ var quote={cents:null,loading:false,error:'',label:''};
 var quoteTimer=0;
 var paymentRuntime=null;
 var mousedownTarget=null;
+var returnFocus=null;
+var previousOverflow='';
 // 'regular' (the normal in-stock cart) or 'preorder' (one FOC cycle's
 // comic lines) -- the exact same mp-sfc-panel modal renders either way,
 // this just decides which fields/copy/backend route it uses. preorderCtx
@@ -35,6 +37,7 @@ function addStyles(){
   var style=document.createElement('style');style.id='mp-storefront-checkout-css';style.textContent='\
 #mp-storefront-checkout{position:fixed;inset:0;z-index:2147483000;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.72);backdrop-filter:blur(5px)}\
 #mp-storefront-checkout.is-open{display:flex}.mp-sfc-panel{width:min(620px,100%);max-height:92dvh;overflow:auto;box-sizing:border-box;padding:clamp(20px,4vw,34px);border:2px solid var(--wo-border,var(--wo-accent,#8bd450));border-radius:22px;background:var(--wo-surface,#20152d);color:var(--wo-text,#fff);box-shadow:0 28px 90px rgba(0,0,0,.55)}\
+#mp-storefront-checkout [hidden]{display:none!important}\
 .mp-sfc-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}.mp-sfc-head h2{margin:0;font-size:clamp(26px,5vw,38px);line-height:1}.mp-sfc-kicker{margin:0 0 8px;color:var(--wo-accent,#8bd450);font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}.mp-sfc-close{width:48px;height:48px;flex:0 0 48px;border:1px solid currentColor;border-radius:50%;background:transparent;color:inherit;font-size:32px;line-height:1;cursor:pointer}\
 .mp-sfc-options{display:grid;gap:10px;margin-bottom:18px}.mp-sfc-option{display:block;padding:14px 16px;border:2px solid rgba(255,255,255,.2);border-radius:13px;cursor:pointer}.mp-sfc-option.selected{border-color:var(--wo-accent,#8bd450);background:rgba(139,212,80,.11)}.mp-sfc-option input{margin-right:9px}.mp-sfc-option strong{font-size:16px}.mp-sfc-option span{display:block;margin:5px 0 0 26px;opacity:.76;font-size:13px;line-height:1.4}\
 .mp-sfc-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}.mp-sfc-field{display:grid;gap:6px}.mp-sfc-field.full{grid-column:1/-1}.mp-sfc-field label{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.mp-sfc-field input{width:100%;box-sizing:border-box;padding:13px 14px;border:1px solid rgba(255,255,255,.25);border-radius:10px;background:var(--wo-surface-alt,#130d1c);color:var(--wo-text,#fff);font:inherit}.mp-sfc-field input:focus{outline:3px solid rgba(139,212,80,.35);border-color:var(--wo-accent,#8bd450)}\
@@ -61,7 +64,19 @@ function panel(){
   var optionsHtml=options.map(function(opt,i){return'<label class="mp-sfc-option'+(i===0?' selected':'')+'"><input type="radio" name="mp-fulfillment" value="'+opt[0]+'"'+(i===0?' checked':'')+'><strong>'+opt[1]+'</strong><span>'+opt[2]+'</span></label>';}).join('');
   return'<div class="mp-sfc-panel" role="dialog" aria-modal="true" aria-labelledby="mp-sfc-title"><div class="mp-sfc-head"><div><p class="mp-sfc-kicker">'+kicker+'</p><h2 id="mp-sfc-title">'+heading+'</h2></div><button class="mp-sfc-close" type="button" data-close aria-label="Close checkout">&times;</button></div><div id="mp-sfc-content"><form data-sfc-form autocomplete="on"><div class="mp-sfc-options" data-method-options>'+optionsHtml+'</div><div class="mp-sfc-grid"><div class="mp-sfc-field"><label for="mp-sfc-name">Full name</label><input id="mp-sfc-name" name="name" autocomplete="name"></div><div class="mp-sfc-field"><label for="mp-sfc-phone">Phone</label><input id="mp-sfc-phone" name="phone" type="tel" autocomplete="tel"></div>'+(preorder?'':'<div class="mp-sfc-field full"><label for="mp-sfc-email">Email (optional)</label><input id="mp-sfc-email" name="email" type="email" autocomplete="email"></div>')+'</div><label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;opacity:.85;margin:2px 0 0;"><input id="mp-sfc-sms-consent" name="smsConsent" type="checkbox" style="margin-top:3px;"> Optional: I agree to receive order, pickup, shipping, and customer-care SMS/text messages from The Mana Pocket at the number provided. Message frequency varies based on order activity. Msg &amp; data rates may apply. Reply STOP to opt out or HELP for help. Consent is not a condition of purchase. See our <a href="https://themanapocket.com/privacy-policy" target="_blank" style="color:inherit;">Privacy Policy</a> and <a href="https://themanapocket.com/terms-and-conditions" target="_blank" style="color:inherit;">Terms</a>.</label><div id="mp-sfc-address" class="mp-sfc-grid" hidden style="margin-top:11px"><div class="mp-sfc-field full"><label for="mp-sfc-line1">Street address</label><input id="mp-sfc-line1" name="address-line1" autocomplete="shipping address-line1"></div><div class="mp-sfc-field full"><label for="mp-sfc-line2">Apartment / suite (optional)</label><input id="mp-sfc-line2" name="address-line2" autocomplete="shipping address-line2"></div><div class="mp-sfc-field"><label for="mp-sfc-city">City</label><input id="mp-sfc-city" name="address-level2" autocomplete="shipping address-level2"></div><div class="mp-sfc-field"><label for="mp-sfc-state">State</label><input id="mp-sfc-state" name="address-level1" maxlength="2" autocomplete="shipping address-level1" placeholder="WA"></div><div class="mp-sfc-field"><label for="mp-sfc-zip">ZIP</label><input id="mp-sfc-zip" name="postal-code" autocomplete="shipping postal-code" inputmode="numeric"></div>'+(preorder?'<div class="mp-sfc-field full" data-rates></div>':'')+'</div><div class="mp-sfc-summary" data-summary></div><div class="mp-sfc-status" data-status aria-live="polite"></div><button class="mp-sfc-button" type="submit" data-continue>Continue to secure payment</button><p class="mp-sfc-note">Pickup is always free. Shipping is charged only after a live carrier rate is returned.</p></form></div></div>';
 }
-function node(){var modal=document.getElementById('mp-storefront-checkout');if(!modal){modal=document.createElement('div');modal.id='mp-storefront-checkout';document.body.appendChild(modal);}return modal;}
+function node(){
+  var modal=document.getElementById('mp-storefront-checkout');
+  if(!modal){
+    modal=document.createElement('div');modal.id='mp-storefront-checkout';document.body.appendChild(modal);
+    // Payment and confirmation replace the form, removing its focused button.
+    new MutationObserver(function(){
+      if(modal.classList.contains('is-open')&&!modal.contains(document.activeElement)){
+        var target=modal.querySelector('[data-done]')||modal.querySelector('[data-close]');if(target)target.focus();
+      }
+    }).observe(modal,{childList:true,subtree:true});
+  }
+  return modal;
+}
 function selectedMethod(){return document.querySelector('[name="mp-fulfillment"]:checked')?.value||'pickup_fedway';}
 function value(id){return(document.getElementById(id)?.value||'').trim();}
 function destination(){return{line1:value('mp-sfc-line1'),line2:value('mp-sfc-line2'),city:value('mp-sfc-city'),state:value('mp-sfc-state').toUpperCase(),zip:value('mp-sfc-zip')};}
@@ -159,15 +174,25 @@ async function fetchPreorderRates(){
   renderRates();renderSummary();
 }
 function bind(modal){
-  modal.addEventListener('mousedown',function(event){mousedownTarget=event.target;});
-  modal.addEventListener('click',function(event){
+  // The outer node survives each checkout; replace handlers rather than stacking them.
+  modal.onkeydown=function(event){
+    if(event.key==='Escape'){event.preventDefault();close();return;}
+    if(event.key!=='Tab')return;
+    var focusables=Array.from(modal.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),iframe,[tabindex]:not([tabindex="-1"])')).filter(function(el){return el.getClientRects().length&&!el.closest('[hidden]');});
+    var first=focusables[0],last=focusables[focusables.length-1];
+    if(!first)return;
+    if(event.shiftKey&&(document.activeElement===first||!modal.contains(document.activeElement))){event.preventDefault();last.focus();}
+    else if(!event.shiftKey&&(document.activeElement===last||!modal.contains(document.activeElement))){event.preventDefault();first.focus();}
+  };
+  modal.onmousedown=function(event){mousedownTarget=event.target;};
+  modal.onclick=function(event){
     if(event.target.closest('[data-close]')){close();return;}
     // Only treat this as a click-outside-to-close if the drag *started* on
     // the backdrop too -- otherwise selecting/highlighting text inside the
     // form and dragging the mouse past the panel edge before releasing was
     // silently closing the modal and losing everything typed so far.
     if(event.target===modal&&mousedownTarget===modal)close();
-  });
+  };
   modal.querySelectorAll('[name="mp-fulfillment"]').forEach(function(input){input.addEventListener('change',function(){methodChanged();saveDraft();});});
   ['mp-sfc-line1','mp-sfc-line2','mp-sfc-city','mp-sfc-state','mp-sfc-zip'].forEach(function(id){var field=modal.querySelector('#'+id);field.addEventListener('input',scheduleQuote);field.addEventListener('change',scheduleQuote);});
   DRAFT_FIELDS.concat(['mp-sfc-sms-consent']).forEach(function(id){var field=modal.querySelector('#'+id);if(field)field.addEventListener('input',saveDraft);});
@@ -185,7 +210,7 @@ function open(){
   if(!regular.length&&!preorder.length)return;
   if(!regular.length){beginPreorderCheckout(preorder);return;}
   mode='regular';preorderCtx=null;
-  var modal=node();modal.innerHTML=panel();bind(modal);restoreDraft();quote={cents:null,loading:false,error:'',label:''};paymentRuntime=null;modal.classList.add('is-open');document.body.style.overflow='hidden';methodChanged();
+  var modal=node();modal.innerHTML=panel();bind(modal);restoreDraft();quote={cents:null,loading:false,error:'',label:''};paymentRuntime=null;showModal(modal);methodChanged();
 }
 function beginPreorderCheckout(lines){
   if(!window.WO||typeof window.WO.checkoutPreorderLines!=='function'){alert('Comic preorder checkout is still loading -- give it a second and try again.');return;}
@@ -199,17 +224,26 @@ function beginPreorderCheckout(lines){
 // caller advances to the next cycle or finishes the queue.
 function openPreorderCheckout(group,index,total,onDone){
   mode='preorder';preorderCtx={group:group,index:index,total:total,onDone:onDone,rates:[],selectedRateId:null,ratesLoading:false,ratesError:''};
-  var modal=node();modal.innerHTML=panel();bind(modal);quote={cents:null,loading:false,error:'',label:''};paymentRuntime=null;modal.classList.add('is-open');document.body.style.overflow='hidden';methodChanged();
+  var modal=node();modal.innerHTML=panel();bind(modal);quote={cents:null,loading:false,error:'',label:''};paymentRuntime=null;showModal(modal);methodChanged();
 }
 // My Pocket can resume a PaymentIntent that already belongs to an existing
 // preorder. It should use this same Stripe surface instead of inventing a
 // second checkout UI (and without creating a duplicate preorder order).
 async function openExistingPreorderPayment(data,onDone){
   mode='preorder';preorderCtx={group:null,index:0,total:1,onDone:onDone,rates:[],selectedRateId:null,ratesLoading:false,ratesError:''};
-  var modal=node();modal.innerHTML=panel();bind(modal);quote={cents:null,loading:false,error:'',label:''};paymentRuntime=null;modal.classList.add('is-open');document.body.style.overflow='hidden';
+  var modal=node();modal.innerHTML=panel();bind(modal);quote={cents:null,loading:false,error:'',label:''};paymentRuntime=null;showModal(modal);
   try{await mountPayment(data);}catch(error){modal.querySelector('#mp-sfc-content').innerHTML='<div class="mp-sfc-status error">'+esc(error.message)+'</div><button class="mp-sfc-button" type="button" data-done>Close</button>';modal.querySelector('[data-done]').addEventListener('click',close);}
 }
-function close(){node().classList.remove('is-open');document.body.style.overflow='';mode='regular';preorderCtx=null;}
+function showModal(modal){
+  if(!modal.classList.contains('is-open')){returnFocus=document.activeElement;previousOverflow=document.body.style.overflow;}
+  modal.classList.add('is-open');document.body.style.overflow='hidden';
+  requestAnimationFrame(function(){var closeButton=modal.querySelector('[data-close]');if(modal.classList.contains('is-open')&&closeButton)closeButton.focus();});
+}
+function close(){
+  var modal=node();if(!modal.classList.contains('is-open'))return;
+  clearTimeout(quoteTimer);modal.classList.remove('is-open');document.body.style.overflow=previousOverflow;mode='regular';preorderCtx=null;
+  if(returnFocus&&returnFocus.isConnected)returnFocus.focus();returnFocus=null;
+}
 async function loadStripe(){if(window.Stripe)return window.Stripe;await new Promise(function(resolve,reject){var existing=document.querySelector('script[src="https://js.stripe.com/v3/"]');if(existing){existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',reject,{once:true});return;}var script=document.createElement('script');script.src='https://js.stripe.com/v3/';script.onload=resolve;script.onerror=reject;document.head.appendChild(script);});return window.Stripe;}
 async function checkout(){
   var name=value('mp-sfc-name'),phone=value('mp-sfc-phone'),email=value('mp-sfc-email'),method=selectedMethod(),address=method==='shipping'?destination():null;
