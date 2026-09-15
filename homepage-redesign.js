@@ -222,7 +222,14 @@ function sectionHead(kicker,title,copy,href,cta){
 
 function productCard(item){
   var card=el('article','mp-product-card');
-  var href=productHref(item);
+  // An item with its own dedicated page (e.g. a limited-run print with a
+  // real Webflow page, set via the dashboard's "Custom Link URL" field --
+  // see shapeStorefrontItem in ArSca and wo-checkout's own itemCard, which
+  // already does the same thing) links straight there instead of /shop --
+  // and skips Add to Cart, since it isn't meant to be bought through this
+  // homepage widget's own cart flow.
+  var hasCustomLink=!!item.linkUrl;
+  var href=hasCustomLink?item.linkUrl:productHref(item);
   if(validImage(item)){
     var imageLink=link('',href,'mp-product-image-link');
     var image=el('img','mp-product-image');
@@ -245,16 +252,20 @@ function productCard(item){
   var details=meta(item);
   if(details)body.appendChild(el('p','mp-product-meta',details));
   body.appendChild(el('div','mp-product-price',money(item.price)));
-  var add=el('button','mp-product-add','Add to cart');
-  add.type='button';
-  add.addEventListener('click',function(){
-    if(window.WO&&typeof window.WO.addToCart==='function'){
-      window.WO.addToCart({id:item.id,name:item.name,price:Number(item.price)||0,image:item.image||'',available:Math.max(1,parseInt(item.quantity,10)||1)});
-    }else{
-      window.location.href='/shop';
-    }
-  });
-  body.appendChild(add);
+  if(hasCustomLink){
+    body.appendChild(link('View item →',href,'mp-product-add mp-product-add-link'));
+  }else{
+    var add=el('button','mp-product-add','Add to cart');
+    add.type='button';
+    add.addEventListener('click',function(){
+      if(window.WO&&typeof window.WO.addToCart==='function'){
+        window.WO.addToCart({id:item.id,name:item.name,price:Number(item.price)||0,image:item.image||'',available:Math.max(1,parseInt(item.quantity,10)||1)});
+      }else{
+        window.location.href='/shop';
+      }
+    });
+    body.appendChild(add);
+  }
   card.appendChild(body);
   return card;
 }

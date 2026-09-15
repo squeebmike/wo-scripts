@@ -572,6 +572,13 @@ html.mp-home-boot body:not(.mp-home-redesign) .footer {
 
 .mp-product-add:hover { background: var(--mp-action-hover); color: var(--mp-action-hover-copy); }
 
+.mp-product-add-link {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  text-decoration: none;
+}
+
 .mp-editorial {
   background: var(--mp-hero);
   color: var(--mp-hero-copy);
