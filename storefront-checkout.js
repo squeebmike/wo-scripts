@@ -28,8 +28,19 @@ function cart(){try{var value=JSON.parse(localStorage.getItem(CART_KEY)||'[]');r
 // itself with regular in-stock lines. Preorder lines get their own
 // dedicated checkout (different backend route, per-FOC-cycle Stripe
 // charges, request-only pricing) via beginPreorderCheckout below.
-function regularLines(){return cart().filter(function(line){return line.kind!=='preorder';});}
+//
+// A "run-drop" line (e.g. the Dougvana print, added by its own Webflow
+// page's cart script) is the same story: it never gets a real
+// inventory_items row -- it uses a synthetic id like "dougvana-color",
+// tracked by wo-checkout's own separate stock counter instead. This
+// checkout's /shipping-quote and /checkout calls require every itemId to
+// be a real inventory row and reject anything else with "Invalid item in
+// cart", so these need to be split out and finished the same way preorder
+// lines are, via beginRundropCheckout below.
+function isRealInventoryId(id){return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id||''));}
+function regularLines(){return cart().filter(function(line){return line.kind!=='preorder'&&isRealInventoryId(line.id);});}
 function preorderLines(){return cart().filter(function(line){return line.kind==='preorder';});}
+function rundropLines(){return cart().filter(function(line){return line.kind!=='preorder'&&!isRealInventoryId(line.id);});}
 function items(){return regularLines().map(function(line){return{itemId:String(line.id||''),quantity:Math.max(1,parseInt(line.qty,10)||1)};}).filter(function(line){return line.itemId;});}
 function subtotal(){return regularLines().reduce(function(total,line){return total+Math.round(Number(line.price||0)*100)*Math.max(1,parseInt(line.qty,10)||1);},0);}
 function addStyles(){
@@ -206,8 +217,17 @@ function bind(modal){
 // risked surprising someone with a second unexpected charge screen right
 // after they just paid for one).
 function open(){
-  var regular=regularLines(),preorder=preorderLines();
-  if(!regular.length&&!preorder.length)return;
+  var regular=regularLines(),preorder=preorderLines(),rundrop=rundropLines();
+  if(!regular.length&&!preorder.length&&!rundrop.length)return;
+  // A run-drop line mixed into the same cart as regular items or a comic
+  // preorder still can't go through this checkout's Shippo flow -- and
+  // chaining a second payment screen right after the first risked
+  // surprising someone with an unexpected second charge (see the same
+  // reasoning above beginPreorderCheckout's own single-mode split). Ask
+  // for it to be finished on its own first instead of silently dropping it
+  // or guessing which flow should win.
+  if(rundrop.length&&(regular.length||preorder.length)){alert('"'+(rundrop[0].name||'This item')+'" checks out on its own -- finish it first, then come back for the rest of your cart.');return;}
+  if(rundrop.length){beginRundropCheckout(rundrop);return;}
   if(!regular.length){beginPreorderCheckout(preorder);return;}
   mode='regular';preorderCtx=null;
   var modal=node();modal.innerHTML=panel();bind(modal);restoreDraft();quote={cents:null,loading:false,error:'',label:''};paymentRuntime=null;showModal(modal);methodChanged();
@@ -215,6 +235,10 @@ function open(){
 function beginPreorderCheckout(lines){
   if(!window.WO||typeof window.WO.checkoutPreorderLines!=='function'){alert('Comic preorder checkout is still loading -- give it a second and try again.');return;}
   window.WO.checkoutPreorderLines(lines,function(){});
+}
+function beginRundropCheckout(lines){
+  if(!window.WO||typeof window.WO.checkoutRundropLines!=='function'){alert('This item\'s checkout is still loading -- give it a second and try again.');return;}
+  window.WO.checkoutRundropLines(lines,function(){});
 }
 // Called by preorders.js (window.MPSFC.openPreorderCheckout) once a
 // customer is signed in and it's grouped their cart into one FOC cycle at
