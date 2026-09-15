@@ -252,6 +252,14 @@ function productCard(item){
   var details=meta(item);
   if(details)body.appendChild(el('p','mp-product-meta',details));
   body.appendChild(el('div','mp-product-price',money(item.price)));
+  // Only ever reaches this widget at 0 stock when the item opted into
+  // showSoldOut (ArSca's isStorefrontItemListable) -- every other sold-out
+  // item just disappears from /api/inventory entirely, so this stays quiet
+  // unless a staff member deliberately asked for a "sold out" card to keep
+  // showing.
+  if(Number(item.quantity)<=0){
+    body.appendChild(el('span','mp-card-kicker','Sold Out'));
+  }
   if(hasCustomLink){
     body.appendChild(link('View item →',href,'mp-product-add mp-product-add-link'));
   }else{
