@@ -6,7 +6,15 @@ var STORE_ID='0f9dd4bc-42a7-487e-a972-2905d24513e9';
 var SUPABASE_URL='https://vroknjrxubsqyexngwus.supabase.co';
 var SUPABASE_KEY='sb_publishable_wbpX2nL8l-4NbXtZNG_bjA_nabSYaJ5';
 var SESSION_KEY='mp-foc-session-v1';
-var state={cycles:null,session:readJson(SESSION_KEY,null),filters:{q:'',publisher:'all',artist:'all',kind:'all'},timer:null,cycleObserver:null,lazyReady:false,lastLazyScrollY:0,scrollBound:false,deepLinkHandled:false,loadingCycles:new Set()};
+// PRH and Lunar are two separate comics distributors this store receives
+// weekly FOC files from (not "books vs comics" -- both carry real single-
+// issue comics, just different publisher lines). They're kept as two
+// separate cycle lists behind a distributor toggle rather than interleaved
+// under one "latest cycle" view, matching how the dashboard's own FOC Wall
+// keeps them apart. PRH stays the default so a bookmarked/shared
+// /preorders link (with no distributor in it) keeps showing exactly what
+// it always has.
+var state={distributor:'PRH',cycles:null,session:readJson(SESSION_KEY,null),filters:{q:'',publisher:'all',artist:'all',kind:'all'},timer:null,cycleObserver:null,lazyReady:false,lastLazyScrollY:0,scrollBound:false,deepLinkHandled:false,loadingCycles:new Set()};
 
 function trackPreorderEvent(name,params){try{window.dataLayer=window.dataLayer||[];if(typeof window.gtag==='function')window.gtag('event',name,params||{});else window.dataLayer.push(Object.assign({event:name},params||{}));}catch(_){}}
 function preorderAnalyticsItem(match,quantity){return{item_id:String(match.sku.id||''),item_name:titleForFamily(match.family)+' · '+(match.sku.variantLabel||'Cover A'),item_category:'Comic preorder',price:Number(match.sku.priceCents||0)/100,quantity:Math.max(1,Number(quantity||1))};}
@@ -77,14 +85,34 @@ function mount(){
     document.body.prepend(nav);nav.querySelector('[data-foc-theme]').addEventListener('click',function(){if(token())location.href='/account';else if(window.WO&&typeof window.WO.openTheme==='function')window.WO.openTheme();});
   }
   var app=document.getElementById('mp-foc-app');
-  if(!app){app=document.createElement('main');app.id='mp-foc-app';app.innerHTML='<div class="mp-foc-shell"><header><div class="mp-foc-eyebrow">The Mana Pocket · Comic preorders</div><h1 class="mp-foc-title">Preorder the cover you want.</h1><p class="mp-foc-intro">FOC means Final Order Cutoff—the weekly distributor deadline. Save comics to your account, curate your list, then pay for all or only the ones you choose before that week closes. Open weeks appear first; expired weeks stay at the bottom and cannot be ordered.</p></header><div data-foc-dynamic><div class="mp-foc-loading"><b>Opening the pull box…</b><span>Loading this week’s comic covers.</span></div></div></div>';var footer=document.querySelector('.footer-section,.Footer,.footer');if(footer)footer.parentNode.insertBefore(app,footer);else document.body.appendChild(app);}
+  if(!app){app=document.createElement('main');app.id='mp-foc-app';app.innerHTML='<div class="mp-foc-shell"><header><div class="mp-foc-eyebrow">The Mana Pocket · Comic preorders</div><h1 class="mp-foc-title">Preorder the cover you want.</h1><p class="mp-foc-intro">FOC means Final Order Cutoff—the weekly distributor deadline. Save comics to your account, curate your list, then pay for all or only the ones you choose before that week closes. Open weeks appear first; expired weeks stay at the bottom and cannot be ordered.</p><nav class="mp-foc-distributor-tabs" aria-label="Choose a distributor" data-distributor-tabs></nav></header><div data-foc-dynamic><div class="mp-foc-loading"><b>Opening the pull box…</b><span>Loading this week’s comic covers.</span></div></div></div>';var footer=document.querySelector('.footer-section,.Footer,.footer');if(footer)footer.parentNode.insertBefore(app,footer);else document.body.appendChild(app);}
   if(!state.scrollBound){state.scrollBound=true;window.addEventListener('scroll',bindCycleLazyLoading,{passive:true});}
+  renderDistributorTabs();
+  loadCatalog();
+}
+
+// Two distinct distributor accounts (see the state.distributor comment
+// above) sharing this one page -- switching tabs is a full reload of the
+// cycle list under the new distributor, same as changing which store this
+// page is even pointed at, so nothing from the previous distributor's
+// lazy-loaded weeks carries over.
+function renderDistributorTabs(){
+  var host=document.querySelector('[data-distributor-tabs]');if(!host)return;
+  host.innerHTML=['PRH','Lunar'].map(function(d){return'<button type="button" class="mp-foc-distributor-tab'+(state.distributor===d?' active':'')+'" data-distributor="'+d+'" aria-pressed="'+(state.distributor===d)+'">'+esc(d)+'</button>';}).join('');
+  host.querySelectorAll('[data-distributor]').forEach(function(button){button.addEventListener('click',function(){switchDistributor(button.dataset.distributor);});});
+}
+function switchDistributor(distributor){
+  if(distributor===state.distributor)return;
+  state.distributor=distributor==='Lunar'?'Lunar':'PRH';
+  state.cycles=null;state.lazyReady=false;state.deepLinkHandled=true; // a deep-linked ?sku= only ever resolves against the distributor the page loaded with -- see ensureDeepLinkCatalog's cross-distributor fallback below, which runs once on first load
+  if(state.cycleObserver){state.cycleObserver.disconnect();state.cycleObserver=null;}
+  renderDistributorTabs();
   loadCatalog();
 }
 
 async function loadCatalog(){
   try{
-    var data=await api('/public/preorders/weeks?summary=1&store_id='+encodeURIComponent(STORE_ID),{auth:false});state.cycles=sortCycleEntries((data.cycles||[]).map(function(cycle){return{cycle:cycle,families:null,error:''};}));render();
+    var data=await api('/public/preorders/weeks?summary=1&distributor='+encodeURIComponent(state.distributor)+'&store_id='+encodeURIComponent(STORE_ID),{auth:false});state.cycles=sortCycleEntries((data.cycles||[]).map(function(cycle){return{cycle:cycle,families:null,error:''};}));render();
     var requested=new URLSearchParams(location.search).get('cycle');var first=(requested&&state.cycles.find(function(entry){return entry.cycle.id===requested||entry.cycle.foc_date===requested;}))||state.cycles[0];
     if(first)await loadCycleCatalog(first.cycle.id);
     await ensureDeepLinkCatalog();state.lazyReady=true;render();handleDeepLink();
@@ -101,14 +129,26 @@ async function loadCycleCatalog(cycleId){
   var entry=(state.cycles||[]).find(function(item){return item.cycle.id===cycleId;});
   if(!entry||Array.isArray(entry.families)||state.loadingCycles.has(cycleId))return;
   state.loadingCycles.add(cycleId);entry.error='';render();
-  try{var data=await api('/public/preorders?store_id='+encodeURIComponent(STORE_ID)+'&cycle='+encodeURIComponent(cycleId),{auth:false});entry.cycle=data.cycle;entry.families=data.families||[];}
+  try{var data=await api('/public/preorders?store_id='+encodeURIComponent(STORE_ID)+'&distributor='+encodeURIComponent(state.distributor)+'&cycle='+encodeURIComponent(cycleId),{auth:false});entry.cycle=data.cycle;entry.families=data.families||[];}
   catch(error){entry.error=error.message||'This FOC could not be loaded.';}
   finally{state.loadingCycles.delete(cycleId);sortCycleEntries(state.cycles);render();}
 }
 
+// A shared link to one exact cover (?sku=...) doesn't say which distributor
+// it came from, and the page only ever loads one distributor's weeks at a
+// time -- if the sku isn't found under whichever distributor the page
+// booted with (PRH, by default), try the other one once before giving up,
+// so a shared Lunar cover link opened fresh still resolves instead of
+// silently looking like a dead/removed preorder.
 async function ensureDeepLinkCatalog(){
   var skuId=new URLSearchParams(location.search).get('sku');if(!skuId||findSku(skuId))return;
   for(var i=0;i<(state.cycles||[]).length;i++){if(!Array.isArray(state.cycles[i].families))await loadCycleCatalog(state.cycles[i].cycle.id);if(findSku(skuId))return;}
+  if(state.deepLinkHandled)return; // already tried the fallback distributor once (switchDistributor sets this) -- don't loop
+  state.distributor=state.distributor==='Lunar'?'PRH':'Lunar';
+  renderDistributorTabs();
+  var data=await api('/public/preorders/weeks?summary=1&distributor='+encodeURIComponent(state.distributor)+'&store_id='+encodeURIComponent(STORE_ID),{auth:false}).catch(function(){return{cycles:[]};});
+  state.cycles=sortCycleEntries((data.cycles||[]).map(function(cycle){return{cycle:cycle,families:null,error:''};}));
+  for(var j=0;j<state.cycles.length;j++){await loadCycleCatalog(state.cycles[j].cycle.id);if(findSku(skuId))return;}
 }
 
 function countdownHtml(cycle){

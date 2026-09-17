@@ -29,6 +29,10 @@ body.mp-page-preorders{overflow-x:hidden;background:var(--wo-bg,#10121a);color:v
 .mp-foc-account-order{border:1px solid var(--mp-line);border-radius:10px;padding:12px;margin:8px 0}.mp-foc-account-order header{display:flex;justify-content:space-between;gap:10px;align-items:center}.mp-foc-account-order h3{margin:0;font-size:15px}.mp-foc-account-order .status{font:900 8px/1 ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--mp-accent)}.mp-foc-account-items{display:flex;gap:7px;overflow:auto;margin-top:10px}.mp-foc-account-items img{width:62px;height:92px;object-fit:contain;background:var(--mp-case);border-radius:6px}
 .mp-foc-week-sep{margin-top:36px;padding-top:28px;border-top:1px solid var(--mp-line)}
 .mp-foc-week{scroll-margin-top:calc(var(--nav-height,74px) + 16px)}
+.mp-foc-distributor-tabs{display:flex;gap:8px;margin-top:16px}
+.mp-foc-distributor-tab{appearance:none;border:2px solid var(--mp-line);border-radius:999px;padding:8px 18px;background:transparent;color:var(--mp-ink);font:900 10px/1 ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;opacity:.72;transition:opacity .15s,transform .15s}
+.mp-foc-distributor-tab:hover{opacity:1;transform:translateY(-1px)}
+.mp-foc-distributor-tab.active{background:var(--mp-accent);border-color:var(--mp-accent);color:var(--mp-on-accent);opacity:1}
 .mp-foc-week-nav{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}
 .mp-foc-week-nav a{border:2px solid transparent;border-radius:999px;padding:8px 14px;font:900 10px/1 ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--mp-on-accent);text-decoration:none;background:var(--mp-accent);opacity:.92;transition:opacity .15s,transform .15s}
 .mp-foc-week-nav a:hover{opacity:1;transform:translateY(-1px)}
