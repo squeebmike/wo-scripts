@@ -75,10 +75,14 @@ assert.match(source, /if\(state\.format\)params\.set\('format',state\.format\);/
 // "show categories" means in practice), not just title/publisher/price.
 assert.match(source, /title\.formatName\?'<span class="mp-bl-card-format">'/, 'each result card must show its format/category badge');
 
-// Pagination -- 22,987+ titles cannot be one unpaginated page; "load more"
-// must append to the existing results, not replace them (losing scroll
-// position and anything already rendered).
-assert.match(source, /state\.hasMore\?'<div class="mp-bl-loadmore"><button class="mp-bl-button ghost" id="mp-bl-loadmore-btn">/, 'must render a load-more control when more results exist');
-assert.match(source, /state\.results=append\?state\.results\.concat\(results\):results;/, 'load-more must append new results to the existing list, not replace it');
+// Pagination -- 22,987+ titles cannot be one unpaginated page, and it must
+// be infinite-scroll (an IntersectionObserver-triggered auto-load, same
+// pattern preorders.js's bindCycleLazyLoading already uses), not a manual
+// "load more" button.
+assert.doesNotMatch(source, /mp-bl-loadmore-btn/, 'must not use a manual load-more button');
+assert.match(source, /state\.hasMore\?'<div class="mp-bl-scroll-sentinel" data-bl-sentinel><\/div>':''/, 'must render a scroll sentinel for the lazy-load observer when more results exist');
+assert.match(source, /function bindScrollLazyLoading\(\)\{/, 'missing the infinite-scroll IntersectionObserver binder');
+assert.match(source, /new IntersectionObserver\(function\(entries\)\{[\s\S]{0,200}runSearch\(true\)/, 'the scroll observer must auto-append the next page, not require a click');
+assert.match(source, /state\.results=append\?state\.results\.concat\(results\):results;/, 'auto-load must append new results to the existing list, not replace it');
 
 console.log('Backlist catalog page (loader shell, shared session, self-contained cart/checkout, browse+filters+pagination) checks passed');

@@ -10,7 +10,7 @@ var SUPABASE_KEY='sb_publishable_wbpX2nL8l-4NbXtZNG_bjA_nabSYaJ5';
 var SESSION_KEY='mp-foc-session-v1';
 var CART_KEY='mp-backlist-cart-v1';
 
-var state={session:null,results:[],cart:[],q:'',publisher:'',format:'',offset:0,limit:24,hasMore:false,loading:false,facets:{publishers:[],formats:[]}};
+var state={session:null,results:[],cart:[],q:'',publisher:'',format:'',offset:0,limit:24,hasMore:false,loading:false,facets:{publishers:[],formats:[]},scrollObserver:null};
 
 function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,function(ch){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
 function money(cents){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(cents||0)/100);}
@@ -84,7 +84,12 @@ async function runSearch(append){
   state.loading=true;
   var host=document.getElementById('mp-bl-results');
   var offset=append?state.offset:0;
-  if(!append&&host)host.innerHTML='<div class="mp-bl-loading">Loading…</div>';
+  if(append&&host){
+    var sentinel=host.querySelector('[data-bl-sentinel]');
+    if(sentinel)sentinel.outerHTML='<div class="mp-bl-loading" style="grid-column:1/-1;padding:24px"><b>Loading more…</b></div>';
+  }else if(host){
+    host.innerHTML='<div class="mp-bl-loading">Loading…</div>';
+  }
   try{
     var params=new URLSearchParams({store_id:STORE_ID,q:state.q,limit:String(state.limit),offset:String(offset)});
     if(state.publisher)params.set('publisher',state.publisher);
@@ -110,7 +115,30 @@ function renderResults(){
     return;
   }
   host.innerHTML=state.results.map(resultCard).join('')
-    + (state.hasMore?'<div class="mp-bl-loadmore"><button class="mp-bl-button ghost" id="mp-bl-loadmore-btn">Load more</button></div>':'');
+    + (state.hasMore?'<div class="mp-bl-scroll-sentinel" data-bl-sentinel></div>':'');
+  bindScrollLazyLoading();
+}
+
+// Auto-loads the next page as the sentinel div scrolls near the viewport,
+// same IntersectionObserver approach preorders.js's bindCycleLazyLoading
+// already uses for its own "load the next FOC week" trigger -- rootMargin
+// fires the fetch ~900px before the sentinel is actually visible, so more
+// results are usually already in by the time someone reaches the bottom.
+// The sentinel gets removed/replaced by every renderResults() call, so a
+// fresh observer per render is simpler and safer here than trying to reuse
+// one across DOM replacements.
+function bindScrollLazyLoading(){
+  if(state.scrollObserver){state.scrollObserver.disconnect();state.scrollObserver=null;}
+  if(!state.hasMore||!('IntersectionObserver' in window))return;
+  state.scrollObserver=new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(!entry.isIntersecting||state.loading)return;
+      state.scrollObserver.unobserve(entry.target);
+      runSearch(true);
+    });
+  },{rootMargin:'900px 0px 900px',threshold:0.01});
+  var sentinel=document.querySelector('[data-bl-sentinel]');
+  if(sentinel)state.scrollObserver.observe(sentinel);
 }
 
 function addToCart(line){
@@ -230,7 +258,6 @@ function wireEvents(){
     if(removeBtn){removeFromCart(removeBtn.getAttribute('data-remove'));return;}
     if(e.target.id==='mp-bl-search-btn'){state.q=document.getElementById('mp-bl-q').value.trim();runSearch();return;}
     if(e.target.id==='mp-bl-checkout-btn'){beginCheckout();return;}
-    if(e.target.id==='mp-bl-loadmore-btn'){runSearch(true);return;}
   });
   host.addEventListener('keydown',function(e){if(e.target.id==='mp-bl-q'&&e.key==='Enter'){state.q=e.target.value.trim();runSearch();}});
   host.addEventListener('change',function(e){
