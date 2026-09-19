@@ -51,15 +51,19 @@ function filterOptionsHtml(){
 function resultCard(title){
   var sku=title.skus[0];
   var inCart=state.cart.some(function(l){return l.id==='backlist:'+sku.id;});
+  var detailHref='/book/'+encodeURIComponent(title.id);
   return '<div class="mp-bl-card">'
+    + '<a href="'+detailHref+'" class="mp-bl-card-link">'
     + (title.coverImageUrl?'<img class="mp-bl-cover" src="'+esc(title.coverImageUrl)+'" alt="" loading="lazy">':'<div class="mp-bl-cover mp-bl-cover-placeholder"></div>')
+    + '</a>'
     + '<div class="mp-bl-card-body">'
     + (title.formatName?'<span class="mp-bl-card-format">'+esc(title.formatName)+'</span>':'')
-    + '<div class="mp-bl-card-title">'+esc(title.title)+'</div>'
+    + '<a href="'+detailHref+'" class="mp-bl-card-link"><div class="mp-bl-card-title">'+esc(title.title)+'</div></a>'
     + (title.publisher?'<div class="mp-bl-card-sub">'+esc(title.publisher)+'</div>':'')
     + '<div class="mp-bl-card-price">'+money(sku.priceCents)+'</div>'
     + '<div class="mp-bl-card-delivery">'+esc(sku.delivery.headline)+'</div>'
     + '<button class="mp-bl-button'+(inCart?' is-added':'')+'" data-add data-sku-id="'+esc(sku.id)+'" data-title="'+esc(title.title)+'" data-price="'+sku.priceCents+'" data-cover="'+esc(title.coverImageUrl||'')+'">'+(inCart?'Added ✓':'Add to cart')+'</button>'
+    + '<a href="'+detailHref+'" class="mp-bl-card-details">Details &amp; share →</a>'
     + '</div></div>';
 }
 

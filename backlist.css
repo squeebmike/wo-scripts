@@ -20,6 +20,8 @@ body.mp-page-backlist{overflow-x:hidden;background:var(--wo-bg,#10121a);color:va
 .mp-bl-cart-lines button{border:0;background:none;color:#ff7f98;cursor:pointer;font:700 9px ui-monospace,monospace;margin-left:6px}
 .mp-bl-results{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-top:10px}
 .mp-bl-card{border:1px solid var(--mp-line);border-radius:14px;background:var(--mp-paper);overflow:hidden;display:flex;flex-direction:column}
+.mp-bl-card-link{display:block;color:inherit;text-decoration:none}
+.mp-bl-card-details{font:700 9px/1.4 ui-monospace,monospace;text-transform:uppercase;letter-spacing:.05em;color:var(--mp-accent);text-decoration:none;margin-top:4px}
 .mp-bl-cover{width:100%;aspect-ratio:2/3;object-fit:contain;background:var(--mp-case)}
 .mp-bl-cover-placeholder{display:flex;align-items:center;justify-content:center}
 .mp-bl-card-body{padding:10px 12px 14px;display:flex;flex-direction:column;gap:4px}

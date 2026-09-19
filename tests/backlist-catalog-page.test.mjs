@@ -85,4 +85,13 @@ assert.match(source, /function bindScrollLazyLoading\(\)\{/, 'missing the infini
 assert.match(source, /new IntersectionObserver\(function\(entries\)\{[\s\S]{0,200}runSearch\(true\)/, 'the scroll observer must auto-append the next page, not require a click');
 assert.match(source, /state\.results=append\?state\.results\.concat\(results\):results;/, 'auto-load must append new results to the existing list, not replace it');
 
-console.log('Backlist catalog page (loader shell, shared session, self-contained cart/checkout, browse+filters+pagination) checks passed');
+// Every card must link out to its own real detail page (/book/{id}, the
+// crawlable SEO page backlist-catalog.mjs's backlistBookDetailPage serves)
+// -- without this the synopsis/share page that page carries was completely
+// unreachable by clicking around the site, only findable by a search-engine
+// crawler or a direct link.
+assert.match(source, /var detailHref='\/book\/'\+encodeURIComponent\(title\.id\);/, 'each card must link to its own /book/{id} detail page');
+assert.match(source, /<a href="'\+detailHref\+'" class="mp-bl-card-link">/, 'the cover must link to the detail page');
+assert.match(source, /<a href="'\+detailHref\+'" class="mp-bl-card-details">Details &amp; share/, 'each card must offer an explicit link to the detail/share page, not just the cover image');
+
+console.log('Backlist catalog page (loader shell, shared session, self-contained cart/checkout, browse+filters+pagination, detail-page links) checks passed');
