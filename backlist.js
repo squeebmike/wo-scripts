@@ -199,10 +199,15 @@ function mount(){
     app.innerHTML='<div class="mp-bl-shell"><header><div class="mp-bl-eyebrow">The Mana Pocket · Full PRH catalog</div><h1 class="mp-bl-title">Order any book Penguin Random House still prints.</h1><p class="mp-bl-intro">Ships with our next weekly publisher order, not from shelf stock.</p></header><div data-bl-dynamic></div></div>';
     host=dynamicHost();
   }
+  // A visitor arriving from a book's own /book/{id}/{slug} SEO page (see
+  // backlistBookDetailPage in backlist-catalog.mjs) lands here via a
+  // ?q=<title> link -- run that search immediately instead of showing the
+  // empty "search to get started" state and making them retype it.
+  try{ state.q=new URLSearchParams(location.search).get('q')||''; }catch(_){}
   host.innerHTML=renderSearchBar();
   wireEvents();
   renderCart();
-  renderResults();
+  if(state.q)runSearch();else renderResults();
 }
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
