@@ -52,4 +52,33 @@ assert.match(source, /client\.confirmPayment\(\{elements:elements,redirect:'if_r
 // this is the core "don't misrepresent how long this takes" requirement.
 assert.match(source, /sku\.delivery\.headline/, 'each result card must show the computed delivery estimate, not just price');
 
-console.log('Backlist catalog page (loader shell, shared session, self-contained cart/checkout) checks passed');
+// Browse-by-default: the page used to only ever call the search endpoint
+// once someone typed something, showing an empty "search to get started"
+// wall otherwise -- backlistSearch already supported an empty q as a real
+// "browse everything" request, only the frontend never asked. mount() must
+// now call runSearch() unconditionally, and the empty-results copy must no
+// longer claim nothing loads without typing first.
+assert.match(source, /runSearch\(\);\s*\n\s*loadFacets\(\)\.then\(renderFilters\);/, 'mount() must call runSearch() unconditionally (browse mode) and load facets in parallel, not gate the search behind a typed query');
+assert.doesNotMatch(source, /Search PRH's full catalog above to get started/, 'the old "type to see anything" empty-state copy must be gone now that browsing works without a query');
+
+// Publisher/format filters -- populated from the new /public/backlist/facets
+// route and re-rendered in place (not wiping results already on screen).
+assert.match(source, /api\('\/public\/backlist\/facets\?store_id='/, 'must call the new facets route to populate the filter dropdowns');
+assert.match(source, /id="mp-bl-filter-publisher"/, 'missing the publisher filter dropdown');
+assert.match(source, /id="mp-bl-filter-format"/, 'missing the format/category filter dropdown');
+assert.match(source, /if\(e\.target\.id==='mp-bl-filter-publisher'\)\{state\.publisher=e\.target\.value;runSearch\(\);return;\}/, 'changing the publisher filter must re-run the search with the new filter applied');
+assert.match(source, /if\(e\.target\.id==='mp-bl-filter-format'\)\{state\.format=e\.target\.value;runSearch\(\);return;\}/, 'changing the format filter must re-run the search with the new filter applied');
+assert.match(source, /if\(state\.publisher\)params\.set\('publisher',state\.publisher\);/, 'the publisher filter must actually be sent to the search request');
+assert.match(source, /if\(state\.format\)params\.set\('format',state\.format\);/, 'the format filter must actually be sent to the search request');
+
+// Each card should surface its category/format (what the user asked to
+// "show categories" means in practice), not just title/publisher/price.
+assert.match(source, /title\.formatName\?'<span class="mp-bl-card-format">'/, 'each result card must show its format/category badge');
+
+// Pagination -- 22,987+ titles cannot be one unpaginated page; "load more"
+// must append to the existing results, not replace them (losing scroll
+// position and anything already rendered).
+assert.match(source, /state\.hasMore\?'<div class="mp-bl-loadmore"><button class="mp-bl-button ghost" id="mp-bl-loadmore-btn">/, 'must render a load-more control when more results exist');
+assert.match(source, /state\.results=append\?state\.results\.concat\(results\):results;/, 'load-more must append new results to the existing list, not replace it');
+
+console.log('Backlist catalog page (loader shell, shared session, self-contained cart/checkout, browse+filters+pagination) checks passed');

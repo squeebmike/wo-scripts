@@ -10,7 +10,7 @@ var SUPABASE_KEY='sb_publishable_wbpX2nL8l-4NbXtZNG_bjA_nabSYaJ5';
 var SESSION_KEY='mp-foc-session-v1';
 var CART_KEY='mp-backlist-cart-v1';
 
-var state={session:null,results:[],cart:[],q:'',offset:0,loading:false};
+var state={session:null,results:[],cart:[],q:'',publisher:'',format:'',offset:0,limit:24,hasMore:false,loading:false,facets:{publishers:[],formats:[]}};
 
 function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,function(ch){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
 function money(cents){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(cents||0)/100);}
@@ -31,8 +31,21 @@ function dynamicHost(){return document.querySelector('[data-bl-dynamic]');}
 
 function renderSearchBar(){
   return '<div class="mp-bl-searchbar"><input type="search" id="mp-bl-q" placeholder="Search by title, author, or series…" value="'+esc(state.q)+'"><button class="mp-bl-button" id="mp-bl-search-btn">Search</button></div>'
+    + '<div class="mp-bl-filters" id="mp-bl-filters">'+filterOptionsHtml()+'</div>'
     + '<div id="mp-bl-cart-summary" class="mp-bl-cart-summary"></div>'
     + '<div id="mp-bl-results" class="mp-bl-results"></div>';
+}
+
+// Publisher/format dropdowns are populated from /public/backlist/facets,
+// fetched in parallel with the first browse search rather than awaited
+// before the page paints anything -- see mount(). Re-rendered in place via
+// #mp-bl-filters once facets resolve, so it never wipes results already on
+// screen.
+function filterOptionsHtml(){
+  var publisherOptions=state.facets.publishers.map(function(p){return '<option value="'+esc(p)+'"'+(state.publisher===p?' selected':'')+'>'+esc(p)+'</option>';}).join('');
+  var formatOptions=state.facets.formats.map(function(f){return '<option value="'+esc(f)+'"'+(state.format===f?' selected':'')+'>'+esc(f)+'</option>';}).join('');
+  return '<select id="mp-bl-filter-publisher"><option value="">All publishers</option>'+publisherOptions+'</select>'
+    + '<select id="mp-bl-filter-format"><option value="">All categories</option>'+formatOptions+'</select>';
 }
 
 function resultCard(title){
@@ -40,7 +53,9 @@ function resultCard(title){
   var inCart=state.cart.some(function(l){return l.id==='backlist:'+sku.id;});
   return '<div class="mp-bl-card">'
     + (title.coverImageUrl?'<img class="mp-bl-cover" src="'+esc(title.coverImageUrl)+'" alt="" loading="lazy">':'<div class="mp-bl-cover mp-bl-cover-placeholder"></div>')
-    + '<div class="mp-bl-card-body"><div class="mp-bl-card-title">'+esc(title.title)+'</div>'
+    + '<div class="mp-bl-card-body">'
+    + (title.formatName?'<span class="mp-bl-card-format">'+esc(title.formatName)+'</span>':'')
+    + '<div class="mp-bl-card-title">'+esc(title.title)+'</div>'
     + (title.publisher?'<div class="mp-bl-card-sub">'+esc(title.publisher)+'</div>':'')
     + '<div class="mp-bl-card-price">'+money(sku.priceCents)+'</div>'
     + '<div class="mp-bl-card-delivery">'+esc(sku.delivery.headline)+'</div>'
@@ -48,24 +63,54 @@ function resultCard(title){
     + '</div></div>';
 }
 
-async function runSearch(){
-  var host=document.getElementById('mp-bl-results');
-  if(host)host.innerHTML='<div class="mp-bl-loading">Searching…</div>';
+async function loadFacets(){
   try{
-    var params=new URLSearchParams({store_id:STORE_ID,q:state.q,limit:'24',offset:'0'});
+    var data=await api('/public/backlist/facets?store_id='+encodeURIComponent(STORE_ID),{auth:false});
+    state.facets.publishers=data.publishers||[];
+    state.facets.formats=data.formats||[];
+  }catch(_){ /* best-effort -- an empty facets response just means the dropdowns stay unfiltered; browse/search still works */ }
+}
+function renderFilters(){
+  var host=document.getElementById('mp-bl-filters');
+  if(host)host.innerHTML=filterOptionsHtml();
+}
+
+// q, publisher, and format are all optional -- an empty q with no filters
+// is a real "browse everything" request (backlistSearch in
+// backlist-catalog.mjs), not an error state, so this always runs on load
+// instead of only after someone types something.
+async function runSearch(append){
+  if(state.loading)return;
+  state.loading=true;
+  var host=document.getElementById('mp-bl-results');
+  var offset=append?state.offset:0;
+  if(!append&&host)host.innerHTML='<div class="mp-bl-loading">Loading…</div>';
+  try{
+    var params=new URLSearchParams({store_id:STORE_ID,q:state.q,limit:String(state.limit),offset:String(offset)});
+    if(state.publisher)params.set('publisher',state.publisher);
+    if(state.format)params.set('format',state.format);
     var data=await api('/public/backlist/search?'+params.toString(),{auth:false});
-    state.results=data.results||[];
+    var results=data.results||[];
+    state.results=append?state.results.concat(results):results;
+    state.offset=offset+results.length;
+    state.hasMore=results.length>=state.limit;
     renderResults();
   }catch(error){
-    if(host)host.innerHTML='<div class="mp-bl-error">'+esc(error.message)+'</div>';
+    if(host&&!append)host.innerHTML='<div class="mp-bl-error">'+esc(error.message)+'</div>';
+  }finally{
+    state.loading=false;
   }
 }
 
 function renderResults(){
   var host=document.getElementById('mp-bl-results');
   if(!host)return;
-  if(!state.results.length){host.innerHTML='<div class="mp-bl-empty">'+(state.q?'No titles match "'+esc(state.q)+'".':'Search PRH\'s full catalog above to get started.')+'</div>';return;}
-  host.innerHTML=state.results.map(resultCard).join('');
+  if(!state.results.length){
+    host.innerHTML='<div class="mp-bl-empty">'+(state.q||state.publisher||state.format?'No titles match this search.':'No titles are published yet -- check back soon.')+'</div>';
+    return;
+  }
+  host.innerHTML=state.results.map(resultCard).join('')
+    + (state.hasMore?'<div class="mp-bl-loadmore"><button class="mp-bl-button ghost" id="mp-bl-loadmore-btn">Load more</button></div>':'');
 }
 
 function addToCart(line){
@@ -185,8 +230,13 @@ function wireEvents(){
     if(removeBtn){removeFromCart(removeBtn.getAttribute('data-remove'));return;}
     if(e.target.id==='mp-bl-search-btn'){state.q=document.getElementById('mp-bl-q').value.trim();runSearch();return;}
     if(e.target.id==='mp-bl-checkout-btn'){beginCheckout();return;}
+    if(e.target.id==='mp-bl-loadmore-btn'){runSearch(true);return;}
   });
   host.addEventListener('keydown',function(e){if(e.target.id==='mp-bl-q'&&e.key==='Enter'){state.q=e.target.value.trim();runSearch();}});
+  host.addEventListener('change',function(e){
+    if(e.target.id==='mp-bl-filter-publisher'){state.publisher=e.target.value;runSearch();return;}
+    if(e.target.id==='mp-bl-filter-format'){state.format=e.target.value;runSearch();return;}
+  });
 }
 
 function mount(){
@@ -201,13 +251,18 @@ function mount(){
   }
   // A visitor arriving from a book's own /book/{id}/{slug} SEO page (see
   // backlistBookDetailPage in backlist-catalog.mjs) lands here via a
-  // ?q=<title> link -- run that search immediately instead of showing the
-  // empty "search to get started" state and making them retype it.
+  // ?q=<title> link.
   try{ state.q=new URLSearchParams(location.search).get('q')||''; }catch(_){}
   host.innerHTML=renderSearchBar();
   wireEvents();
   renderCart();
-  if(state.q)runSearch();else renderResults();
+  // Browse mode: runs immediately with whatever q/filters are already set
+  // (empty on a plain page load) instead of waiting for someone to type
+  // something first -- backlistSearch already supports this, only the
+  // frontend never asked for it. Facets load in parallel and patch the
+  // filter dropdowns in place once ready, so they never block first paint.
+  runSearch();
+  loadFacets().then(renderFilters);
 }
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
