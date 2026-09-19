@@ -51,20 +51,73 @@ function filterOptionsHtml(){
 function resultCard(title){
   var sku=title.skus[0];
   var inCart=state.cart.some(function(l){return l.id==='backlist:'+sku.id;});
-  var detailHref='/book/'+encodeURIComponent(title.id);
   return '<div class="mp-bl-card">'
-    + '<a href="'+detailHref+'" class="mp-bl-card-link">'
+    + '<button type="button" class="mp-bl-card-link" data-open-detail="'+esc(title.id)+'">'
     + (title.coverImageUrl?'<img class="mp-bl-cover" src="'+esc(title.coverImageUrl)+'" alt="" loading="lazy">':'<div class="mp-bl-cover mp-bl-cover-placeholder"></div>')
-    + '</a>'
+    + '</button>'
     + '<div class="mp-bl-card-body">'
     + (title.formatName?'<span class="mp-bl-card-format">'+esc(title.formatName)+'</span>':'')
-    + '<a href="'+detailHref+'" class="mp-bl-card-link"><div class="mp-bl-card-title">'+esc(title.title)+'</div></a>'
+    + '<button type="button" class="mp-bl-card-link" data-open-detail="'+esc(title.id)+'"><div class="mp-bl-card-title">'+esc(title.title)+'</div></button>'
     + (title.publisher?'<div class="mp-bl-card-sub">'+esc(title.publisher)+'</div>':'')
     + '<div class="mp-bl-card-price">'+money(sku.priceCents)+'</div>'
     + '<div class="mp-bl-card-delivery">'+esc(sku.delivery.headline)+'</div>'
     + '<button class="mp-bl-button'+(inCart?' is-added':'')+'" data-add data-sku-id="'+esc(sku.id)+'" data-title="'+esc(title.title)+'" data-price="'+sku.priceCents+'" data-cover="'+esc(title.coverImageUrl||'')+'">'+(inCart?'Added ✓':'Add to cart')+'</button>'
-    + '<a href="'+detailHref+'" class="mp-bl-card-details">Details &amp; share →</a>'
+    + '<button type="button" class="mp-bl-card-details" data-open-detail="'+esc(title.id)+'">Details &amp; share →</button>'
     + '</div></div>';
+}
+
+// Full detail view for one title -- cover, publisher/writer, a synopsis, and
+// per-format price+delivery, same information density preorders.js's own
+// skuDetailHtml() gives comic collectors. Renders in place as a dialog
+// rather than navigating to /book/{id}: that page is real (SEO-facing, for
+// search engines and direct links) but themanapocket.com/book/* currently
+// 404s in production due to a Cloudflare routing/DNS issue outside this
+// repo's control -- calling /public/backlist/title/:id here hits the Worker
+// directly (same as every other backlist API call already does) and sidesteps
+// that entirely, so browsing isn't blocked on an infra fix landing first.
+function backlistDetailHtml(title,skus){
+  var byline=[title.writer,title.publisher].filter(Boolean).join(' · ');
+  var rows=skus.map(function(s){
+    return '<div class="mp-bl-detail-row"><b>'+esc(s.formatName||'Edition')+'</b> — '+money(s.priceCents)
+      +'<div class="mp-bl-card-delivery">'+esc(s.delivery.headline)+'</div>'
+      +'<button class="mp-bl-button" type="button" data-detail-add data-sku-id="'+esc(s.id)+'" data-title="'+esc(title.title)+'" data-price="'+s.priceCents+'" data-cover="'+esc(title.coverImageUrl||'')+'">Add to cart</button></div>';
+  }).join('');
+  return '<div class="mp-bl-detail">'
+    + (title.coverImageUrl?'<img class="mp-bl-detail-cover" src="'+esc(title.coverImageUrl)+'" alt="">':'')
+    + '<h2>'+esc(title.title)+'</h2>'
+    + (title.subtitle?'<div class="mp-bl-card-sub">'+esc(title.subtitle)+'</div>':'')
+    + (byline?'<div class="mp-bl-card-sub">'+esc(byline)+'</div>':'')
+    + (title.description?'<h4>Synopsis</h4><p>'+esc(title.description)+'</p>':'')
+    + rows
+    + '<div class="mp-bl-auth-actions" style="justify-content:flex-start"><button class="mp-bl-button ghost" type="button" data-detail-share="'+esc(title.id)+'" data-title="'+esc(title.title)+'">Share</button></div>'
+    + '</div>';
+}
+async function openBacklistDetail(titleId){
+  var overlay=dialog('<div class="mp-bl-loading">Loading…</div>');
+  try{
+    var data=await api('/public/backlist/title/'+encodeURIComponent(titleId)+'?store_id='+encodeURIComponent(STORE_ID),{auth:false});
+    overlay.querySelector('.mp-bl-modal').innerHTML=backlistDetailHtml(data.title,data.skus||[])+'<button class="mp-bl-close" data-close>&times;</button>';
+    overlay.querySelectorAll('[data-detail-add]').forEach(function(button){
+      button.addEventListener('click',function(){
+        addToCart({id:'backlist:'+button.dataset.skuId,kind:'backlist',skuId:button.dataset.skuId,name:button.dataset.title,image:button.dataset.cover,price:Number(button.dataset.price||0)/100,qty:1});
+        button.textContent='Added ✓';
+      });
+    });
+    var shareBtn=overlay.querySelector('[data-detail-share]');
+    if(shareBtn)shareBtn.addEventListener('click',function(){shareBacklistTitle(shareBtn.dataset.title,shareBtn);});
+  }catch(error){
+    overlay.querySelector('.mp-bl-modal').innerHTML='<div class="mp-bl-error">'+esc(error.message)+'</div><button class="mp-bl-close" data-close>&times;</button>';
+  }
+}
+// /books?q=<title> is a real, already-working page (browse mode plus the
+// ?q= deep-link this page reads on load) -- shared here instead of the
+// canonical but currently-broken /book/{id} URL so a shared link actually
+// opens something for whoever receives it, not another 404.
+function shareBacklistTitle(title,button){
+  var url=location.origin+'/books?q='+encodeURIComponent(title);
+  if(navigator.share){navigator.share({title:title+' | The Mana Pocket',text:'Check out '+title+' at The Mana Pocket',url:url}).catch(function(){});return;}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(function(){var original=button.textContent;button.textContent='Link copied ✓';setTimeout(function(){button.textContent=original;},1400);}).catch(function(){window.prompt('Copy this link:',url);});return;}
+  window.prompt('Copy this link:',url);
 }
 
 async function loadFacets(){
@@ -260,6 +313,8 @@ function wireEvents(){
     }
     var removeBtn=e.target.closest('[data-remove]');
     if(removeBtn){removeFromCart(removeBtn.getAttribute('data-remove'));return;}
+    var detailBtn=e.target.closest('[data-open-detail]');
+    if(detailBtn){openBacklistDetail(detailBtn.dataset.openDetail);return;}
     if(e.target.id==='mp-bl-search-btn'){state.q=document.getElementById('mp-bl-q').value.trim();runSearch();return;}
     if(e.target.id==='mp-bl-checkout-btn'){beginCheckout();return;}
   });

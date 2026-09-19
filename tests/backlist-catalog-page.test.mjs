@@ -85,13 +85,34 @@ assert.match(source, /function bindScrollLazyLoading\(\)\{/, 'missing the infini
 assert.match(source, /new IntersectionObserver\(function\(entries\)\{[\s\S]{0,200}runSearch\(true\)/, 'the scroll observer must auto-append the next page, not require a click');
 assert.match(source, /state\.results=append\?state\.results\.concat\(results\):results;/, 'auto-load must append new results to the existing list, not replace it');
 
-// Every card must link out to its own real detail page (/book/{id}, the
-// crawlable SEO page backlist-catalog.mjs's backlistBookDetailPage serves)
-// -- without this the synopsis/share page that page carries was completely
-// unreachable by clicking around the site, only findable by a search-engine
-// crawler or a direct link.
-assert.match(source, /var detailHref='\/book\/'\+encodeURIComponent\(title\.id\);/, 'each card must link to its own /book/{id} detail page');
-assert.match(source, /<a href="'\+detailHref\+'" class="mp-bl-card-link">/, 'the cover must link to the detail page');
-assert.match(source, /<a href="'\+detailHref\+'" class="mp-bl-card-details">Details &amp; share/, 'each card must offer an explicit link to the detail/share page, not just the cover image');
+// Every card must open a real detail view (cover, synopsis, per-format
+// price/delivery, share) -- as an in-page dialog via /public/backlist/title,
+// not a navigation to /book/{id}. That SEO page is real (backlistBookDetailPage
+// in backlist-catalog.mjs) but themanapocket.com/book/* currently 404s in
+// production due to a Cloudflare routing/DNS issue outside this repo's
+// control -- linking cards to it would leave the whole detail/share feature
+// broken on the live site until that infra issue is fixed elsewhere.
+// /public/backlist/title/:id hits the Worker's own subdomain the same way
+// every other backlist API call already does, sidestepping that entirely,
+// matching how preorders.js's own comic detail view is a dialog, not a
+// navigation to /preorder/{id}.
+assert.match(source, /data-open-detail="'\+esc\(title\.id\)\+'"/, 'each card must open the detail dialog (cover, title, and the "Details & share" line), not navigate to /book/{id}');
+assert.doesNotMatch(source, /href="'\+detailHref/, 'cards must not link to /book/{id} -- that route currently 404s in production');
+assert.match(source, /function backlistDetailHtml\(title,skus\)\{/, 'missing the detail dialog renderer');
+assert.match(source, /async function openBacklistDetail\(titleId\)\{/, 'missing the detail dialog opener');
+assert.match(source, /api\('\/public\/backlist\/title\/'\+encodeURIComponent\(titleId\)/, 'the detail dialog must fetch the real title record, not reuse the trimmed search-result data');
+assert.match(source, /title\.description\?'<h4>Synopsis<\/h4><p>'/, 'the detail dialog must show the full synopsis');
+assert.match(source, /detailBtn=e\.target\.closest\('\[data-open-detail\]'\)/, 'missing the click handler that opens the detail dialog');
+
+// Share button inside the detail dialog -- same navigator.share / clipboard /
+// prompt fallback chain preorders.js's shareSku() already established.
+// Shares /books?q=<title> (a real, already-working page) rather than the
+// canonical but currently-broken /book/{id} URL, so a shared link actually
+// opens something instead of another 404.
+assert.match(source, /function shareBacklistTitle\(title,button\)\{/, 'missing the share handler');
+assert.match(source, /var url=location\.origin\+'\/books\?q='\+encodeURIComponent\(title\);/, 'share must point at a URL that actually works today');
+assert.match(source, /navigator\.share/, 'share must use the real Web Share API');
+assert.match(source, /navigator\.clipboard/, 'share must fall back to copying the link');
+assert.match(source, /window\.prompt\('Copy this link:',url\)/, 'share must fall back to a prompt as a last resort, same as preorders.js');
 
 console.log('Backlist catalog page (loader shell, shared session, self-contained cart/checkout, browse+filters+pagination, detail-page links) checks passed');
