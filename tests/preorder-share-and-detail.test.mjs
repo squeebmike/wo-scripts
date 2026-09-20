@@ -40,7 +40,23 @@ assert.match(foc,/data-detail-share="'\+esc\(sku\.id\)\+'"/,'FOC detail modal mu
 assert.doesNotMatch(foc,/mp-foc-lightbox/,'the old bare-image lightbox must be fully replaced, not left dangling alongside the new modal');
 assert.match(foc,/document\.querySelectorAll\('\[data-lightbox\]'\)\.forEach\(function\(button\)\{button\.addEventListener\('click',function\(\)\{openSkuDetail\(button\.dataset\.lightbox\);\}\);\}\);/,'clicking a cover must open the rich detail modal, not the old lightbox');
 
+// FOC detail modal must also offer a genuine "save for later" action,
+// distinct from "Preorder this cover" (which adds to cart AND saves the
+// pick together via addPreorderLine -> savePick) -- this one calls savePick()
+// alone so a collector can bookmark a cover without committing to buy it,
+// same intent as backlist.js's own save-for-later button on /books.
+assert.match(foc,/data-detail-save="'\+esc\(sku\.id\)\+'"/,'FOC detail modal must render a save-for-later button');
+assert.match(foc,/var saveBtn=overlay\.querySelector\('\[data-detail-save\]'\);/,'missing the save-for-later click wiring');
+assert.match(foc,/requireSession\(async function\(\)\{[\s\S]{0,40}saveBtn\.disabled=true;[\s\S]{0,200}var ok=await savePick\(match\.sku\.id,1\);/,'save-for-later must require sign-in and call the existing savePick() alone, not addPreorderLine (which would also add it to the cart)');
+
 console.log('FOC page detail-modal and share button contract checks passed');
+
+// Mobile back-button support -- opening any dialog (sku detail, sign-in,
+// checkout, waitlist request) used to leave no trace in browser history, so
+// hitting back while reading a comic's detail exited /preorders entirely
+// instead of closing it.
+assert.match(foc,/history\.pushState\(\{mpModal:true\},''\);window\.addEventListener\('popstate',closeDialog\);/,'opening a dialog must push a history entry and close on a back-button press');
+assert.match(foc,/function closeDialog\(\)\{document\.querySelector\('\.mp-foc-overlay'\)\?\.remove\(\);document\.removeEventListener\('keydown',escapeDialog\);window\.removeEventListener\('popstate',closeDialog\);\}/,'closing any other way (X/overlay/Escape) must also remove the popstate listener, not leave it dangling');
 
 // ── A shared link (?sku=... with no add/request modifier) must land the
 // visitor straight in the detail modal, not just scrolled to a filtered

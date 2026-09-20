@@ -10,7 +10,7 @@ var SUPABASE_KEY='sb_publishable_wbpX2nL8l-4NbXtZNG_bjA_nabSYaJ5';
 var SESSION_KEY='mp-foc-session-v1';
 var CART_KEY='mp-backlist-cart-v1';
 
-var state={session:null,results:[],cart:[],q:'',publisher:'',format:'',offset:0,limit:24,hasMore:false,loading:false,facets:{publishers:[],formats:[]},scrollObserver:null,shelves:[],showShelves:true};
+var state={session:null,results:[],cart:[],q:'',publisher:'',format:'',offset:0,limit:24,hasMore:false,loading:false,facets:{publishers:[],formats:[]},scrollObserver:null,shelves:[],showShelves:true,picks:new Set()};
 
 function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,function(ch){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
 function money(cents){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(cents||0)/100);}
@@ -87,10 +87,14 @@ function filterOptionsHtml(){
 function resultCard(title){
   var sku=title.skus[0];
   var inCart=state.cart.some(function(l){return l.id==='backlist:'+sku.id;});
+  var saved=state.picks.has(sku.id);
   return '<div class="mp-bl-card">'
+    + '<div class="mp-bl-cover-wrap">'
     + '<button type="button" class="mp-bl-card-link" data-open-detail="'+esc(title.id)+'">'
     + (title.coverImageUrl?'<img class="mp-bl-cover" src="'+esc(title.coverImageUrl)+'" alt="" loading="lazy">':'<div class="mp-bl-cover mp-bl-cover-placeholder"></div>')
     + '</button>'
+    + '<button type="button" class="mp-bl-save-btn'+(saved?' is-saved':'')+'" data-save data-sku-id="'+esc(sku.id)+'" data-title="'+esc(title.title)+'" data-cover="'+esc(title.coverImageUrl||'')+'" aria-label="'+(saved?'Remove from saved':'Save for later')+'">'+(saved?'★':'☆')+'</button>'
+    + '</div>'
     + '<div class="mp-bl-card-body">'
     + (title.formatName?'<span class="mp-bl-card-format">'+esc(title.formatName)+'</span>':'')
     + '<button type="button" class="mp-bl-card-link" data-open-detail="'+esc(title.id)+'"><div class="mp-bl-card-title">'+esc(title.title)+'</div></button>'
@@ -114,9 +118,13 @@ function resultCard(title){
 function backlistDetailHtml(title,skus){
   var byline=[title.writer,title.publisher].filter(Boolean).join(' · ');
   var rows=skus.map(function(s){
+    var saved=state.picks.has(s.id);
     return '<div class="mp-bl-detail-row"><b>'+esc(s.formatName||'Edition')+'</b> — '+money(s.priceCents)
       +'<div class="mp-bl-card-delivery">'+esc(s.delivery.headline)+'</div>'
-      +'<button class="mp-bl-button" type="button" data-detail-add data-sku-id="'+esc(s.id)+'" data-title="'+esc(title.title)+'" data-price="'+s.priceCents+'" data-cover="'+esc(title.coverImageUrl||'')+'">Add to cart</button></div>';
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+      +'<button class="mp-bl-button" type="button" data-detail-add data-sku-id="'+esc(s.id)+'" data-title="'+esc(title.title)+'" data-price="'+s.priceCents+'" data-cover="'+esc(title.coverImageUrl||'')+'">Add to cart</button>'
+      +'<button class="mp-bl-button ghost" type="button" data-detail-save data-sku-id="'+esc(s.id)+'" data-title="'+esc(title.title)+'" data-cover="'+esc(title.coverImageUrl||'')+'">'+(saved?'★ Saved':'☆ Save for later')+'</button>'
+      +'</div></div>';
   }).join('');
   return '<div class="mp-bl-detail">'
     + (title.coverImageUrl?'<img class="mp-bl-detail-cover" src="'+esc(title.coverImageUrl)+'" alt="">':'')
@@ -139,6 +147,13 @@ async function openBacklistDetail(titleId){
         button.textContent='Added ✓';
       });
     });
+    overlay.querySelectorAll('[data-detail-save]').forEach(function(button){
+      button.addEventListener('click',function(){
+        toggleSavePick(button.dataset.skuId,button.dataset.title,button.dataset.cover,function(nowSaved){
+          button.textContent=nowSaved?'★ Saved':'☆ Save for later';
+        });
+      });
+    });
     var shareBtn=overlay.querySelector('[data-detail-share]');
     if(shareBtn)shareBtn.addEventListener('click',function(){shareBacklistTitle(shareBtn.dataset.title,shareBtn);});
   }catch(error){
@@ -154,6 +169,35 @@ function shareBacklistTitle(title,button){
   if(navigator.share){navigator.share({title:title+' | The Mana Pocket',text:'Check out '+title+' at The Mana Pocket',url:url}).catch(function(){});return;}
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(function(){var original=button.textContent;button.textContent='Link copied ✓';setTimeout(function(){button.textContent=original;},1400);}).catch(function(){window.prompt('Copy this link:',url);});return;}
   window.prompt('Copy this link:',url);
+}
+
+// "Save for later" wishlist -- deliberately independent of the cart (see
+// backlist-catalog.mjs's loadBacklistPicks comment): saving a book here
+// never adds it to mp-backlist-cart-v1, and vice versa. Requires sign-in,
+// same account system comics already use, since a wishlist has to persist
+// across devices/visits to be worth anything.
+async function loadPicks(){
+  if(!token())return;
+  try{
+    var data=await api('/public/backlist/picks?store_id='+encodeURIComponent(STORE_ID));
+    state.picks=new Set((data.picks||[]).map(function(p){return p.sku_id;}));
+  }catch(_){ /* best-effort -- an empty picks response just means nothing shows as saved yet */ }
+}
+function toggleSavePick(skuId,title,cover,done){
+  requireSession(async function(){
+    var wasSaved=state.picks.has(skuId);
+    try{
+      if(wasSaved){
+        await api('/public/backlist/picks',{method:'DELETE',body:JSON.stringify({storeId:STORE_ID,skuIds:[skuId]})});
+        state.picks.delete(skuId);
+      }else{
+        await api('/public/backlist/picks',{method:'PATCH',body:JSON.stringify({storeId:STORE_ID,skuId:skuId,quantity:1})});
+        state.picks.add(skuId);
+      }
+      renderResults();renderShelves();
+      if(done)done(state.picks.has(skuId));
+    }catch(error){ if(done)done(wasSaved); window.alert(error.message); }
+  });
 }
 
 async function loadFacets(){
@@ -255,12 +299,27 @@ function renderCart(){
     + '<button class="mp-bl-button" id="mp-bl-checkout-btn">Checkout</button></div>';
 }
 
+// Mobile back-button support: reading a book's detail dialog and hitting
+// back used to leave /books entirely, since the browser had no idea a
+// dialog was even open -- pushing a history entry on open means the phone's
+// back button/gesture fires a popstate that closeDialog() below is already
+// listening for, closing the dialog instead. Closing via the X/overlay tap
+// removes that same listener without navigating, leaving one inert history
+// entry a later real back press silently steps over (standard tradeoff for
+// this pattern without a real client-side router).
+function closeDialog(){
+  var overlay=document.querySelector('.mp-bl-overlay');
+  if(overlay)overlay.remove();
+  window.removeEventListener('popstate',closeDialog);
+}
 function dialog(html){
   var overlay=document.createElement('div');
   overlay.className='mp-bl-overlay';
   overlay.innerHTML='<div class="mp-bl-modal">'+html+'<button class="mp-bl-close" data-close>&times;</button></div>';
   document.body.appendChild(overlay);
-  overlay.addEventListener('click',function(e){if(e.target===overlay||e.target.hasAttribute('data-close'))overlay.remove();});
+  overlay.addEventListener('click',function(e){if(e.target===overlay||e.target.hasAttribute('data-close'))closeDialog();});
+  history.pushState({mpModal:true},'');
+  window.addEventListener('popstate',closeDialog);
   return overlay;
 }
 function status(el,text,kind){if(!el)return;el.textContent=text;el.className='mp-bl-status'+(kind?' '+kind:'');}
@@ -277,7 +336,7 @@ function openAuth(next){
     var request=kind==='signup'?auth('signup',{email:email,password:password,data:{full_name:name}}):auth('token?grant_type=password',{email:email,password:password});
     request.then(function(session){
       if(kind==='signup'&&!session.access_token){status(out,'Check your inbox to confirm this email, or sign in if you already have an account.');return;}
-      setSession(session);overlay.remove();if(next)next();
+      setSession(session);closeDialog();if(next)next();
     }).catch(function(error){status(out,error.message,'error');});
   }
   form.addEventListener('submit',function(e){e.preventDefault();perform('signin');});
@@ -349,6 +408,15 @@ function wireEvents(){
     }
     var removeBtn=e.target.closest('[data-remove]');
     if(removeBtn){removeFromCart(removeBtn.getAttribute('data-remove'));return;}
+    var saveBtn=e.target.closest('[data-save]');
+    if(saveBtn){
+      // toggleSavePick() re-renders the grid/shelves on success, which already
+      // rebuilds this exact card with the star reflecting state.picks -- no
+      // separate DOM patch needed here the way the detail dialog's own save
+      // button (outside those renders) requires.
+      toggleSavePick(saveBtn.dataset.skuId,saveBtn.dataset.title,saveBtn.dataset.cover);
+      return;
+    }
     var detailBtn=e.target.closest('[data-open-detail]');
     if(detailBtn){openBacklistDetail(detailBtn.dataset.openDetail);return;}
     if(e.target.id==='mp-bl-search-btn'){state.q=document.getElementById('mp-bl-q').value.trim();applySearch();return;}
@@ -388,6 +456,11 @@ function mount(){
     loadShelves();
   }
   loadFacets().then(renderFilters);
+  // Runs in parallel with the shelves/search fetch above -- whichever
+  // finishes first renders without saved-state, whichever finishes second
+  // re-renders with it, so this never blocks first paint on a signed-in
+  // customer's picks loading.
+  loadPicks().then(function(){renderResults();renderShelves();});
 }
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();

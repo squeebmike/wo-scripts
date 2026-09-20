@@ -34,6 +34,9 @@ body.mp-page-backlist{overflow-x:hidden;background:var(--wo-bg,#10121a);color:va
 .mp-bl-detail p{font-size:13px;line-height:1.5;opacity:.85;margin:0 0 8px}
 .mp-bl-detail-row{border-top:1px solid var(--mp-line);padding-top:8px;margin-top:8px;display:grid;gap:4px}
 .mp-bl-detail-row .mp-bl-button{margin-top:4px;align-self:flex-start}
+.mp-bl-cover-wrap{position:relative}
+.mp-bl-save-btn{position:absolute;top:6px;right:6px;width:30px;height:30px;border-radius:50%;border:1px solid var(--mp-line);background:rgba(10,10,14,.65);color:#fff;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.mp-bl-save-btn.is-saved{color:#ffcf4d;border-color:#ffcf4d}
 .mp-bl-cover{width:100%;aspect-ratio:2/3;object-fit:contain;background:var(--mp-case)}
 .mp-bl-cover-placeholder{display:flex;align-items:center;justify-content:center}
 .mp-bl-card-body{padding:10px 12px 14px;display:flex;flex-direction:column;gap:4px}

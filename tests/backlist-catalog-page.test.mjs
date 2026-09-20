@@ -127,4 +127,26 @@ assert.match(source, /navigator\.share/, 'share must use the real Web Share API'
 assert.match(source, /navigator\.clipboard/, 'share must fall back to copying the link');
 assert.match(source, /window\.prompt\('Copy this link:',url\)/, 'share must fall back to a prompt as a last resort, same as preorders.js');
 
-console.log('Backlist catalog page (loader shell, shared session, self-contained cart/checkout, curated shelves, browse+filters+pagination, detail dialog) checks passed');
+// "Save for later" wishlist -- deliberately independent of the cart (see
+// backlist-catalog.mjs's loadBacklistPicks). Requires sign-in (requireSession)
+// since a wishlist only means something if it persists across visits.
+assert.match(source, /async function loadPicks\(\)\{/, 'missing the picks loader');
+assert.match(source, /api\('\/public\/backlist\/picks\?store_id='\+encodeURIComponent\(STORE_ID\)\)/, 'must call the new picks route to load saved state');
+assert.match(source, /function toggleSavePick\(skuId,title,cover,done\)\{/, 'missing the save/unsave toggle');
+assert.match(source, /requireSession\(async function\(\)\{/, 'saving must require sign-in, same as checkout');
+assert.match(source, /method:'DELETE',body:JSON\.stringify\(\{storeId:STORE_ID,skuIds:\[skuId\]\}\)/, 'unsaving must call the picks DELETE route');
+assert.match(source, /method:'PATCH',body:JSON\.stringify\(\{storeId:STORE_ID,skuId:skuId,quantity:1\}\)/, 'saving must call the picks PATCH route');
+assert.match(source, /data-save data-sku-id="'\+esc\(sku\.id\)\+'"/, 'each result card must have a save-for-later button');
+assert.match(source, /data-detail-save data-sku-id="'\+esc\(s\.id\)\+'"/, 'the detail dialog must also have a save-for-later button per format');
+assert.match(source, /var saveBtn=e\.target\.closest\('\[data-save\]'\)/, 'missing the click handler that toggles the save state from a card');
+assert.match(source, /loadPicks\(\)\.then\(function\(\)\{renderResults\(\);renderShelves\(\);\}\)/, 'mount() must load saved state and re-render so cards reflect it, even though loading picks must never block first paint');
+
+// Mobile back-button support -- opening a dialog (detail view, sign-in,
+// checkout) used to leave no trace in browser history, so hitting back
+// while reading a description exited /books entirely instead of closing it.
+assert.match(source, /history\.pushState\(\{mpModal:true\},''\)/, 'opening a dialog must push a history entry so the back button has something to consume');
+assert.match(source, /window\.addEventListener\('popstate',closeDialog\)/, 'must close the dialog on a back-button press, not navigate away');
+assert.match(source, /function closeDialog\(\)\{[\s\S]{0,150}window\.removeEventListener\('popstate',closeDialog\);[\s\S]{0,10}\}/, 'closing any other way (X/overlay tap) must also remove the popstate listener, not leave it dangling');
+assert.doesNotMatch(source, /setSession\(session\);overlay\.remove\(\);/, 'the sign-in success path must go through closeDialog(), not remove() directly, or its pushed history entry never gets cleaned up consistently');
+
+console.log('Backlist catalog page (loader shell, shared session, self-contained cart/checkout, curated shelves, wishlist, browse+filters+pagination, detail dialog, back-button-closes-modal) checks passed');

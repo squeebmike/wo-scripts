@@ -21,3 +21,18 @@ assert.doesNotMatch(preorders,/watchCartForChanges/,'cart edits must not be mirr
 assert.doesNotMatch(preorders,/reconcileSavedPicks/,'opening a page must not automatically force every saved pull into the cart');
 
 console.log('Account preorder curation and selective-checkout contracts passed.');
+
+// Saved books ("My Pocket" for backlist) -- lives on the existing
+// /account-wishlist page alongside the staff-curated want list, since that's
+// the one destination a customer already thinks of as "my wishlist" on this
+// site, rather than a third, confusingly-similar page.
+assert.match(account,/api\('\/public\/backlist\/picks\?store_id='\+encodeURIComponent\(STORE_ID\)\)/,'the wishlist page must load saved books from the new backlist picks route');
+assert.match(account,/function savedBookRowHtml\(pick\)\{/,'missing the saved-book row renderer');
+assert.match(account,/data-saved-book-add="'\+esc\(sku\.id\)\+'"/,'each saved book must be addable to the cart');
+assert.match(account,/data-saved-book-remove="'\+esc\(sku\.id\)\+'"/,'each saved book must have an explicit remove action');
+assert.match(account,/method:'DELETE',body:JSON\.stringify\(\{storeId:STORE_ID,skuIds:\[removeBtn\.dataset\.savedBookRemove\]\}\)/,'removing a saved book must call the backlist picks DELETE route');
+assert.match(account,/function addBacklistLineToCart\(line\)\{/,'missing the backlist-cart writer');
+assert.match(account,/key='mp-backlist-cart-v1'/,'must write to backlist.js\'s own cart key, not the shared window.WO cart -- the two carts are deliberately separate');
+assert.match(account,/function handleSavedBookAction\(event\)\{[\s\S]{0,600}addBacklistLineToCart\(/,'adding a saved book to the cart must go through the dedicated backlist-cart writer, not window.WO');
+
+console.log('Saved-books wishlist contract checks passed.');

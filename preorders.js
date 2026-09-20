@@ -247,11 +247,26 @@ function skuDetailHtml(family,sku,cycle){
   var creators=[family.writer&&'Writer: '+family.writer,family.interiorArtist&&'Artist: '+family.interiorArtist,sku.coverArtist&&'Cover: '+sku.coverArtist].filter(Boolean);
   var request=sku.waitlistOnly||!sku.canPreorder;
   var action=request?'<a class="mp-foc-button" href="/preorders?sku='+encodeURIComponent(sku.id)+'&request=1">Request this cover</a>':'<button class="mp-foc-button" type="button" data-detail-add="'+esc(sku.id)+'">Preorder this cover</button>';
-  return'<div class="mp-foc-detail"><div class="mp-foc-detail-media">'+(sku.coverImageUrl?'<img src="'+esc(sku.coverImageUrl)+'" alt="'+esc(titleForFamily(family)+' '+sku.variantLabel)+'">':'<span>Cover coming soon</span>')+'</div><div class="mp-foc-detail-copy"><p class="mp-foc-detail-kicker">Comic preorder · specific cover shown</p><h2>'+esc(titleForFamily(family))+'</h2><h3>'+esc(sku.variantLabel||'Cover A')+'</h3><div class="mp-foc-detail-grid"><span><b>Price</b>'+esc(priceForSku(sku))+'</span><span><b>Preorder deadline</b>'+esc(dateLabel(cycle.foc_date,false))+'</span><span><b>Release date</b>'+esc(dateLabel(sku.onSaleDate,false))+'</span><span><b>Publisher</b>'+esc([family.publisher,family.imprint].filter(Boolean).join(' · ')||'TBA')+'</span></div><p class="mp-foc-detail-creators">'+esc(creators.join(' · ')||'Creator details have not been supplied yet.')+'</p><h4>Synopsis</h4><p class="mp-foc-detail-synopsis">'+esc(sku.description||family.description||'The distributor has not supplied a synopsis yet. Check back as release information is updated.')+'</p><p class="mp-foc-detail-note">FOC means Final Order Cutoff—the distributor deadline. Adding this preorder saves the shown cover to My Pocket and also puts it in your cart; you are not charged until checkout.</p><div class="mp-foc-detail-actions">'+action+'<button class="mp-foc-button ghost" type="button" data-detail-share="'+esc(sku.id)+'">Share</button></div></div></div>';
+  return'<div class="mp-foc-detail"><div class="mp-foc-detail-media">'+(sku.coverImageUrl?'<img src="'+esc(sku.coverImageUrl)+'" alt="'+esc(titleForFamily(family)+' '+sku.variantLabel)+'">':'<span>Cover coming soon</span>')+'</div><div class="mp-foc-detail-copy"><p class="mp-foc-detail-kicker">Comic preorder · specific cover shown</p><h2>'+esc(titleForFamily(family))+'</h2><h3>'+esc(sku.variantLabel||'Cover A')+'</h3><div class="mp-foc-detail-grid"><span><b>Price</b>'+esc(priceForSku(sku))+'</span><span><b>Preorder deadline</b>'+esc(dateLabel(cycle.foc_date,false))+'</span><span><b>Release date</b>'+esc(dateLabel(sku.onSaleDate,false))+'</span><span><b>Publisher</b>'+esc([family.publisher,family.imprint].filter(Boolean).join(' · ')||'TBA')+'</span></div><p class="mp-foc-detail-creators">'+esc(creators.join(' · ')||'Creator details have not been supplied yet.')+'</p><h4>Synopsis</h4><p class="mp-foc-detail-synopsis">'+esc(sku.description||family.description||'The distributor has not supplied a synopsis yet. Check back as release information is updated.')+'</p><p class="mp-foc-detail-note">FOC means Final Order Cutoff—the distributor deadline. Adding this preorder saves the shown cover to My Pocket and also puts it in your cart; you are not charged until checkout.</p><div class="mp-foc-detail-actions">'+action+'<button class="mp-foc-button ghost" type="button" data-detail-save="'+esc(sku.id)+'">☆ Save for later</button><button class="mp-foc-button ghost" type="button" data-detail-share="'+esc(sku.id)+'">Share</button></div></div></div>';
 }
 function bindSkuDetail(overlay,match){
   var addBtn=overlay.querySelector('[data-detail-add]');
   if(addBtn)addBtn.addEventListener('click',function(){addPreorderLine(match.sku.id,1,addBtn);addBtn.textContent='Saved ✓';setTimeout(function(){addBtn.textContent='Preorder this cover';},900);});
+  // Distinct from "Preorder this cover" above -- that adds to cart AND
+  // saves the pick together (addPreorderLine calls savePick internally).
+  // This calls savePick() alone: bookmark the cover to decide on later
+  // without committing to buy it, same intent as backlist.js's own
+  // save-for-later button on /books.
+  var saveBtn=overlay.querySelector('[data-detail-save]');
+  if(saveBtn)saveBtn.addEventListener('click',function(){
+    requireSession(async function(){
+      saveBtn.disabled=true;saveBtn.textContent='Saving…';
+      var ok=await savePick(match.sku.id,1);
+      saveBtn.disabled=false;
+      saveBtn.textContent=ok?'★ Saved':'Could not save — try again';
+      if(ok)setTimeout(function(){saveBtn.textContent='☆ Save for later';},1600);
+    });
+  });
   var shareBtn=overlay.querySelector('[data-detail-share]');
   if(shareBtn)shareBtn.addEventListener('click',function(){shareSku(match.family,match.sku,shareBtn);});
 }
@@ -290,8 +305,16 @@ function bindCycleLazyLoading(){
   },{rootMargin:'900px 0px 900px',threshold:0.01});
   var nextGate=document.querySelector('.mp-foc-cycle-gate');if(nextGate)state.cycleObserver.observe(nextGate);
 }
-function dialog(content,className){closeDialog();var overlay=document.createElement('div');overlay.className='mp-foc-overlay';overlay.innerHTML='<section class="mp-foc-dialog '+(className||'')+'" role="dialog" aria-modal="true"><button class="mp-foc-close" aria-label="Close">×</button>'+content+'</section>';document.body.appendChild(overlay);overlay.querySelector('.mp-foc-close').addEventListener('click',closeDialog);overlay.addEventListener('click',function(event){if(event.target===overlay)closeDialog();});document.addEventListener('keydown',escapeDialog);return overlay;}
-function closeDialog(){document.querySelector('.mp-foc-overlay')?.remove();document.removeEventListener('keydown',escapeDialog);}
+// Mobile back-button support: reading a comic's detail dialog and hitting
+// back used to leave /preorders entirely, since the browser had no idea a
+// dialog was even open -- pushing a history entry on open means the phone's
+// back button/gesture fires a popstate closeDialog() is already listening
+// for, closing the dialog instead. Closing via the X/overlay/Escape removes
+// that same listener without navigating, leaving one inert history entry a
+// later real back press silently steps over (standard tradeoff for this
+// pattern without a real client-side router).
+function dialog(content,className){closeDialog();var overlay=document.createElement('div');overlay.className='mp-foc-overlay';overlay.innerHTML='<section class="mp-foc-dialog '+(className||'')+'" role="dialog" aria-modal="true"><button class="mp-foc-close" aria-label="Close">×</button>'+content+'</section>';document.body.appendChild(overlay);overlay.querySelector('.mp-foc-close').addEventListener('click',closeDialog);overlay.addEventListener('click',function(event){if(event.target===overlay)closeDialog();});document.addEventListener('keydown',escapeDialog);history.pushState({mpModal:true},'');window.addEventListener('popstate',closeDialog);return overlay;}
+function closeDialog(){document.querySelector('.mp-foc-overlay')?.remove();document.removeEventListener('keydown',escapeDialog);window.removeEventListener('popstate',closeDialog);}
 function escapeDialog(event){if(event.key==='Escape')closeDialog();}
 function status(node,message,kind){node.innerHTML='<div class="mp-foc-status '+(kind||'')+'">'+esc(message)+'</div>';}
 // Shows the same message as status(), plus a live "Resend confirmation

@@ -353,18 +353,59 @@ function consignmentRowHtml(item){
 }
 
 async function loadWishlist(){
-  var host=panel();host.innerHTML='<div class="mp-acct-loading">Loading your want list…</div>';
+  var host=panel();host.innerHTML='<div class="mp-acct-loading">Loading your wishlist…</div>';
   try{
-    var result=state.cache.wishlist||await api('/public/account/wishlist?store_id='+encodeURIComponent(STORE_ID));
-    state.cache.wishlist=result;
-    var items=result.items||[];
-    host.innerHTML=items.length?'<p class="mp-acct-intro">Items you have asked the store to keep an eye out for. Call or stop by to add more — self-service adding is coming soon.</p>'+items.map(wishlistRowHtml).join(''):'<div class="mp-acct-empty">Nothing on your want list yet. Ask the store to add a card, comic, or set you are hunting for.</div>';
+    var results=await Promise.all([
+      state.cache.wishlist||api('/public/account/wishlist?store_id='+encodeURIComponent(STORE_ID)),
+      state.cache.backlistPicks||api('/public/backlist/picks?store_id='+encodeURIComponent(STORE_ID)),
+    ]);
+    state.cache.wishlist=results[0];state.cache.backlistPicks=results[1];
+    var items=results[0].items||[],picks=(results[1].picks||[]).filter(function(p){return p.sku;});
+    var saved=picks.length?'<div class="mp-acct-saved-head"><div><h2 class="mp-acct-subhead">Saved books</h2><p class="mp-acct-intro">Books you saved for later from the full PRH catalog. Saving here never adds them to your cart.</p></div></div><div class="mp-acct-action-status" data-saved-books-status aria-live="polite"></div>'+picks.map(savedBookRowHtml).join(''):'';
+    host.innerHTML=saved+(items.length?'<h2 class="mp-acct-subhead">Want list</h2><p class="mp-acct-intro">Items you have asked the store to keep an eye out for. Call or stop by to add more — self-service adding is coming soon.</p>'+items.map(wishlistRowHtml).join(''):(picks.length?'':'<div class="mp-acct-empty">Nothing saved yet. Save a book from <a class="mp-acct-link" href="/books">the full catalog</a>, or ask the store to add a card, comic, or set you are hunting for.</div>'));
+    host.onclick=handleSavedBookAction;
   }catch(error){host.innerHTML=statusHtml(error.message,'error');}
 }
 function wishlistRowHtml(item){
   return '<article class="mp-acct-order"><header><div><h3>'+esc(item.item)+'</h3>'+(item.notes?'<span class="mp-acct-sub">'+esc(item.notes)+'</span>':'')+'</div><span class="mp-acct-status-pill">'+esc(item.status||'active')+'</span></header>'+
     (item.maxprice?'<div class="mp-acct-row"><span>Up to</span><strong>'+money(item.maxprice)+'</strong></div>':'')+
   '</article>';
+}
+function savedBookRowHtml(pick){
+  var sku=pick.sku||{},title=sku.backlist_titles||{},price=Number(sku.customer_price_cents||sku.msrp_cents||0);
+  return '<article class="mp-acct-order mp-acct-saved-pulls"><div class="mp-acct-item-line">'+(title.cover_image_url?'<img src="'+esc(title.cover_image_url)+'" alt="">':'<span class="mp-acct-item-noimg"></span>')+
+    '<div class="mp-acct-item-info"><span>'+esc(title.title||'Saved book')+(sku.format_name?' · '+esc(sku.format_name):'')+'</span><span>'+money(price/100)+'</span></div></div>'+
+    '<div class="mp-acct-actions"><button class="mp-acct-mini" type="button" data-saved-book-add="'+esc(sku.id)+'" data-saved-book-title="'+esc(title.title||'Saved book')+'" data-saved-book-image="'+esc(title.cover_image_url||'')+'" data-saved-book-price="'+price+'">Add to cart</button><button class="mp-acct-mini danger" type="button" data-saved-book-remove="'+esc(sku.id)+'">Remove</button></div>'+
+  '</article>';
+}
+// The backlist cart is deliberately its own key (mp-backlist-cart-v1, see
+// backlist.js), separate from window.WO's shared regular/preorder cart --
+// this account page writes to it directly the same shape backlist.js does,
+// rather than threading a third cart kind through the shared checkout.
+function addBacklistLineToCart(line){
+  var key='mp-backlist-cart-v1',cart=readJson(key,[]),existing=cart.find(function(l){return l.id===line.id;});
+  if(existing)existing.qty=Math.min(20,Number(existing.qty||1)+1);else cart.push(line);
+  saveJson(key,cart);
+}
+async function handleSavedBookAction(event){
+  var addBtn=event.target.closest('[data-saved-book-add]'),removeBtn=event.target.closest('[data-saved-book-remove]');
+  if(!addBtn&&!removeBtn)return;
+  var out=document.querySelector('[data-saved-books-status]');
+  try{
+    if(addBtn){
+      var skuId=addBtn.dataset.savedBookAdd;
+      addBacklistLineToCart({id:'backlist:'+skuId,kind:'backlist',skuId:skuId,name:addBtn.dataset.savedBookTitle,image:addBtn.dataset.savedBookImage,price:Number(addBtn.dataset.savedBookPrice||0)/100,qty:1});
+      addBtn.textContent='Added ✓';setTimeout(function(){addBtn.textContent='Add to cart';},1200);
+      if(out)out.textContent='Added to your cart. Visit /books to check out.';
+      return;
+    }
+    if(removeBtn){
+      if(!window.confirm('Remove this book from your saved list?'))return;
+      removeBtn.disabled=true;if(out)out.textContent='Removing…';
+      await api('/public/backlist/picks',{method:'DELETE',body:JSON.stringify({storeId:STORE_ID,skuIds:[removeBtn.dataset.savedBookRemove]})});
+      state.cache.backlistPicks=null;await loadWishlist();
+    }
+  }catch(error){if(out){out.textContent=error.message;out.classList.add('error');}else window.alert(error.message);}
 }
 
 function renderProfile(){
