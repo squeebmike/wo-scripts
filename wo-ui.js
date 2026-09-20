@@ -792,6 +792,7 @@ function polishNavigation(){
   ];
   var COOL_LINKS=[
     {slug:'preorders',label:'Comic Preorders',href:'/preorders',image:NAV_ART.comics,meta:'Pick exact covers before FOC'},
+    {slug:'books',label:'Book Backlist',href:'/books',image:BRAND_LOGO,meta:'Order any book in print'},
     {slug:'pokemon-viewer',label:'Pok\u00e9mon Card Viewer',href:'/pokemon-new-releases',image:NAV_ART.pokemon,meta:'Scan the latest sets'},
     {slug:'mtg-viewer',label:'MTG Card Viewer',href:'/mtg-new-releases',image:NAV_ART.mtg,meta:'Browse cards by release'},
     {slug:'publishing',label:'Walk-Off Publishing',href:'/publishing',image:NAV_ART.publishing,meta:'Comics from behind the counter'},
