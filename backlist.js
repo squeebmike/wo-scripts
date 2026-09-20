@@ -10,7 +10,7 @@ var SUPABASE_KEY='sb_publishable_wbpX2nL8l-4NbXtZNG_bjA_nabSYaJ5';
 var SESSION_KEY='mp-foc-session-v1';
 var CART_KEY='mp-backlist-cart-v1';
 
-var state={session:null,results:[],cart:[],q:'',publisher:'',format:'',offset:0,limit:24,hasMore:false,loading:false,facets:{publishers:[],formats:[]},scrollObserver:null};
+var state={session:null,results:[],cart:[],q:'',publisher:'',format:'',offset:0,limit:24,hasMore:false,loading:false,facets:{publishers:[],formats:[]},scrollObserver:null,shelves:[],showShelves:true};
 
 function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,function(ch){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
 function money(cents){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(cents||0)/100);}
@@ -33,7 +33,43 @@ function renderSearchBar(){
   return '<div class="mp-bl-searchbar"><input type="search" id="mp-bl-q" placeholder="Search by title, author, or series…" value="'+esc(state.q)+'"><button class="mp-bl-button" id="mp-bl-search-btn">Search</button></div>'
     + '<div class="mp-bl-filters" id="mp-bl-filters">'+filterOptionsHtml()+'</div>'
     + '<div id="mp-bl-cart-summary" class="mp-bl-cart-summary"></div>'
+    + '<div id="mp-bl-shelves"></div>'
     + '<div id="mp-bl-results" class="mp-bl-results"></div>';
+}
+
+// Curated homepage shelves (New Arrivals / Under $10 / Staff Picks) --
+// ~23,000 titles is not a "browse everything alphabetically" catalog, it's
+// a search-or-drown one. Shown only in the default no-query/no-filter state;
+// typing a search or picking a filter (see applySearch()) replaces this with
+// the regular flat results grid, same as before.
+async function loadShelves(){
+  var host=document.getElementById('mp-bl-shelves');
+  if(host)host.innerHTML='<div class="mp-bl-loading">Loading…</div>';
+  try{
+    var data=await api('/public/backlist/shelves?store_id='+encodeURIComponent(STORE_ID),{auth:false});
+    state.shelves=(data.shelves||[]).filter(function(s){return s.titles&&s.titles.length;});
+  }catch(_){ state.shelves=[]; }
+  renderShelves();
+}
+function shelfRow(shelf){
+  return '<div class="mp-bl-shelf"><h2 class="mp-bl-shelf-title">'+esc(shelf.label)+'</h2>'
+    + '<div class="mp-bl-shelf-row">'+shelf.titles.map(resultCard).join('')+'</div></div>';
+}
+function renderShelves(){
+  var host=document.getElementById('mp-bl-shelves');
+  if(!host)return;
+  if(!state.showShelves){host.innerHTML='';return;}
+  host.innerHTML=state.shelves.map(shelfRow).join('')
+    + '<div class="mp-bl-browse-all"><button class="mp-bl-button ghost" type="button" id="mp-bl-browse-all-btn">Browse the full catalog A&ndash;Z &rarr;</button></div>';
+}
+// Every path into a real search (typed query, a filter change, or the
+// "browse full catalog" escape hatch) goes through here so shelves always
+// get torn down the same way -- no separate "did I remember to hide the
+// shelves" bug per entry point.
+function applySearch(){
+  state.showShelves=false;
+  renderShelves();
+  runSearch();
 }
 
 // Publisher/format dropdowns are populated from /public/backlist/facets,
@@ -315,13 +351,14 @@ function wireEvents(){
     if(removeBtn){removeFromCart(removeBtn.getAttribute('data-remove'));return;}
     var detailBtn=e.target.closest('[data-open-detail]');
     if(detailBtn){openBacklistDetail(detailBtn.dataset.openDetail);return;}
-    if(e.target.id==='mp-bl-search-btn'){state.q=document.getElementById('mp-bl-q').value.trim();runSearch();return;}
+    if(e.target.id==='mp-bl-search-btn'){state.q=document.getElementById('mp-bl-q').value.trim();applySearch();return;}
+    if(e.target.id==='mp-bl-browse-all-btn'){applySearch();return;}
     if(e.target.id==='mp-bl-checkout-btn'){beginCheckout();return;}
   });
-  host.addEventListener('keydown',function(e){if(e.target.id==='mp-bl-q'&&e.key==='Enter'){state.q=e.target.value.trim();runSearch();}});
+  host.addEventListener('keydown',function(e){if(e.target.id==='mp-bl-q'&&e.key==='Enter'){state.q=e.target.value.trim();applySearch();}});
   host.addEventListener('change',function(e){
-    if(e.target.id==='mp-bl-filter-publisher'){state.publisher=e.target.value;runSearch();return;}
-    if(e.target.id==='mp-bl-filter-format'){state.format=e.target.value;runSearch();return;}
+    if(e.target.id==='mp-bl-filter-publisher'){state.publisher=e.target.value;applySearch();return;}
+    if(e.target.id==='mp-bl-filter-format'){state.format=e.target.value;applySearch();return;}
   });
 }
 
@@ -342,12 +379,14 @@ function mount(){
   host.innerHTML=renderSearchBar();
   wireEvents();
   renderCart();
-  // Browse mode: runs immediately with whatever q/filters are already set
-  // (empty on a plain page load) instead of waiting for someone to type
-  // something first -- backlistSearch already supports this, only the
-  // frontend never asked for it. Facets load in parallel and patch the
-  // filter dropdowns in place once ready, so they never block first paint.
-  runSearch();
+  if(state.q){
+    // A visitor arriving via a book's own SEO-page ?q= link wants that
+    // search's results immediately, not the homepage shelves.
+    state.showShelves=false;
+    runSearch();
+  }else{
+    loadShelves();
+  }
   loadFacets().then(renderFilters);
 }
 

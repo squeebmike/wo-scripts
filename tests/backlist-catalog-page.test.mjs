@@ -52,22 +52,34 @@ assert.match(source, /client\.confirmPayment\(\{elements:elements,redirect:'if_r
 // this is the core "don't misrepresent how long this takes" requirement.
 assert.match(source, /sku\.delivery\.headline/, 'each result card must show the computed delivery estimate, not just price');
 
-// Browse-by-default: the page used to only ever call the search endpoint
-// once someone typed something, showing an empty "search to get started"
-// wall otherwise -- backlistSearch already supported an empty q as a real
-// "browse everything" request, only the frontend never asked. mount() must
-// now call runSearch() unconditionally, and the empty-results copy must no
-// longer claim nothing loads without typing first.
-assert.match(source, /runSearch\(\);\s*\n\s*loadFacets\(\)\.then\(renderFilters\);/, 'mount() must call runSearch() unconditionally (browse mode) and load facets in parallel, not gate the search behind a typed query');
+// Browse-by-default: backlistSearch supports an empty q as a real "browse
+// everything" request, and a deep-link ?q= (from a book's SEO page) must
+// skip straight to results, not the homepage shelves.
+assert.match(source, /if\(state\.q\)\{[\s\S]{0,300}state\.showShelves=false;[\s\S]{0,100}runSearch\(\);[\s\S]{0,50}\}else\{[\s\S]{0,50}loadShelves\(\);[\s\S]{0,50}\}/, 'mount() must run the deep-linked search immediately (skipping shelves), or load the homepage shelves otherwise');
+assert.match(source, /\}\s*\n\s*loadFacets\(\)\.then\(renderFilters\);/, 'facets must still load in parallel with either the deep-linked search or the shelves');
 assert.doesNotMatch(source, /Search PRH's full catalog above to get started/, 'the old "type to see anything" empty-state copy must be gone now that browsing works without a query');
+
+// Curated homepage shelves (New Arrivals / Under $10 / Staff Picks) --
+// ~23,000 titles is not a "browse everything alphabetically" catalog, it's
+// a search-or-drown one without a real starting point. Shelves are the
+// default state; typing a search or picking a filter (or the explicit
+// "browse full catalog" escape hatch) tears them down via applySearch(),
+// same single path every entry point uses.
+assert.match(source, /async function loadShelves\(\)\{/, 'missing the shelves loader');
+assert.match(source, /api\('\/public\/backlist\/shelves\?store_id='\+encodeURIComponent\(STORE_ID\)/, 'must call the new shelves route');
+assert.match(source, /function shelfRow\(shelf\)\{/, 'missing the shelf-row renderer');
+assert.match(source, /shelf\.titles\.map\(resultCard\)/, 'a shelf must reuse the same card component as the regular results grid, not a second one');
+assert.match(source, /function applySearch\(\)\{\s*\n\s*state\.showShelves=false;\s*\n\s*renderShelves\(\);\s*\n\s*runSearch\(\);\s*\n\s*\}/, 'every route into a real search must go through one shared function that tears down the shelves');
+assert.match(source, /if\(e\.target\.id==='mp-bl-search-btn'\)\{state\.q=document\.getElementById\('mp-bl-q'\)\.value\.trim\(\);applySearch\(\);return;\}/, 'the search button must go through applySearch(), not call runSearch() directly (which would leave shelves showing)');
+assert.match(source, /if\(e\.target\.id==='mp-bl-browse-all-btn'\)\{applySearch\(\);return;\}/, 'missing the "browse full catalog" escape hatch out of shelf mode');
+assert.match(source, /if\(e\.target\.id==='mp-bl-filter-publisher'\)\{state\.publisher=e\.target\.value;applySearch\(\);return;\}/, 'changing the publisher filter must go through applySearch()');
+assert.match(source, /if\(e\.target\.id==='mp-bl-filter-format'\)\{state\.format=e\.target\.value;applySearch\(\);return;\}/, 'changing the format filter must go through applySearch()');
 
 // Publisher/format filters -- populated from the new /public/backlist/facets
 // route and re-rendered in place (not wiping results already on screen).
 assert.match(source, /api\('\/public\/backlist\/facets\?store_id='/, 'must call the new facets route to populate the filter dropdowns');
 assert.match(source, /id="mp-bl-filter-publisher"/, 'missing the publisher filter dropdown');
 assert.match(source, /id="mp-bl-filter-format"/, 'missing the format/category filter dropdown');
-assert.match(source, /if\(e\.target\.id==='mp-bl-filter-publisher'\)\{state\.publisher=e\.target\.value;runSearch\(\);return;\}/, 'changing the publisher filter must re-run the search with the new filter applied');
-assert.match(source, /if\(e\.target\.id==='mp-bl-filter-format'\)\{state\.format=e\.target\.value;runSearch\(\);return;\}/, 'changing the format filter must re-run the search with the new filter applied');
 assert.match(source, /if\(state\.publisher\)params\.set\('publisher',state\.publisher\);/, 'the publisher filter must actually be sent to the search request');
 assert.match(source, /if\(state\.format\)params\.set\('format',state\.format\);/, 'the format filter must actually be sent to the search request');
 
@@ -115,4 +127,4 @@ assert.match(source, /navigator\.share/, 'share must use the real Web Share API'
 assert.match(source, /navigator\.clipboard/, 'share must fall back to copying the link');
 assert.match(source, /window\.prompt\('Copy this link:',url\)/, 'share must fall back to a prompt as a last resort, same as preorders.js');
 
-console.log('Backlist catalog page (loader shell, shared session, self-contained cart/checkout, browse+filters+pagination, detail-page links) checks passed');
+console.log('Backlist catalog page (loader shell, shared session, self-contained cart/checkout, curated shelves, browse+filters+pagination, detail dialog) checks passed');
