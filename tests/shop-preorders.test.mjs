@@ -39,4 +39,11 @@ assert.match(shop,/__MP_STOREFRONT_PREFETCH__/,'the small async head script must
 assert.match(shop,/data-mp-first-product/,'the early response must preload the first product image before the renderer is ready');
 assert.match(ui,/cart\.some\(function\(line\)\{return line&&line\.kind==='preorder';\}\)/,'preorder checkout helpers must stay off unrelated pages for visitors without preorder cart lines');
 
+// Mobile back-button support -- opening a cover's detail overlay on /shop
+// used to leave no trace in browser history, so hitting back while reading
+// a comic's detail exited /shop entirely instead of closing it. Same
+// pattern as backlist.js/preorders.js's own dialog().
+assert.match(shop,/history\.pushState\(\{mpModal:true\},''\);window\.addEventListener\('popstate',closeDetails\);/,'opening the detail overlay must push a history entry and close on a back-button press');
+assert.match(shop,/function closeDetails\(\)\{[\s\S]{0,150}window\.removeEventListener\('popstate',closeDetails\);[\s\S]{0,10}\}/,'closing any other way (X/overlay tap/Escape) must also remove the popstate listener, not leave it dangling');
+
 console.log('Shop preorder details, direct add, and filter contracts passed.');

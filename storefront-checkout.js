@@ -262,10 +262,19 @@ function showModal(modal){
   if(!modal.classList.contains('is-open')){returnFocus=document.activeElement;previousOverflow=document.body.style.overflow;}
   modal.classList.add('is-open');document.body.style.overflow='hidden';
   requestAnimationFrame(function(){var closeButton=modal.querySelector('[data-close]');if(modal.classList.contains('is-open')&&closeButton)closeButton.focus();});
+  // Mobile back-button support -- opening checkout used to leave no trace in
+  // browser history, so hitting back mid-checkout exited the page entirely
+  // instead of closing the panel. Same pattern as backlist.js/preorders.js's
+  // own dialog() -- push one history entry and close on a back-button press,
+  // without ever calling history.back() ourselves (see those files' own
+  // comments for why: avoids a race when one dialog immediately opens
+  // another, e.g. auth -> checkout).
+  history.pushState({mpModal:true},'');window.addEventListener('popstate',close);
 }
 function close(){
   var modal=node();if(!modal.classList.contains('is-open'))return;
   clearTimeout(quoteTimer);modal.classList.remove('is-open');document.body.style.overflow=previousOverflow;mode='regular';preorderCtx=null;
+  window.removeEventListener('popstate',close);
   if(returnFocus&&returnFocus.isConnected)returnFocus.focus();returnFocus=null;
 }
 async function loadStripe(){if(window.Stripe)return window.Stripe;await new Promise(function(resolve,reject){var existing=document.querySelector('script[src="https://js.stripe.com/v3/"]');if(existing){existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',reject,{once:true});return;}var script=document.createElement('script');script.src='https://js.stripe.com/v3/';script.onload=resolve;script.onerror=reject;document.head.appendChild(script);});return window.Stripe;}
