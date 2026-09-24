@@ -79,6 +79,15 @@ function mount(){
   // section nobody asked for.
   if(!onPreordersPage())return;
   document.body.classList.add('mp-page-preorders');
+  // preorders-loader.js adds html.mp-foc-boot (and its critical-CSS rules,
+  // including one that squishes #navbarID .wo-team-btn to a bare 40x40 icon)
+  // before this script has even loaded, so the real nav doesn't flash
+  // full-size then shrink while the FOC app's own placeholder is up. Once
+  // mount() runs, the real #mp-foc-app content is already in the DOM (either
+  // built here or by the loader's own boot()), so that temporary state is
+  // over -- leaving the class on permanently kept the My Pocket button
+  // stuck at icon-only size on this page forever, unlike every other page.
+  document.documentElement.classList.remove('mp-foc-boot');
   if(!document.getElementById('navbarID')){
     var nav=document.createElement('nav');nav.className='mp-foc-nav';nav.setAttribute('aria-label','Main navigation');
     nav.innerHTML='<a class="mp-foc-brand" href="/" aria-label="The Mana Pocket home"><img src="https://cdn.prod.website-files.com/65b15ee0228d06647ca7e4ce/6a7ce98ab3d4819b7565620e_the_mana_pocket_patch_1024x1024.png" alt="The Mana Pocket"></a><div><a href="/">Home</a><a href="/shop">Shop</a><button type="button" data-foc-theme>My Pocket</button></div>';
