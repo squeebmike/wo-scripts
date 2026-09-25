@@ -46,4 +46,12 @@ assert.match(app, /cover\.coverArtist/);
 assert.match(app, /cover\.description/);
 assert.match(app, /mp-cnr-badge/, 'ratio/incentive/foil badge must be visible on the card itself');
 
+// --- App: PRH/Lunar distributor toggle ------------------------------------
+assert.match(app, /requestedDistributor/, 'must read ?distributor= for a shareable deep link');
+assert.match(app, /distributor==='Lunar'\?'Lunar':'PRH'/, 'must validate the distributor param, same pattern as the backend');
+assert.match(app, /switchDistributor/, 'must let a visitor switch between PRH and Lunar views');
+assert.match(app, /params\.set\('distributor','Lunar'\)/, 'must pass the distributor through to the backend endpoint');
+assert.match(app, /mp-cnr-distributor-toggle/);
+assert.match(app, /mp-cnr-distributor-btn/);
+
 console.log('Comic new-releases frontend structural checks passed');

@@ -16,6 +16,9 @@
 #mp-cnr-app .mp-cnr-button{border:1px solid color-mix(in srgb,var(--wo-text,#f5f5f2) 20%,transparent);border-radius:999px;background:transparent;color:var(--wo-text,#f5f5f2);padding:9px 16px;font:800 11px/1 ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
 #mp-cnr-app .mp-cnr-button:hover{border-color:var(--wo-accent,#8f55bd);color:var(--wo-accent,#8f55bd)}
 
+#mp-cnr-app .mp-cnr-distributor-toggle{display:flex;gap:8px;margin:0 0 18px}
+#mp-cnr-app .mp-cnr-distributor-btn.is-active{background:var(--wo-accent,#8f55bd);border-color:var(--wo-accent,#8f55bd);color:#fff}
+
 #mp-cnr-app .mp-cnr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
 #mp-cnr-app .mp-cnr-card{display:flex;flex-direction:column;border:1px solid color-mix(in srgb,var(--wo-text,#f5f5f2) 12%,transparent);border-radius:16px;overflow:hidden;background:color-mix(in srgb,var(--wo-surface,#151824) 92%,transparent)}
 #mp-cnr-app .mp-cnr-cover{width:100%;aspect-ratio:2/3;object-fit:cover;display:block;background:var(--wo-surface-alt,#202536)}
