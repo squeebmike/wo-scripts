@@ -79,9 +79,9 @@ function render(){
   var host=dynamicHost();
   if(!host)return;
   var nav='<div class="mp-cnr-weeknav">'
-    + '<button type="button" class="mp-cnr-button ghost" id="mp-cnr-prev-week">← Previous week</button>'
+    + '<button type="button" class="mp-cnr-button ghost" id="mp-cnr-prev-week" aria-label="Previous week"><span aria-hidden="true">←</span><span class="mp-cnr-button-text"> Previous week</span></button>'
     + '<div class="mp-cnr-week-label">'+esc(weekRangeLabel())+'</div>'
-    + '<button type="button" class="mp-cnr-button ghost" id="mp-cnr-next-week">Next week →</button>'
+    + '<button type="button" class="mp-cnr-button ghost" id="mp-cnr-next-week" aria-label="Next week"><span class="mp-cnr-button-text">Next week </span><span aria-hidden="true">→</span></button>'
     + '</div>'
     + distributorToggle();
   var body=state.covers.length
@@ -161,6 +161,18 @@ async function loadWeek(week,distributor){
   }
 }
 
+// The site nav is fixed and slides away on scroll-down (the site's own
+// scroll script toggles #navbarID.is-hidden) -- mirror that onto <html> so
+// the sticky week picker can take the top of the screen while the nav is
+// gone and slide back down under it when it returns.
+function followNavVisibility(){
+  var nav=document.getElementById('navbarID');
+  if(!nav||!window.MutationObserver)return;
+  function sync(){document.documentElement.classList.toggle('mp-cnr-nav-hidden',nav.classList.contains('is-hidden'));}
+  new MutationObserver(sync).observe(nav,{attributes:true,attributeFilter:['class']});
+  sync();
+}
+
 function mount(){
   // The loader's critical CSS (background/min-height + the squeezed nav
   // button size) only needs to hold until this real app takes over --
@@ -168,6 +180,7 @@ function mount(){
   // /preorders (see preorders.js's own mount()), so it gets removed here
   // too rather than repeating that mistake on a second page.
   document.documentElement.classList.remove('mp-cnr-boot');
+  followNavVisibility();
   loadWeek(requestedWeek(),requestedDistributor());
 }
 

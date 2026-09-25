@@ -22,7 +22,7 @@ function boot(){
   if(document.getElementById('mp-cnr-app'))return;
   var app=document.createElement('main');
   app.id='mp-cnr-app';
-  app.innerHTML='<div class="mp-cnr-shell"><header><div class="mp-cnr-eyebrow">The Mana Pocket · New comics this week</div><h1 class="mp-cnr-title">What’s hitting shelves.</h1><p class="mp-cnr-intro">Every PRH single-issue cover releasing this week -- name, artist, ratio, and synopsis, no digging required. Not for sale on this page: tap a cover to preorder it, buy it in stock, or reorder it from backlist.</p></header><div data-cnr-dynamic><div class="mp-cnr-loading"><b>Pulling this week’s covers…</b></div></div></div>';
+  app.innerHTML='<div class="mp-cnr-shell"><header><div class="mp-cnr-eyebrow">The Mana Pocket · New comics this week</div><h1 class="mp-cnr-title">What’s hitting shelves.</h1><p class="mp-cnr-intro">Every PRH and Lunar single-issue cover releasing this week -- name, artist, ratio, and synopsis, no digging required. Not for sale on this page: tap a cover to preorder it, buy it in stock, or reorder it from backlist.</p></header><div data-cnr-dynamic><div class="mp-cnr-loading"><b>Pulling this week’s covers…</b></div></div></div>';
   var footer=document.querySelector('.footer-section,.Footer,.footer');
   if(footer)footer.parentNode.insertBefore(app,footer);else document.body.appendChild(app);
   var css=document.createElement('link');

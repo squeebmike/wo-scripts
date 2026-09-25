@@ -61,3 +61,16 @@ assert.ok(mobileBlock, 'must have a mobile breakpoint for the grid');
 assert.match(mobileBlock[0], /\.mp-cnr-grid\{grid-template-columns:1fr/, 'phone width must show one comic per row, not a squeezed two-up grid');
 
 console.log('Comic new-releases frontend structural checks passed');
+
+// --- Sticky week picker follows the site nav's scroll-hide -----------------
+assert.match(app, /nav\.classList\.contains\('is-hidden'\)/, 'must track the site nav\'s own is-hidden class');
+assert.match(app, /classList\.toggle\('mp-cnr-nav-hidden'/);
+const cssAll = fs.readFileSync('comic-new-releases.css', 'utf8');
+assert.match(cssAll, /html\.mp-cnr-nav-hidden #mp-cnr-app \.mp-cnr-weeknav\{top:/, 'picker must move up when the nav hides');
+assert.match(cssAll, /transition:top \.28s ease/, 'picker must slide on the same timing as the nav');
+// Phone: one row, arrow-only buttons, full text still available to screen readers.
+assert.match(cssAll, /\.mp-cnr-weeknav\{flex-wrap:nowrap/);
+assert.match(cssAll, /\.mp-cnr-button-text\{display:none\}/);
+assert.match(app, /aria-label="Previous week"/);
+assert.match(app, /aria-label="Next week"/);
+console.log('Comic new-releases sticky picker checks passed');

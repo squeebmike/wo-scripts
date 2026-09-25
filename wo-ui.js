@@ -791,6 +791,7 @@ function polishNavigation(){
     {slug:'sports-cards',label:'Sports',href:'/shop?cat=sports-cards',image:NAV_ART.sports,meta:'Baseball, basketball, football & hockey'}
   ];
   var COOL_LINKS=[
+    {slug:'comic-new-releases',label:'Comic New Releases',href:'/comic-new-releases-the-mana-pocket',image:NAV_ART.comics,meta:'Every cover out this week'},
     {slug:'preorders',label:'Comic Preorders',href:'/preorders',image:NAV_ART.comics,meta:'Pick exact covers before FOC'},
     {slug:'books',label:'Book Backlist',href:'/books',image:BRAND_LOGO,meta:'Order any book in print'},
     {slug:'pokemon-viewer',label:'Pok\u00e9mon Card Viewer',href:'/pokemon-new-releases',image:NAV_ART.pokemon,meta:'Scan the latest sets'},
@@ -1024,6 +1025,64 @@ function polishShopInventory(){
   if(mount())return;var observer=new MutationObserver(function(){if(mount())observer.disconnect();});observer.observe(document.documentElement,{childList:true,subtree:true});
 }
 
+// The four comics destinations each answer a different question (what's out
+// this week / what can I lock in before FOC / what's on the shelf / what can
+// still be ordered), and none of them can show the others' items -- so every
+// one of them carries the same strip linking to the other three. Injected
+// here rather than in each page's own script so the list lives in one place.
+var COMICS_HUB_LINKS=[
+  {key:'new-releases',href:'/comic-new-releases-the-mana-pocket',label:'New this week',meta:'Covers, artists & ratios'},
+  {key:'preorders',href:'/preorders',label:'Preorder by cover',meta:'Lock it in before FOC'},
+  {key:'shop',href:'/shop?cat=comics',label:'Shop in-stock',meta:'On the shelf now'},
+  {key:'backlist',href:'/books',label:'Backlist & collections',meta:'Order anything in print'}
+];
+var COMICS_HUB_PAGES={
+  '/comic-new-releases-the-mana-pocket':{key:'new-releases',header:'#mp-cnr-app header'},
+  '/preorders':{key:'preorders',header:'#mp-foc-app header'},
+  '/books':{key:'backlist',header:'#mp-backlist-app header'},
+  '/shop':{key:'shop'}
+};
+function comicsHubHtml(active){
+  return '<span class="mp-comics-hub-label">Comics</span><div class="mp-comics-hub-links">'+COMICS_HUB_LINKS.map(function(link){
+    var current=link.key===active;
+    return '<a class="mp-comics-hub-link'+(current?' is-current':'')+'" href="'+link.href+'"'+(current?' aria-current="page"':'')+'><strong>'+link.label+'</strong><span>'+link.meta+'</span></a>';
+  }).join('')+'</div>';
+}
+function mountComicsHub(){
+  var page=COMICS_HUB_PAGES[location.pathname.replace(/\/$/,'')||'/'];
+  if(!page)return;
+  function isComicCategory(value){return /^comics?$/.test(String(value||'').trim().toLowerCase());}
+  function place(){
+    if(document.querySelector('[data-mp-comics-hub]'))return true;
+    var nav=document.createElement('nav');
+    nav.className='mp-comics-hub';nav.setAttribute('data-mp-comics-hub',page.key);nav.setAttribute('aria-label','Comics sections');
+    nav.innerHTML=comicsHubHtml(page.key);
+    if(page.header){
+      var header=document.querySelector(page.header);
+      if(!header)return false;
+      header.insertBefore(nav,header.firstChild);
+      return true;
+    }
+    // /shop: only while the Comics category is selected, directly under the
+    // search/filter bar, since the in-stock grid can't show preorders-by-week,
+    // this week's releases, or backlist titles on its own.
+    var controls=document.querySelector('#wo-live-shop .wo-store-controls');
+    if(!controls||!controls.querySelector('.wo-store-control-field'))return false;
+    controls.insertAdjacentElement('afterend',nav);
+    // Both shop renderers set the category programmatically (from ?cat=)
+    // right after filling the options, which fires no change event -- so
+    // re-read on any controls mutation as well as on real changes.
+    function sync(){var select=document.querySelector('#wo-live-shop .wo-store-control-field');nav.hidden=!isComicCategory(select&&select.value);}
+    document.addEventListener('change',function(event){if(event.target&&event.target.matches&&event.target.matches('.wo-store-control-field'))window.setTimeout(sync,0);},true);
+    new MutationObserver(sync).observe(controls,{childList:true,subtree:true});
+    sync();
+    return true;
+  }
+  if(place())return;
+  var observer=new MutationObserver(function(){if(place())observer.disconnect();});
+  observer.observe(document.documentElement,{childList:true,subtree:true});
+}
+
 // Fan-club page decoration and signup wiring now live in fan-club.js,
 // loaded only on /fan-club via that page's own freeform code -- this used
 // to target a two-tier paid-pledge layout that no longer exists.
@@ -1124,6 +1183,7 @@ if(location.pathname==='/'||location.pathname==='/index.html'){
 enhanceCart();
 setupTawkChat();
 polishNavigation();
+mountComicsHub();
 buildReceiptFooter();
 polishCommerceDialogs();
 disableLegacyFlatRateShipping();
