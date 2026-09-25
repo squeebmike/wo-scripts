@@ -1,0 +1,37 @@
+/* Reads the same --wo-* theme variables wo-ui.js's applyTheme() already
+   sets sitewide, with dark defaults matching preorders.css's own fallback
+   convention -- a visitor's chosen team/Pokemon/MTG theme carries over
+   here automatically, no separate theme logic needed. */
+#mp-cnr-app{background:var(--wo-bg,#10121a);color:var(--wo-text,#f5f5f2);font-family:var(--wo-font,Georgia,serif);min-height:60vh}
+#mp-cnr-app .mp-cnr-shell{margin:auto;padding:18px 8px 92px;width:min(1500px,100%)}
+#mp-cnr-app .mp-cnr-eyebrow{color:var(--wo-accent,#8f55bd);font:800 11px/1.2 ui-monospace,monospace;letter-spacing:.18em;text-transform:uppercase}
+#mp-cnr-app .mp-cnr-title{font:900 clamp(36px,7vw,88px)/.9 Impact,'Arial Black',sans-serif;letter-spacing:-.03em;margin:12px 0;max-width:1000px;text-transform:uppercase}
+#mp-cnr-app .mp-cnr-intro{font-size:clamp(15px,1.8vw,19px);line-height:1.5;max-width:760px;opacity:.78;margin:0 0 8px}
+
+#mp-cnr-app .mp-cnr-loading,#mp-cnr-app .mp-cnr-error,#mp-cnr-app .mp-cnr-empty{padding:32px 4px;opacity:.8;font-size:15px}
+#mp-cnr-app .mp-cnr-error{color:#ff8a8a}
+
+#mp-cnr-app .mp-cnr-weeknav{position:sticky;top:var(--nav-height,74px);z-index:15;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:20px 0 18px;padding:10px 14px;border:1px solid color-mix(in srgb,var(--wo-text,#f5f5f2) 15%,transparent);background:color-mix(in srgb,var(--wo-surface,#151824) 92%,transparent);backdrop-filter:blur(18px);border-radius:14px}
+#mp-cnr-app .mp-cnr-week-label{font:900 14px/1 ui-monospace,monospace;letter-spacing:.04em}
+#mp-cnr-app .mp-cnr-button{border:1px solid color-mix(in srgb,var(--wo-text,#f5f5f2) 20%,transparent);border-radius:999px;background:transparent;color:var(--wo-text,#f5f5f2);padding:9px 16px;font:800 11px/1 ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+#mp-cnr-app .mp-cnr-button:hover{border-color:var(--wo-accent,#8f55bd);color:var(--wo-accent,#8f55bd)}
+
+#mp-cnr-app .mp-cnr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
+#mp-cnr-app .mp-cnr-card{display:flex;flex-direction:column;border:1px solid color-mix(in srgb,var(--wo-text,#f5f5f2) 12%,transparent);border-radius:16px;overflow:hidden;background:color-mix(in srgb,var(--wo-surface,#151824) 92%,transparent)}
+#mp-cnr-app .mp-cnr-cover{width:100%;aspect-ratio:2/3;object-fit:cover;display:block;background:var(--wo-surface-alt,#202536)}
+#mp-cnr-app .mp-cnr-cover-placeholder{width:100%;aspect-ratio:2/3;background:var(--wo-surface-alt,#202536)}
+#mp-cnr-app .mp-cnr-card-body{padding:14px 16px 18px;display:flex;flex-direction:column;gap:6px}
+#mp-cnr-app .mp-cnr-card-title{font-size:17px;font-weight:900;line-height:1.25;margin:0}
+#mp-cnr-app .mp-cnr-card-variant{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;opacity:.85}
+#mp-cnr-app .mp-cnr-badge{background:color-mix(in srgb,var(--wo-accent,#8f55bd) 20%,transparent);color:var(--wo-accent,#8f55bd);font-weight:800;font-size:11px;letter-spacing:.03em;padding:3px 9px;border-radius:999px;white-space:nowrap}
+#mp-cnr-app .mp-cnr-card-artist,#mp-cnr-app .mp-cnr-card-writer{font-size:12.5px;opacity:.7}
+#mp-cnr-app .mp-cnr-card-desc{font-size:13.5px;line-height:1.5;opacity:.85;margin:4px 0 0}
+#mp-cnr-app .mp-cnr-card-price{font:900 15px/1 ui-monospace,monospace;color:var(--wo-accent,#8f55bd);margin-top:4px}
+#mp-cnr-app .mp-cnr-link{margin-top:8px;display:inline-block;font-weight:800;font-size:13px;color:var(--wo-accent,#8f55bd);text-decoration:none}
+#mp-cnr-app .mp-cnr-link:hover{text-decoration:underline}
+#mp-cnr-app .mp-cnr-nolink{margin-top:8px;display:inline-block;font-size:13px;opacity:.55;font-style:italic}
+
+@media(max-width:640px){
+  #mp-cnr-app .mp-cnr-weeknav{flex-wrap:wrap;justify-content:center;text-align:center}
+  #mp-cnr-app .mp-cnr-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+}
