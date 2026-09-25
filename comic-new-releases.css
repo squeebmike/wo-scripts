@@ -45,8 +45,12 @@ html.mp-cnr-nav-hidden #mp-cnr-app .mp-cnr-weeknav{top:8px}
   #mp-cnr-app .mp-cnr-button-text{display:none}
   #mp-cnr-app .mp-cnr-week-label{flex:1;text-align:center;font-size:15px;white-space:nowrap}
   #mp-cnr-app .mp-cnr-distributor-toggle{justify-content:center}
-  /* One card per row on phones -- each card carries a full synopsis plus
-     artist/writer/price/link, and two-up at phone width squeezed all of
-     that into an unreadably narrow column. */
-  #mp-cnr-app .mp-cnr-grid{grid-template-columns:1fr;gap:14px}
+  #mp-cnr-app .mp-cnr-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+}
+/* One card per row only at true phone width -- each card carries a full
+   synopsis plus artist/writer/price/link, and two-up there squeezed it all
+   unreadably narrow. Kept well below 640px so a narrow or zoomed desktop
+   window still gets a multi-column grid. */
+@media(max-width:480px){
+  #mp-cnr-app .mp-cnr-grid{grid-template-columns:1fr}
 }
