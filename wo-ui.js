@@ -1063,12 +1063,14 @@ function mountComicsHub(){
       header.insertBefore(nav,header.firstChild);
       return true;
     }
-    // /shop: only while the Comics category is selected, directly under the
+    // /shop: only while the Comics category is selected, just above the
     // search/filter bar, since the in-stock grid can't show preorders-by-week,
-    // this week's releases, or backlist titles on its own.
+    // this week's releases, or backlist titles on its own. Never directly
+    // after the bar: the shop renderers treat the bar's next sibling as the
+    // in-stock grid.
     var controls=document.querySelector('#wo-live-shop .wo-store-controls');
     if(!controls||!controls.querySelector('.wo-store-control-field'))return false;
-    controls.insertAdjacentElement('afterend',nav);
+    controls.insertAdjacentElement('beforebegin',nav);
     // Both shop renderers set the category programmatically (from ?cat=)
     // right after filling the options, which fires no change event -- so
     // re-read on any controls mutation as well as on real changes.

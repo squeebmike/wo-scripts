@@ -39,3 +39,15 @@ assert.match(css, /\.mp-comics-hub-links \{[^}]*grid-template-columns: repeat\(4
 assert.match(css, /@media \(max-width: 767px\) \{\s*\.mp-comics-hub \{/, 'sub-nav needs its own phone layout');
 
 console.log('Comics sub-nav and Cool Stuff nav checks passed');
+
+// --- /shop: the strip must never become the filter bar's next sibling.
+// Matched live: shop-preorders.js took controls.nextElementSibling as the
+// in-stock grid, so with the strip there it inserted comic preorders ABOVE
+// in-stock comics and copied the grid's column layout from the strip (none),
+// rendering every preorder cover full-width, one per row.
+assert.match(ui, /controls\.insertAdjacentElement\('beforebegin',nav\)/, 'shop sub-nav must go above the filter bar, not after it');
+assert.doesNotMatch(ui, /controls\.insertAdjacentElement\('afterend',nav\)/);
+const shopPreorders = fs.readFileSync('shop-preorders.js', 'utf8');
+assert.match(shopPreorders, /inventoryGrid=controls&&host\.querySelector\('\.wo-live-grid:not\(\.mp-shop-preorder-grid\)'\)/, 'shop-preorders must find the in-stock grid by class, not by position');
+assert.doesNotMatch(shopPreorders, /inventoryGrid=controls&&controls\.nextElementSibling/);
+console.log('Shop comics sub-nav placement checks passed');

@@ -73,7 +73,7 @@ function openDetails(skuId){
   history.pushState({mpModal:true},'');window.addEventListener('popstate',closeDetails);
 }
 function mount(catalogs){
-  var host=document.getElementById('wo-live-shop'),controls=host&&host.querySelector('.wo-store-controls'),inventoryGrid=controls&&controls.nextElementSibling,inventoryStatus=inventoryGrid&&inventoryGrid.nextElementSibling;if(!inventoryGrid)return false;if(host.querySelector('.mp-shop-preorder-grid'))return true;
+  var host=document.getElementById('wo-live-shop'),controls=host&&host.querySelector('.wo-store-controls'),inventoryGrid=controls&&host.querySelector('.wo-live-grid:not(.mp-shop-preorder-grid)'),inventoryStatus=inventoryGrid&&inventoryGrid.nextElementSibling;if(!inventoryGrid)return false;if(host.querySelector('.mp-shop-preorder-grid'))return true;
   var grid=document.createElement('div');grid.className='wo-live-grid mp-shop-preorder-grid';grid.style.cssText=inventoryGrid.style.cssText;inventoryGrid.parentNode.insertBefore(grid,inventoryGrid.nextSibling);if(lazyTrigger)lazyTrigger.remove();
   catalogs=Array.isArray(catalogs)?catalogs:[catalogs];
   var variants=[],sources=[];function addPage(page){(page.families||[]).forEach(function(family){(family.variants||[]).forEach(function(sku){records[sku.id]={family:family,sku:sku,cycle:page.cycle};variants.push({family:family,sku:sku});});});}catalogs.forEach(function(page){addPage(page);sources.push({cycleId:page.cycle&&page.cycle.id,distributor:page.cycle&&page.cycle.distributor||'PRH',total:Number(page.totalVariants)||0,hasMore:page.hasMore===true,nextOffset:Number(page.nextOffset)||0});});if(!variants.length)return true;
