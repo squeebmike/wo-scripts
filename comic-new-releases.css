@@ -36,5 +36,9 @@
 
 @media(max-width:640px){
   #mp-cnr-app .mp-cnr-weeknav{flex-wrap:wrap;justify-content:center;text-align:center}
-  #mp-cnr-app .mp-cnr-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  #mp-cnr-app .mp-cnr-distributor-toggle{justify-content:center}
+  /* One card per row on phones -- each card carries a full synopsis plus
+     artist/writer/price/link, and two-up at phone width squeezed all of
+     that into an unreadably narrow column. */
+  #mp-cnr-app .mp-cnr-grid{grid-template-columns:1fr;gap:14px}
 }

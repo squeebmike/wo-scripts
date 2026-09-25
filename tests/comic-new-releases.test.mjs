@@ -54,4 +54,10 @@ assert.match(app, /params\.set\('distributor','Lunar'\)/, 'must pass the distrib
 assert.match(app, /mp-cnr-distributor-toggle/);
 assert.match(app, /mp-cnr-distributor-btn/);
 
+// --- CSS: one card per row on phones, not a cramped two-up grid -----------
+var css = fs.readFileSync('comic-new-releases.css', 'utf8');
+var mobileBlock = css.match(/@media\(max-width:640px\)\{[\s\S]*?\n\}/);
+assert.ok(mobileBlock, 'must have a mobile breakpoint for the grid');
+assert.match(mobileBlock[0], /\.mp-cnr-grid\{grid-template-columns:1fr/, 'phone width must show one comic per row, not a squeezed two-up grid');
+
 console.log('Comic new-releases frontend structural checks passed');
