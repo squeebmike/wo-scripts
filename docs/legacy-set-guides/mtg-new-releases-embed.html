@@ -1,0 +1,402 @@
+<style>
+.womtg-root{--bg:#0e1b2c;--panel:#0f2136;--panel2:#102238;--border:rgba(255,255,255,.08);--text:#fff;--dim:rgba(255,255,255,.55);--blue:#5ba3f5;font-family:Arial,Helvetica,sans-serif;color:var(--text);}
+.womtg-root *{box-sizing:border-box;}
+.womtg-wrap{max-width:1280px;margin:0 auto;padding:18px;}
+.womtg-set-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px;}
+.womtg-set-row select,.womtg-set-row input{background:#0b1a2b;color:#fff;border:1px solid #28496f;border-radius:8px!important;padding:9px 12px!important;font-size:14px!important;height:44px!important;line-height:24px!important;min-height:0!important;}
+.womtg-set-row select{flex:1 1 260px;min-width:200px;width:auto;}
+.womtg-set-row input{flex:1 1 160px;min-width:140px;width:auto;}
+.womtg-toolbar{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.womtg-stats{font-family:monospace;font-size:11px;color:var(--dim);display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+.womtg-sort-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.womtg-root button,.womtg-root input,.womtg-root select{width:auto;box-sizing:border-box;}
+.womtg-btn{display:inline-flex!important;align-items:center;justify-content:center;width:auto!important;flex:0 0 auto;background:#132943;border:1px solid #28496f;color:#fff;border-radius:8px;padding:6px 11px;font-size:10px;font-family:monospace;cursor:pointer;letter-spacing:.03em;white-space:nowrap;}
+.womtg-btn:hover{background:#1c3a5c;}
+.womtg-btn.active{border-color:var(--blue);color:var(--blue);}
+.womtg-btn.accent{border-color:rgba(91,163,245,.5);color:var(--blue);}
+.womtg-filters{display:none;flex-wrap:wrap;gap:8px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:12px;}
+.womtg-filters.on{display:flex;}
+.womtg-filters input,.womtg-filters select{background:#0b1a2b;color:#fff;border:1px solid #28496f;border-radius:8px;padding:7px 10px;font-size:12px;flex:1 1 140px;min-width:110px;max-width:220px;height:36px;}
+.womtg-cards-area{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--card-min,300px),1fr));gap:14px;}
+.womtg-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:border-color .15s,transform .15s;}
+.womtg-card:hover{border-color:rgba(91,163,245,.4);transform:translateY(-2px);}
+.womtg-card-img-wrap{aspect-ratio:5/7;background:#0a1420;display:flex;align-items:center;justify-content:center;}
+.womtg-card-img{width:100%;height:100%;object-fit:contain;}
+.womtg-no-img{width:100%;height:100%;background:linear-gradient(135deg,#152a42,#0a1420);}
+.womtg-card-body{padding:10px 12px 12px;display:flex;flex-direction:column;gap:5px;}
+.womtg-card-name{font-weight:700;font-size:13px;line-height:1.3;}
+.womtg-card-num{color:var(--dim);font-weight:400;font-size:11px;}
+.womtg-card-meta{font-size:11px;color:var(--dim);}
+.womtg-color-pip{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;font-size:9px;font-weight:800;margin-right:2px;}
+.womtg-card-prices{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.womtg-price{font-weight:800;color:#fff;font-size:14px;}
+.womtg-price-foil{font-size:11px;color:#c0a0ff;}
+.womtg-card-actions{margin-top:4px;}
+.womtg-card-actions .womtg-btn{width:100%!important;text-align:center;}
+.womtg-sort-row .womtg-btn,.womtg-toolbar label{flex:0 0 auto;}
+.womtg-sort-row input[type="range"]{width:90px;}
+.womtg-empty{grid-column:1/-1;text-align:center;padding:40px 16px;color:var(--dim);font-family:monospace;font-size:12px;}
+.womtg-loading{color:var(--blue);}
+.womtg-rarity-common{color:#c8c8c8}.womtg-rarity-uncommon{color:#b0c4d4}.womtg-rarity-rare{color:#f0c860}.womtg-rarity-mythic{color:#f0703c}
+.womtg-tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;}
+.womtg-table{width:100%;border-collapse:collapse;font-size:12px;}
+.womtg-th{text-align:left;padding:8px 10px;background:var(--panel2);color:var(--dim);font-family:monospace;font-size:10px;letter-spacing:.04em;cursor:pointer;white-space:nowrap;}
+.womtg-th.active{color:var(--blue);}
+.womtg-td{padding:7px 10px;border-top:1px solid var(--border);white-space:nowrap;}
+.womtg-tr:hover{background:rgba(255,255,255,.03);}
+.womtg-swipe-stage{position:relative;max-width:340px;margin:0 auto;aspect-ratio:5/7;touch-action:pan-y;}
+.womtg-swipe-slide{position:absolute;inset:0;border-radius:14px;overflow:hidden;background:#0a1420;box-shadow:0 12px 30px rgba(0,0,0,.5);will-change:transform;}
+.womtg-swipe-slide img{width:100%;height:100%;object-fit:contain;background:#0a1420;}
+.womtg-swipe-arrows{position:absolute;top:50%;left:-14px;right:-14px;display:flex;justify-content:space-between;transform:translateY(-50%);pointer-events:none;z-index:200;}
+.womtg-swipe-arrow{pointer-events:auto;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);color:#fff;width:38px;height:38px;border-radius:50%;font-size:20px;cursor:pointer;}
+.womtg-dots{display:flex;justify-content:center;gap:6px;margin-top:14px;flex-wrap:wrap;max-width:340px;margin-left:auto;margin-right:auto;}
+.womtg-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.25);cursor:pointer;}
+.womtg-dot.on{background:var(--blue);}
+.womtg-swipe-info{max-width:400px;margin:14px auto 0;text-align:center;}
+.womtg-swipe-name{font-size:16px;font-weight:800;}
+@media(max-width:640px){
+.womtg-set-row{flex-direction:column;align-items:stretch;}
+.womtg-cards-area{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))!important;gap:10px;}
+.womtg-swipe-stage{max-width:280px;}
+.womtg-dots,.womtg-swipe-info{max-width:280px;}
+}
+</style>
+<div class="womtg-root" data-womtg-root>
+<div class="womtg-wrap">
+<div class="womtg-set-row">
+<select id="womtg-set-sel">
+<option value="">Loading sets…</option>
+</select>
+<input id="womtg-set-search" placeholder="Search sets…">
+</div>
+<div id="womtg-content">
+<div class="womtg-empty">Select a Magic: The Gathering set above to browse every card.</div>
+</div>
+</div>
+</div>
+<script>
+(function(){
+  const st = {
+    sets: [], selectedSet: null, cards: [], filteredCards: [],
+    sortField:'number', sortDir:1, view: window.innerWidth <= 640 ? 'swipe' : 'cards', cardSize:300, tableImgSize:84,
+    filters:{ name:'', artist:'', rarity:'', color:'', minPrice:'', maxPrice:'' },
+    filterOpen:false, swipeIdx:0, isDragging:false, dragX:0
+  };
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  function affTcg(url){
+    if(!url) return '';
+    return 'https://partner.tcgplayer.com/k443Ov?u=' + encodeURIComponent(url);
+  }
+  function bestLink(c){
+    const tcg = c.purchase_uris?.tcgplayer;
+    if(tcg) return affTcg(tcg);
+    return c.related_uris?.gatherer || c.scryfall_uri || '';
+  }
+  function rarityOrder(r){ return {common:0,uncommon:1,rare:2,mythic:3,special:4,bonus:5}[r] ?? 6; }
+  function init(){
+    const root = document.querySelector('[data-womtg-root]');
+    if(!root) return;
+    const sel = root.querySelector('#womtg-set-sel');
+    const search = root.querySelector('#womtg-set-search');
+    sel.addEventListener('change', onSelectSet);
+    search.addEventListener('input', () => filterSetDropdown(search.value));
+    loadSets();
+  }
+  async function loadSets(){
+    const sel = document.getElementById('womtg-set-sel');
+    try{
+      const cacheKey = 'womtg_sets_v1';
+      const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+      if(cached && (Date.now()-(cached.ts||0)) < 86400000 && cached.sets?.length){ st.sets = cached.sets; populateSetDropdown(); return; }
+      const res = await fetch('https://api.scryfall.com/sets', {cache:'no-store'});
+      if(!res.ok) throw new Error('Sets fetch failed');
+      const data = await res.json();
+      const KEEP = new Set(['core','expansion','masters','commander','draft_innovation','duel_deck','starter','box','premium_deck','from_the_vault','masterpiece','spellbook']);
+      st.sets = (data.data||[]).filter(s => !s.digital && KEEP.has(s.set_type) && s.card_count>0)
+        .sort((a,b)=>(b.released_at||'').localeCompare(a.released_at||''));
+      try{ sessionStorage.setItem(cacheKey, JSON.stringify({ts:Date.now(), sets:st.sets})); }catch(e){}
+      populateSetDropdown();
+    }catch(e){
+      sel.innerHTML = '<option value="">Could not load sets — click to retry</option>';
+      sel.addEventListener('click', function once(){ sel.removeEventListener('click',once); loadSets(); }, {once:true});
+    }
+  }
+  function populateSetDropdown(list){
+    const sel = document.getElementById('womtg-set-sel');
+    const sets = list || st.sets;
+    sel.innerHTML = '<option value="">— Choose a set —</option>' + sets.map(s =>
+      `<option value="${esc(s.code)}" data-name="${esc(s.name)}">${esc(s.name)} (${esc((s.released_at||'').slice(0,4))}) · ${s.card_count} cards</option>`
+    ).join('');
+  }
+  function filterSetDropdown(q){
+    const fq = (q||'').toLowerCase().trim();
+    const filtered = fq ? st.sets.filter(s => (s.name||'').toLowerCase().includes(fq)) : st.sets;
+    populateSetDropdown(filtered);
+  }
+  async function onSelectSet(){
+    const sel = document.getElementById('womtg-set-sel');
+    const code = sel.value;
+    const name = sel.options[sel.selectedIndex]?.getAttribute('data-name') || '';
+    if(!code) return;
+    st.selectedSet = { code, name };
+    st.cards = []; st.filteredCards = [];
+    st.filters = { name:'', artist:'', rarity:'', color:'', minPrice:'', maxPrice:'' };
+    st.sortField = 'number'; st.sortDir = 1;
+    renderContent(true);
+    try{
+      st.cards = await fetchSetCards(code);
+      applyFilters();
+      renderContent(false);
+    }catch(e){
+      document.getElementById('womtg-content').innerHTML =
+        `<div class="womtg-empty" style="color:#ff8a8a">Error loading cards: ${esc(e.message)}<br><button class="womtg-btn" style="margin-top:10px" onclick="document.getElementById('womtg-set-sel').dispatchEvent(new Event('change'))">RETRY</button></div>`;
+    }
+  }
+  async function fetchSetCards(code){
+    let cards = [];
+    let url = 'https://api.scryfall.com/cards/search?q=set:'+encodeURIComponent(code)+'&unique=prints&order=collector_number&format=json';
+    let pages = 0;
+    while(url && pages < 6){
+      const res = await fetch(url, {cache:'default'});
+      if(!res.ok){ if(res.status===404) break; throw new Error('HTTP '+res.status); }
+      const data = await res.json();
+      cards = cards.concat(data.data||[]);
+      url = data.has_more ? data.next_page : null;
+      pages++;
+      if(url) await new Promise(r=>setTimeout(r,80));
+    }
+    return cards;
+  }
+  function applyFilters(){
+    let f = [...st.cards];
+    const { name, artist, rarity, color, minPrice, maxPrice } = st.filters;
+    if(name) f = f.filter(c => (c.name||'').toLowerCase().includes(name.toLowerCase()) || (c.type_line||'').toLowerCase().includes(name.toLowerCase()));
+    if(artist) f = f.filter(c => (c.artist||'').toLowerCase().includes(artist.toLowerCase()));
+    if(rarity) f = f.filter(c => c.rarity === rarity);
+    if(color){
+      if(color==='C') f = f.filter(c => (c.colors||c.card_faces?.[0]?.colors||[]).length===0);
+      else f = f.filter(c => (c.colors||c.card_faces?.[0]?.colors||[]).includes(color));
+    }
+    if(Number(minPrice)>0) f = f.filter(c => Number(c.prices?.usd||0) >= Number(minPrice));
+    if(Number(maxPrice)>0) f = f.filter(c => Number(c.prices?.usd||0) <= Number(maxPrice));
+    f.sort(compareCards);
+    st.filteredCards = f;
+  }
+  function compareCards(a,b){
+    let r = 0;
+    if(st.sortField==='number'){ r = (parseInt(a.collector_number)||0) - (parseInt(b.collector_number)||0); if(!r) r=(a.collector_number||'').localeCompare(b.collector_number||''); }
+    else if(st.sortField==='name') r = (a.name||'').localeCompare(b.name||'');
+    else if(st.sortField==='rarity') r = rarityOrder(a.rarity) - rarityOrder(b.rarity);
+    else if(st.sortField==='price') r = Number(b.prices?.usd||0) - Number(a.prices?.usd||0);
+    return r * st.sortDir;
+  }
+  window.womtgSetSort = function(f){ if(st.sortField===f) st.sortDir*=-1; else { st.sortField=f; st.sortDir=1; } applyFilters(); renderContent(false); };
+  window.womtgSetFilter = function(k,v){ st.filters[k]=v; applyFilters(); renderContent(false); };
+  window.womtgClearFilters = function(){ st.filters={name:'',artist:'',rarity:'',color:'',minPrice:'',maxPrice:''}; applyFilters(); renderContent(false); };
+  window.womtgToggleFilters = function(){ st.filterOpen=!st.filterOpen; renderContent(false); };
+  window.womtgToggleView = function(){ const v=['cards','swipe','table']; st.view=v[(v.indexOf(st.view)+1)%3]; renderContent(false); };
+  window.womtgSetCardSize = function(v){ st.cardSize=Number(v); document.getElementById('womtg-cards-area')?.style.setProperty('--card-min', v+'px'); };
+  window.womtgSetTableImgSize = function(v){ st.tableImgSize=Number(v); document.querySelectorAll('.womtg-tbl-wrap img').forEach(img=>{img.style.width=v+'px';}); };
+  function colorPip(color){
+    const bg = {W:'#f8f6d8',U:'#1a6fb5',B:'#2a1a0e',R:'#d3202a',G:'#007a3d',C:'#aaa'}[color] || '#555';
+    const fg = ['W','C'].includes(color) ? '#333' : '#fff';
+    return `<span class="womtg-color-pip" style="background:${bg};color:${fg}">${color}</span>`;
+  }
+  function imgSrc(c){ return c.image_uris?.normal || c.card_faces?.[0]?.image_uris?.normal || ''; }
+  function renderContent(loading){
+    const content = document.getElementById('womtg-content');
+    if(!content) return;
+    if(!st.selectedSet){ content.innerHTML = '<div class="womtg-empty">Select a set above.</div>'; return; }
+    if(loading){ content.innerHTML = '<div class="womtg-empty womtg-loading">Loading cards…</div>'; return; }
+    const { filteredCards, cards, view } = st;
+    const isSwipe = view==='swipe', isTable = view==='table';
+    const rarities = ['common','uncommon','rare','mythic'];
+    const colorChoices = [{v:'',l:'All Colors'},{v:'W',l:'White'},{v:'U',l:'Blue'},{v:'B',l:'Black'},{v:'R',l:'Red'},{v:'G',l:'Green'},{v:'C',l:'Colorless'}];
+    const hasFilter = Object.values(st.filters).some(Boolean);
+    const viewLabel = isSwipe?'TABLE':isTable?'CARDS':'SWIPE';
+    const sortBtn = (f,label) => `<button class="womtg-btn${st.sortField===f?' active':''}" onclick="womtgSetSort('${f}')">${label}${st.sortField===f?(st.sortDir>0?' ↑':' ↓'):''}</button>`;
+    content.innerHTML = `
+      <div class="womtg-toolbar">
+        <div class="womtg-stats">
+          <span style="color:#fff">${filteredCards.length}${filteredCards.length!==cards.length?'/'+cards.length:''} cards</span>
+          <span>${esc(st.selectedSet.name)}</span>
+        </div>
+        <div class="womtg-sort-row">
+          ${!isSwipe?`${sortBtn('number','#')}${sortBtn('price','PRICE')}${sortBtn('name','NAME')}${sortBtn('rarity','RARITY')}`:''}
+          <button class="womtg-btn" onclick="womtgToggleFilters()">FILTERS${hasFilter?' *':''}</button>
+          <button class="womtg-btn accent" onclick="womtgToggleView()">${viewLabel}</button>
+          ${!isSwipe&&!isTable?`<label style="display:flex;align-items:center;gap:5px;font-family:monospace;font-size:9px;color:var(--dim)">SIZE<input type="range" min="200" max="440" step="20" value="${st.cardSize}" oninput="womtgSetCardSize(this.value)"></label>`:''}
+          ${isTable?`<label style="display:flex;align-items:center;gap:5px;font-family:monospace;font-size:9px;color:var(--dim)">IMG<input type="range" min="54" max="180" step="6" value="${st.tableImgSize}" oninput="womtgSetTableImgSize(this.value)"></label>`:''}
+        </div>
+      </div>
+      <div class="womtg-filters${st.filterOpen?' on':''}">
+        <input placeholder="Card name…" value="${esc(st.filters.name)}" oninput="womtgSetFilter('name',this.value)">
+        <input placeholder="Artist…" value="${esc(st.filters.artist)}" oninput="womtgSetFilter('artist',this.value)">
+        <select onchange="womtgSetFilter('rarity',this.value)">
+          <option value="">All rarities</option>
+          ${rarities.map(r=>`<option value="${r}"${st.filters.rarity===r?' selected':''}>${r[0].toUpperCase()+r.slice(1)}</option>`).join('')}
+        </select>
+        <select onchange="womtgSetFilter('color',this.value)">
+          ${colorChoices.map(c=>`<option value="${c.v}"${st.filters.color===c.v?' selected':''}>${c.l}</option>`).join('')}
+        </select>
+        <input type="number" placeholder="Min $" style="width:70px" value="${esc(st.filters.minPrice)}" oninput="womtgSetFilter('minPrice',this.value)">
+        <input type="number" placeholder="Max $" style="width:70px" value="${esc(st.filters.maxPrice)}" oninput="womtgSetFilter('maxPrice',this.value)">
+        ${hasFilter?`<button class="womtg-btn" onclick="womtgClearFilters()">✕ CLEAR</button>`:''}
+      </div>
+      <div class="womtg-cards-area" id="womtg-cards-area" style="--card-min:${st.cardSize}px">
+        ${!filteredCards.length ? '<div class="womtg-empty">No cards match filters.</div>'
+          : isSwipe ? renderSwipe(filteredCards)
+          : isTable ? renderTable(filteredCards)
+          : renderGrid(filteredCards)}
+      </div>`;
+    if(isTable) content.querySelector('#womtg-cards-area').style.display = 'block';
+    if(isSwipe) setTimeout(initSwipe, 50);
+  }
+  function renderGrid(cards){
+    return cards.map(c => {
+      const img = imgSrc(c);
+      const cols = c.colors || c.card_faces?.[0]?.colors || [];
+      const usd = Number(c.prices?.usd||0), foil = Number(c.prices?.usd_foil||0);
+      const link = bestLink(c);
+      return `<div class="womtg-card">
+        <div class="womtg-card-img-wrap">${img?`<img class="womtg-card-img" src="${esc(img)}" loading="lazy" alt="${esc(c.name)}">`:'<div class="womtg-no-img"></div>'}</div>
+        <div class="womtg-card-body">
+          <div class="womtg-card-name">${esc(c.name)}</div>
+          <div class="womtg-card-num">#${esc(c.collector_number)} · <span class="womtg-rarity-${esc(c.rarity||'common')}">${esc(c.rarity)}</span>${cols.length?' · '+cols.map(colorPip).join(''):''}</div>
+          <div class="womtg-card-meta">${esc(c.type_line||'')}</div>
+          <div class="womtg-card-meta">✏ ${esc(c.artist||'')}</div>
+          <div class="womtg-card-prices">
+            ${usd>0?`<span class="womtg-price">$${usd.toFixed(2)}</span>`:'<span class="womtg-price" style="color:var(--dim)">—</span>'}
+            ${foil>0?`<span class="womtg-price-foil">✦$${foil.toFixed(2)}</span>`:''}
+          </div>
+          <div class="womtg-card-actions">
+            ${link?`<button class="womtg-btn" style="width:100%" onclick="window.open('${esc(link)}','_blank','noopener')">VIEW ↗</button>`:''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  function renderTable(cards){
+    const rows = cards.map(c => {
+      const img = imgSrc(c), cols = c.colors||c.card_faces?.[0]?.colors||[], usd = Number(c.prices?.usd||0);
+      const link = bestLink(c);
+      return `<tr class="womtg-tr">
+        <td class="womtg-td">${img?`<img src="${esc(img)}" style="width:${st.tableImgSize}px;object-fit:contain;border-radius:4px" loading="lazy">`:''}</td>
+        <td class="womtg-td">${esc(c.collector_number)}</td>
+        <td class="womtg-td">${esc(c.name)}</td>
+        <td class="womtg-td">${cols.map(colorPip).join('')}</td>
+        <td class="womtg-td"><span class="womtg-rarity-${esc(c.rarity||'common')}">${esc(c.rarity)}</span></td>
+        <td class="womtg-td">${esc(c.artist||'')}</td>
+        <td class="womtg-td">${usd>0?'$'+usd.toFixed(2):'—'}</td>
+        <td class="womtg-td">${link?`<button class="womtg-btn" onclick="window.open('${esc(link)}','_blank','noopener')">VIEW ↗</button>`:''}</td>
+      </tr>`;
+    }).join('');
+    return `<div class="womtg-tbl-wrap"><table class="womtg-table">
+      <thead><tr>
+        <th class="womtg-th">IMG</th>
+        <th class="womtg-th${st.sortField==='number'?' active':''}" onclick="womtgSetSort('number')">#</th>
+        <th class="womtg-th${st.sortField==='name'?' active':''}" onclick="womtgSetSort('name')">NAME</th>
+        <th class="womtg-th">CLR</th>
+        <th class="womtg-th${st.sortField==='rarity'?' active':''}" onclick="womtgSetSort('rarity')">RARITY</th>
+        <th class="womtg-th">ARTIST</th>
+        <th class="womtg-th${st.sortField==='price'?' active':''}" onclick="womtgSetSort('price')">PRICE</th>
+        <th class="womtg-th">LINK</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  }
+  function renderSwipe(cards){
+    st.swipeIdx = 0; st.isDragging = false; st.dragX = 0;
+    const slides = cards.map(c => { const img=imgSrc(c); return `<div class="womtg-swipe-slide">${img?`<img src="${esc(img)}" loading="lazy">`:'<div class="womtg-no-img"></div>'}</div>`; }).join('');
+    const dots = cards.length <= 40
+      ? `<div class="womtg-dots">${cards.map((_,i)=>`<span class="womtg-dot${i===0?' on':''}" onclick="womtgSwipeTo(${i})"></span>`).join('')}</div>`
+      : `<div class="womtg-dots"><span id="womtg-swipe-ctr" style="font-family:monospace;font-size:11px;color:var(--dim)">1 / ${cards.length}</span></div>`;
+    return `
+      <div class="womtg-swipe-stage" id="womtg-deck-stage" style="cursor:grab">
+        ${slides}
+        <div class="womtg-swipe-arrows">
+          <button class="womtg-swipe-arrow" onclick="womtgSwipeTo(${st.swipeIdx}-1)">&#8249;</button>
+          <button class="womtg-swipe-arrow" onclick="womtgSwipeTo(${st.swipeIdx}+1)">&#8250;</button>
+        </div>
+      </div>
+      ${dots}
+      <div class="womtg-swipe-info" id="womtg-swipe-info">${swipeInfoHtml(0)}</div>`;
+  }
+  function swipeInfoHtml(idx){
+    const c = st.filteredCards[idx];
+    if(!c) return '';
+    const usd = Number(c.prices?.usd||0);
+    const link = bestLink(c);
+    return `<div class="womtg-swipe-name">${esc(c.name)}</div>
+      <div class="womtg-card-meta">#${esc(c.collector_number)} · ${esc(c.rarity)}${c.artist?' · '+esc(c.artist):''}</div>
+      <div class="womtg-card-prices" style="justify-content:center;margin:6px 0">${usd>0?`<span class="womtg-price">$${usd.toFixed(2)}</span>`:'—'}</div>
+      ${link?`<button class="womtg-btn" onclick="window.open('${esc(link)}','_blank','noopener')">VIEW ↗</button>`:''}`;
+  }
+  function deckTransforms(){
+    const slides = [...document.querySelectorAll('.womtg-swipe-slide')];
+    const stage = document.getElementById('womtg-deck-stage');
+    const W = stage?.offsetWidth || 340;
+    const dragProg = Math.min(1, Math.abs(st.dragX)/(W*0.55));
+    slides.forEach((slide,i) => {
+      const offset = i - st.swipeIdx;
+      if(offset < -0.5){ slide.style.cssText='opacity:0;z-index:0;transform:translateX(-200%) rotate(-30deg);transition:none;'; return; }
+      if(offset <= 0.5 && st.isDragging){
+        const rot=st.dragX*0.04, ty=Math.abs(st.dragX)*0.06, op=Math.max(0.15,1-Math.abs(st.dragX)/(W*0.9));
+        slide.style.cssText = `z-index:100;opacity:${op.toFixed(2)};transition:none;transform:translateX(${st.dragX.toFixed(1)}px) translateY(-${ty.toFixed(1)}px) rotate(${rot.toFixed(2)}deg);`;
+        return;
+      }
+      const eff=Math.max(0,offset-(st.isDragging?dragProg:0)), scale=Math.max(0.68,1-eff*0.09), ty=eff*24, rot=-eff*2.5;
+      const op = offset>3?0:Math.max(0,1-Math.max(0,eff-0.4)*0.5), zi=Math.max(0,100-Math.round(offset)*10);
+      slide.style.cssText = `z-index:${zi};opacity:${op.toFixed(2)};`+(st.isDragging?'transition:none;':'transition:transform .35s cubic-bezier(.25,.46,.45,.94),opacity .35s ease;')+`transform:scale(${scale.toFixed(3)}) translateY(${ty.toFixed(1)}px) rotate(${rot.toFixed(2)}deg);`;
+    });
+  }
+  window.womtgSwipeTo = function(idx){
+    const cards = st.filteredCards;
+    idx = Math.max(0, Math.min(cards.length-1, idx));
+    st.swipeIdx = idx; st.isDragging = false; st.dragX = 0;
+    deckTransforms();
+    document.querySelectorAll('.womtg-dot').forEach((d,i)=>d.classList.toggle('on', i===idx));
+    const ctr = document.getElementById('womtg-swipe-ctr'); if(ctr) ctr.textContent = `${idx+1} / ${cards.length}`;
+    const info = document.getElementById('womtg-swipe-info'); if(info) info.innerHTML = swipeInfoHtml(idx);
+  };
+  function flyOrSnap(dx, W){
+    const threshold = W*0.28;
+    if(Math.abs(dx) > threshold){
+      const dir = dx<0?-1:1;
+      const slides = document.querySelectorAll('.womtg-swipe-slide');
+      const cur = slides[st.swipeIdx];
+      if(cur){
+        cur.style.transition = 'transform .28s ease, opacity .28s ease';
+        cur.style.transform = `translateX(${dir*-140}%) rotate(${dir*-22}deg) scale(0.75)`;
+        cur.style.opacity = '0';
+        setTimeout(()=>womtgSwipeTo(st.swipeIdx + (dir<0?1:-1)), 80);
+        return;
+      }
+    }
+    womtgSwipeTo(st.swipeIdx);
+  }
+  function initSwipe(){
+    const stage = document.getElementById('womtg-deck-stage');
+    if(!stage || stage._ok) return;
+    stage._ok = true;
+    let tx0=0, ty0=0, drag=false, isH=false;
+    stage.addEventListener('touchstart', e=>{tx0=e.touches[0].clientX;ty0=e.touches[0].clientY;drag=true;isH=false;},{passive:true});
+    stage.addEventListener('touchmove', e=>{
+      if(!drag) return;
+      const dx=e.touches[0].clientX-tx0, dy=e.touches[0].clientY-ty0;
+      if(!isH){ if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>8) isH=true; else if(Math.abs(dy)>12){drag=false;return;} }
+      if(!isH) return;
+      e.preventDefault();
+      st.isDragging=true; st.dragX=dx; deckTransforms();
+    },{passive:false});
+    stage.addEventListener('touchend', e=>{ if(!drag) return; drag=false; flyOrSnap(e.changedTouches[0].clientX-tx0, stage.offsetWidth); },{passive:true});
+    let mx0=0, mDn=false;
+    stage.addEventListener('mousedown', e=>{mDn=true;mx0=e.clientX;stage.style.cursor='grabbing';});
+    window.addEventListener('mouseup', e=>{ if(!mDn) return; mDn=false; stage.style.cursor='grab'; flyOrSnap(e.clientX-mx0, stage.offsetWidth); });
+    window.addEventListener('mousemove', e=>{ if(!mDn) return; st.isDragging=true; st.dragX=e.clientX-mx0; deckTransforms(); });
+    womtgSwipeTo(0);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
