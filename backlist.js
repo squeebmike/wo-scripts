@@ -359,8 +359,18 @@ function beginCheckout(){
 }
 
 function openCheckoutModal(){
-  var overlay=dialog('<h2>Checkout</h2><div id="mp-bl-checkout-content"><form id="mp-bl-checkout-form"><label>Name<input name="name" required></label><label>Phone<input name="phone" required></label><label><input type="radio" name="method" value="pickup" checked> Pickup in store</label><label><input type="radio" name="method" value="shipping"> Ship to me</label><div id="mp-bl-shipping-fields" style="display:none"><label>Address line 1<input name="line1"></label><label>City<input name="city"></label><label>State<input name="state"></label><label>ZIP<input name="zip"></label></div><div data-checkout-status></div><button type="submit" class="mp-bl-button">Continue to payment</button></form></div>');
+  var overlay=dialog('<h2>Checkout</h2><div id="mp-bl-checkout-content"><form id="mp-bl-checkout-form"><label>Name<input name="name" required></label><label>Phone<input name="phone" required></label><label><input type="radio" name="method" value="pickup" checked> Pickup in store</label><label><input type="radio" name="method" value="shipping"> Ship to me</label><div id="mp-bl-shipping-fields" style="display:none"><label>Address line 1<input name="line1"></label><label>City<input name="city"></label><label>State<input name="state"></label><label>ZIP<input name="zip"></label></div><div data-points></div><div data-checkout-status></div><button type="submit" class="mp-bl-button">Continue to payment</button></form></div>');
   var form=overlay.querySelector('#mp-bl-checkout-form'),out=overlay.querySelector('[data-checkout-status]');
+  // Loyalty points (100 = $1) toward the books, never shipping; the card
+  // always pays at least 50 cents. The server re-checks and sets the amount.
+  var pointsBalance=0,itemsCents=Math.round(state.cart.reduce(function(sum,l){return sum+Number(l.price||0)*Number(l.qty||1);},0)*100);
+  api('/public/account/summary?store_id='+encodeURIComponent(STORE_ID)).then(function(summary){
+    pointsBalance=summary&&summary.linked&&summary.customer?Math.max(0,Math.floor(Number(summary.customer.loyaltyPointsBalance||0))):0;
+    var usable=Math.max(0,Math.min(pointsBalance,itemsCents-50));
+    var host=overlay.querySelector('[data-points]');
+    if(!host||!pointsBalance)return;
+    host.innerHTML='<label><input type="checkbox" name="usePoints"'+(usable?'':' disabled')+'> Use my points ('+pointsBalance.toLocaleString()+' pts · '+money(pointsBalance)+')'+(usable?' — up to '+money(usable)+' off':' — for orders over '+money(50))+'</label>';
+  }).catch(function(){});
   overlay.querySelectorAll('input[name="method"]').forEach(function(radio){radio.addEventListener('change',function(){overlay.querySelector('#mp-bl-shipping-fields').style.display=radio.checked&&radio.value==='shipping'?'block':'none';});});
   form.addEventListener('submit',async function(e){
     e.preventDefault();
@@ -371,7 +381,8 @@ function openCheckoutModal(){
     status(out,'Starting secure payment…');
     try{
       var items=state.cart.map(function(l){return {skuId:l.skuId,quantity:l.qty};});
-      var checkoutData=await api('/public/backlist/checkout',{method:'POST',body:JSON.stringify({storeId:STORE_ID,items:items,fulfillment:fulfillment})});
+      var redeemPoints=data.get('usePoints')?pointsBalance:0;
+      var checkoutData=await api('/public/backlist/checkout',{method:'POST',body:JSON.stringify({storeId:STORE_ID,items:items,fulfillment:fulfillment,redeemPoints:redeemPoints})});
       await mountPayment(overlay,checkoutData);
     }catch(error){status(out,error.message,'error');}
   });
@@ -383,7 +394,7 @@ async function mountPayment(overlay,data){
   var client=Stripe(data.publishableKey);
   var elements=client.elements({clientSecret:data.clientSecret,appearance:{theme:'night'}});
   var content=overlay.querySelector('#mp-bl-checkout-content');
-  content.innerHTML='<div class="mp-bl-summary"><strong>Total: '+money(data.amountCents)+'</strong>'+(data.delivery?'<div>'+esc(data.delivery.headline)+'</div>':'')+'</div><div id="mp-bl-payment-el"></div><div data-pay-status class="mp-bl-status"></div><button class="mp-bl-button" data-pay>Pay '+money(data.amountCents)+'</button>';
+  content.innerHTML='<div class="mp-bl-summary"><strong>'+(data.pointsRedeemed?'Card total: ':'Total: ')+money(data.amountCents)+'</strong>'+(data.pointsRedeemed?'<div>Points applied: '+Number(data.pointsRedeemed).toLocaleString()+' pts (−'+money(data.pointsRedeemed)+')</div>':'')+(data.delivery?'<div>'+esc(data.delivery.headline)+'</div>':'')+'</div><div id="mp-bl-payment-el"></div><div data-pay-status class="mp-bl-status"></div><button class="mp-bl-button" data-pay>Pay '+money(data.amountCents)+'</button>';
   elements.create('payment',{layout:'tabs'}).mount('#mp-bl-payment-el');
   content.querySelector('[data-pay]').addEventListener('click',async function(){
     var button=content.querySelector('[data-pay]'),out=content.querySelector('[data-pay-status]');

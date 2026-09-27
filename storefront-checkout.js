@@ -18,6 +18,14 @@ var previousOverflow='';
 // carrier rate, unlike the regular cart's single auto-computed fee).
 var mode='regular';
 var preorderCtx=null;
+// Loyalty points (100 = $1) a signed-in shopper can put toward this order.
+// Only the balance of the store profile linked to their account counts --
+// the server checks all of this again and has the final say on the amount.
+var SUPABASE_URL='https://vroknjrxubsqyexngwus.supabase.co';
+var SUPABASE_KEY='sb_publishable_wbpX2nL8l-4NbXtZNG_bjA_nabSYaJ5';
+var SESSION_KEY='mp-foc-session-v1';
+var points={balance:0,use:false};
+var MIN_CARD_CENTS=50;
 
 function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,function(char){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char];});}
 function money(cents){return'$'+(Number(cents||0)/100).toFixed(2);}
@@ -128,6 +136,13 @@ function currentFee(){
   }
   return{cents:quote.cents||0,label:quote.label,loading:quote.loading,known:quote.cents!=null,pickupFree:false};
 }
+function pointsRow(itemsCents,totalCents){
+  if(points.balance<=0)return'';
+  var applied=pointsFor(itemsCents,totalCents);
+  var usable=Math.max(0,Math.min(points.balance,itemsCents,totalCents-MIN_CARD_CENTS));
+  return'<label class="mp-sfc-row" style="align-items:center;cursor:pointer"><span><input type="checkbox" data-use-points'+(points.use?' checked':'')+(usable>0?'':' disabled')+' style="margin-right:8px;vertical-align:-2px">Use my points <span style="opacity:.7">('+pointsLabel(points.balance)+' · '+money(points.balance)+')</span></span><strong>'+(applied?'−'+money(applied):'')+'</strong></label>'+
+    (usable>0?'':'<div class="mp-sfc-row" style="font-size:12px;opacity:.7"><span>Points can go toward orders over '+money(MIN_CARD_CENTS)+'.</span></div>');
+}
 function renderSummary(){
   var preorder=mode==='preorder';
   var itemsSubtotal=preorder&&preorderCtx?preorderCtx.group.lines.reduce(function(s,l){return s+Math.round(Number(l.price||0)*100)*Math.max(1,Number(l.qty||1));},0):subtotal();
@@ -136,7 +151,10 @@ function renderSummary(){
   summary.innerHTML='<div class="mp-sfc-row"><span>'+(preorder?'Books subtotal':'Items subtotal')+'</span><strong>'+money(itemsSubtotal)+'</strong></div>'+
     (fee.pickupFree?'<div class="mp-sfc-row"><span>Local pickup</span><strong>FREE</strong></div>':
       '<div class="mp-sfc-row"><span>'+(fee.loading?'Checking live rate'+(preorder?'s':'')+'…':fee.known?'Shipping'+(fee.label?' ('+esc(fee.label)+')':''):preorder?'Choose a rate below':'Shipping after address')+'</span><strong>'+(fee.known?money(fee.cents):'—')+'</strong></div>')+
-    '<div class="mp-sfc-row total"><span>'+(!fee.pickupFree&&!fee.known?'Subtotal':'Total')+'</span><strong>'+money(itemsSubtotal+(fee.known?fee.cents:0))+'</strong></div>';
+    pointsRow(itemsSubtotal,itemsSubtotal+(fee.known?fee.cents:0))+
+    '<div class="mp-sfc-row total"><span>'+(!fee.pickupFree&&!fee.known?'Subtotal':'Total')+'</span><strong>'+money(itemsSubtotal+(fee.known?fee.cents:0)-pointsFor(itemsSubtotal,itemsSubtotal+(fee.known?fee.cents:0)))+'</strong></div>';
+  var toggle=summary.querySelector('[data-use-points]');
+  if(toggle)toggle.onchange=function(){points.use=toggle.checked;renderSummary();};
   var button=node().querySelector('[data-continue]');
   if(button){
     button.disabled=!fee.pickupFree&&(fee.loading||!fee.known);
@@ -161,6 +179,39 @@ function methodChanged(){
   if(shipping)scheduleQuote();
 }
 function scheduleQuote(){clearTimeout(quoteTimer);var address=destination();if(!completeAddress(address)){quote={cents:null,loading:false,error:'',label:''};if(preorderCtx){preorderCtx.rates=[];preorderCtx.selectedRateId=null;preorderCtx.ratesLoading=false;preorderCtx.ratesError='';renderRates();}renderSummary();return;}quoteTimer=setTimeout(mode==='preorder'?fetchPreorderRates:fetchQuote,550);}
+// Same saved sign-in as My Pocket and comic preorders; refreshed here when
+// it's about to expire so a shopper who signed in earlier still sees points.
+async function sessionToken(){
+  var session=null;try{session=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');}catch(_){}
+  if(!session||!session.access_token)return'';
+  if(Number(session.expires_at||0)*1000>Date.now()+60000)return session.access_token;
+  if(!session.refresh_token)return'';
+  try{
+    var response=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:session.refresh_token})});
+    var next=await response.json().catch(function(){return{};});
+    if(!response.ok||!next.access_token)return'';
+    if(!next.expires_at)next.expires_at=Math.floor(Date.now()/1000)+Number(next.expires_in||3600);
+    try{localStorage.setItem(SESSION_KEY,JSON.stringify(next));}catch(_){}
+    return next.access_token;
+  }catch(_){return'';}
+}
+async function loadPoints(){
+  points={balance:0,use:false};
+  var token=await sessionToken();if(!token)return;
+  try{
+    var response=await fetch(API+'/public/account/summary?store_id='+encodeURIComponent(STORE_ID),{headers:{Authorization:'Bearer '+token}});
+    var data=await response.json().catch(function(){return{};});
+    if(response.ok&&data.linked&&data.customer)points.balance=Math.max(0,Math.floor(Number(data.customer.loyaltyPointsBalance||0)));
+  }catch(_){}
+  if(node().classList.contains('is-open'))renderSummary();
+}
+// Points pay for merchandise, never shipping, and the card always pays at
+// least 50 cents (Stripe's minimum). Mirrors redeemablePoints on the server.
+function pointsFor(itemsCents,totalCents){
+  if(!points.use||points.balance<=0)return 0;
+  return Math.max(0,Math.min(points.balance,itemsCents,totalCents-MIN_CARD_CENTS));
+}
+function pointsLabel(n){return Number(n).toLocaleString()+' pts';}
 async function api(path,options){var response=await fetch(API+path,options);var data=await response.json().catch(function(){return{};});if(!response.ok||!data.ok)throw new Error(data.error||'Checkout service is unavailable. Please try again.');return data;}
 async function fetchQuote(){var address=destination();if(selectedMethod()!=='shipping'||!completeAddress(address))return;quote={cents:null,loading:true,error:'',label:''};renderSummary();setStatus('Checking current carrier rates…');try{var data=await api('/public/storefront/shipping-quote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({storeId:STORE_ID,items:items(),destination:address})});quote={cents:data.shippingFeeCents,loading:false,error:'',label:[data.carrier,data.serviceName].filter(Boolean).join(' ')};setStatus(data.estimatedDays?'Estimated transit: about '+data.estimatedDays+' days.':'Live carrier rate confirmed.');}catch(error){quote={cents:null,loading:false,error:error.message,label:''};setStatus(error.message+' You can still choose either local pickup option.',true);}renderSummary();}
 // Comics get a rate LIST (not one auto-picked fee) because the price has
@@ -230,7 +281,7 @@ function open(){
   if(rundrop.length){beginRundropCheckout(rundrop);return;}
   if(!regular.length){beginPreorderCheckout(preorder);return;}
   mode='regular';preorderCtx=null;
-  var modal=node();modal.innerHTML=panel();bind(modal);restoreDraft();quote={cents:null,loading:false,error:'',label:''};paymentRuntime=null;showModal(modal);methodChanged();
+  var modal=node();modal.innerHTML=panel();bind(modal);restoreDraft();quote={cents:null,loading:false,error:'',label:''};paymentRuntime=null;points={balance:0,use:false};showModal(modal);methodChanged();loadPoints();
 }
 function beginPreorderCheckout(lines){
   if(!window.WO||typeof window.WO.checkoutPreorderLines!=='function'){alert('Comic preorder checkout is still loading -- give it a second and try again.');return;}
@@ -248,7 +299,7 @@ function beginRundropCheckout(lines){
 // caller advances to the next cycle or finishes the queue.
 function openPreorderCheckout(group,index,total,onDone){
   mode='preorder';preorderCtx={group:group,index:index,total:total,onDone:onDone,rates:[],selectedRateId:null,ratesLoading:false,ratesError:''};
-  var modal=node();modal.innerHTML=panel();bind(modal);quote={cents:null,loading:false,error:'',label:''};paymentRuntime=null;showModal(modal);methodChanged();
+  var modal=node();modal.innerHTML=panel();bind(modal);quote={cents:null,loading:false,error:'',label:''};paymentRuntime=null;points={balance:0,use:false};showModal(modal);methodChanged();loadPoints();
 }
 // My Pocket can resume a PaymentIntent that already belongs to an existing
 // preorder. It should use this same Stripe surface instead of inventing a
@@ -288,20 +339,26 @@ async function checkout(){
     if(method==='shipping'&&(!preorderCtx.selectedRateId||preorderCtx.ratesLoading)){setStatus(preorderCtx.ratesError||'Wait for a live shipping rate before continuing.',true);return;}
   }else if(method==='shipping'&&quote.cents==null){setStatus(quote.error||'Wait for a live shipping rate before continuing.',true);return;}
   var button=node().querySelector('[data-continue]');button.disabled=true;button.textContent='Starting secure payment…';setStatus('Verifying inventory and final total…');
+  var fee=currentFee();
+  var itemsCents=preorder?preorderCtx.group.lines.reduce(function(s,l){return s+Math.round(Number(l.price||0)*100)*Math.max(1,Number(l.qty||1));},0):subtotal();
+  var redeemPoints=pointsFor(itemsCents,itemsCents+(fee.known?fee.cents:0));
   try{
     var data;
     if(preorder){
       var fulfillment={method:method==='shipping'?'shipping':'pickup',name:name,phone:phone};
       if(method==='shipping'){fulfillment.shippingRateId=preorderCtx.selectedRateId;fulfillment.shippingAddress=address;}
       var headers=Object.assign({'Content-Type':'application/json'},window.WO&&typeof window.WO.preorderAuthHeader==='function'?window.WO.preorderAuthHeader():{});
-      data=await api('/public/preorders/checkout',{method:'POST',headers:headers,body:JSON.stringify({storeId:STORE_ID,cycleId:preorderCtx.group.cycleId,items:preorderCtx.group.lines.map(function(l){return{skuId:l.skuId,quantity:l.qty};}),fulfillment:fulfillment})});
+      data=await api('/public/preorders/checkout',{method:'POST',headers:headers,body:JSON.stringify({storeId:STORE_ID,cycleId:preorderCtx.group.cycleId,items:preorderCtx.group.lines.map(function(l){return{skuId:l.skuId,quantity:l.qty};}),fulfillment:fulfillment,redeemPoints:redeemPoints})});
     }else{
-      data=await api('/public/storefront/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({storeId:STORE_ID,items:items(),fulfillment:{method:method,name:name,phone:phone,email:email,shippingAddress:address}})});
+      // Guest checkout sends no sign-in; only spending points needs one.
+      var shopHeaders={'Content-Type':'application/json'};
+      if(redeemPoints){var token=await sessionToken();if(token)shopHeaders.Authorization='Bearer '+token;}
+      data=await api('/public/storefront/checkout',{method:'POST',headers:shopHeaders,body:JSON.stringify({storeId:STORE_ID,items:items(),fulfillment:{method:method,name:name,phone:phone,email:email,shippingAddress:address},redeemPoints:redeemPoints})});
     }
     await mountPayment(data);
   }catch(error){setStatus(error.message,true);button.disabled=false;button.textContent='Try secure checkout again';}
 }
-async function mountPayment(data){var Stripe=await loadStripe();if(!Stripe)throw new Error('The secure payment form could not load.');var client=Stripe(data.publishableKey);var elements=client.elements({clientSecret:data.clientSecret,appearance:{theme:'night',variables:{colorPrimary:getComputedStyle(document.documentElement).getPropertyValue('--wo-accent').trim()||'#8bd450',borderRadius:'10px'}}});var content=node().querySelector('#mp-sfc-content');var shippingCents=data.shippingFeeCents||data.shippingCents;content.innerHTML='<div class="mp-sfc-summary"><div class="mp-sfc-row total"><span>Final total</span><strong>'+money(data.amountCents)+'</strong></div>'+(shippingCents?'<div class="mp-sfc-row"><span>Live shipping</span><span>'+money(shippingCents)+'</span></div>':'<div class="mp-sfc-row"><span>Local pickup</span><span>FREE</span></div>')+'</div><div id="mp-sfc-payment"></div><div class="mp-sfc-status" data-pay-status aria-live="polite"></div><button class="mp-sfc-button" type="button" data-pay>Pay '+money(data.amountCents)+'</button><p class="mp-sfc-note">Secure payment powered by Stripe.</p>';elements.create('payment',{layout:'tabs'}).mount('#mp-sfc-payment');paymentRuntime={client:client,elements:elements,confirmation:data.confirmationNumber||data.orderNumber};content.querySelector('[data-pay]').addEventListener('click',confirmPayment);}
+async function mountPayment(data){var Stripe=await loadStripe();if(!Stripe)throw new Error('The secure payment form could not load.');var client=Stripe(data.publishableKey);var elements=client.elements({clientSecret:data.clientSecret,appearance:{theme:'night',variables:{colorPrimary:getComputedStyle(document.documentElement).getPropertyValue('--wo-accent').trim()||'#8bd450',borderRadius:'10px'}}});var content=node().querySelector('#mp-sfc-content');var shippingCents=data.shippingFeeCents||data.shippingCents;content.innerHTML='<div class="mp-sfc-summary"><div class="mp-sfc-row total"><span>'+(data.pointsRedeemed?'Card total':'Final total')+'</span><strong>'+money(data.amountCents)+'</strong></div>'+(data.pointsRedeemed?'<div class="mp-sfc-row"><span>Points applied ('+pointsLabel(data.pointsRedeemed)+')</span><span>−'+money(data.pointsRedeemed)+'</span></div>':'')+(shippingCents?'<div class="mp-sfc-row"><span>Live shipping</span><span>'+money(shippingCents)+'</span></div>':'<div class="mp-sfc-row"><span>Local pickup</span><span>FREE</span></div>')+'</div><div id="mp-sfc-payment"></div><div class="mp-sfc-status" data-pay-status aria-live="polite"></div><button class="mp-sfc-button" type="button" data-pay>Pay '+money(data.amountCents)+'</button><p class="mp-sfc-note">Secure payment powered by Stripe.</p>';elements.create('payment',{layout:'tabs'}).mount('#mp-sfc-payment');paymentRuntime={client:client,elements:elements,confirmation:data.confirmationNumber||data.orderNumber};content.querySelector('[data-pay]').addEventListener('click',confirmPayment);}
 async function confirmPayment(){
   if(!paymentRuntime)return;
   var button=node().querySelector('[data-pay]'),out=node().querySelector('[data-pay-status]');
