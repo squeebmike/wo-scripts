@@ -1032,9 +1032,9 @@ function polishShopInventory(){
 // here rather than in each page's own script so the list lives in one place.
 var COMICS_HUB_LINKS=[
   {key:'new-releases',href:'/comic-new-releases-the-mana-pocket',label:'New this week',meta:'Covers, artists & ratios'},
-  {key:'preorders',href:'/preorders',label:'Preorder by cover',meta:'Lock it in before FOC'},
-  {key:'shop',href:'/shop?cat=comics',label:'Shop in-stock',meta:'On the shelf now'},
-  {key:'backlist',href:'/books',label:'Backlist & collections',meta:'Order anything in print'}
+  {key:'preorders',href:'/preorders',label:'Preorders',meta:'Lock it in before FOC'},
+  {key:'shop',href:'/shop?cat=comics',label:'In stock',meta:'On the shelf now'},
+  {key:'backlist',href:'/books',label:'Backlist',meta:'Order anything in print'}
 ];
 var COMICS_HUB_PAGES={
   '/comic-new-releases-the-mana-pocket':{key:'new-releases',header:'#mp-cnr-app header'},
@@ -1042,6 +1042,26 @@ var COMICS_HUB_PAGES={
   '/books':{key:'backlist',header:'#mp-backlist-app header'},
   '/shop':{key:'shop'}
 };
+// Styles ship with the markup rather than in site-polish.css: the site head
+// pins its own older site-polish.css link, and loadSitePolish() skips loading
+// a newer one whenever that link exists -- which left this strip unstyled.
+var COMICS_HUB_CSS=[
+  '.mp-comics-hub{align-items:center;display:flex;gap:10px;margin:0 0 14px}',
+  '.mp-comics-hub[hidden],.mp-bcw-link[hidden]{display:none!important}',
+  '.mp-comics-hub-label{color:var(--wo-highlight,var(--wo-accent,#8f55bd));flex:0 0 auto;font:800 11px/1 ui-monospace,monospace;letter-spacing:.16em;text-transform:uppercase}',
+  '.mp-comics-hub-links{display:flex;flex:1;gap:8px;min-width:0}',
+  '.mp-comics-hub-link{background:color-mix(in srgb,var(--wo-surface,#151824) 90%,transparent);border:1px solid color-mix(in srgb,var(--wo-text,#f5f5f2) 16%,transparent);border-radius:999px;color:var(--wo-text,#f5f5f2)!important;display:flex;flex-direction:column;gap:1px;padding:7px 14px;text-decoration:none!important;transition:border-color .15s ease}',
+  '.mp-comics-hub-link:hover,.mp-comics-hub-link:focus-visible{border-color:var(--wo-highlight,var(--wo-accent,#8f55bd))}',
+  '.mp-comics-hub-link strong{font:800 13px/1.2 system-ui,sans-serif;white-space:nowrap}',
+  '.mp-comics-hub-link span{font:500 11px/1.2 system-ui,sans-serif;opacity:.65;white-space:nowrap}',
+  '.mp-comics-hub-link.is-current{background:var(--wo-highlight,var(--wo-accent,#8f55bd));border-color:var(--wo-highlight,var(--wo-accent,#8f55bd));color:#fff!important}',
+  '#wo-live-shop .mp-comics-hub{margin:0 0 10px}',
+  '.mp-bcw-link{color:var(--wo-text,#f5f5f2)!important;display:inline-flex;font:600 13px/1.3 system-ui,sans-serif;gap:6px;margin:0 0 10px;opacity:.8;text-decoration:underline!important;text-underline-offset:3px}',
+  '.mp-bcw-link:hover{opacity:1}',
+  // Phones: one compact row that scrolls sideways, labels only -- the top of
+  // the shop page was all chrome before a single comic showed.
+  '@media(max-width:767px){.mp-comics-hub{margin:0 0 10px}.mp-comics-hub-label{display:none}.mp-comics-hub-links{-webkit-overflow-scrolling:touch;overflow-x:auto;scrollbar-width:none}.mp-comics-hub-links::-webkit-scrollbar{display:none}.mp-comics-hub-link{flex:0 0 auto;padding:7px 12px}.mp-comics-hub-link span{display:none}}'
+].join('');
 function comicsHubHtml(active){
   return '<span class="mp-comics-hub-label">Comics</span><div class="mp-comics-hub-links">'+COMICS_HUB_LINKS.map(function(link){
     var current=link.key===active;
@@ -1051,7 +1071,10 @@ function comicsHubHtml(active){
 function mountComicsHub(){
   var page=COMICS_HUB_PAGES[location.pathname.replace(/\/$/,'')||'/'];
   if(!page)return;
-  function isComicCategory(value){return /^comics?$/.test(String(value||'').trim().toLowerCase());}
+  if(!document.querySelector('style[data-mp-comics-hub-css]')){
+    var style=document.createElement('style');style.setAttribute('data-mp-comics-hub-css','');style.textContent=COMICS_HUB_CSS;document.head.appendChild(style);
+  }
+  function currentCategory(){var select=document.querySelector('#wo-live-shop .wo-store-control-field');return String(select&&select.value||'all').trim().toLowerCase();}
   function place(){
     if(document.querySelector('[data-mp-comics-hub]'))return true;
     var nav=document.createElement('nav');
@@ -1071,10 +1094,18 @@ function mountComicsHub(){
     var controls=document.querySelector('#wo-live-shop .wo-store-controls');
     if(!controls||!controls.querySelector('.wo-store-control-field'))return false;
     controls.insertAdjacentElement('beforebegin',nav);
+    // The site footer's BCW script adds a big outlined "Shop BCW supplies"
+    // button above the whole shop on every category, and skips that when an
+    // element with this id already exists. A quiet text link instead, shown
+    // only on All / Supplies where it's relevant.
+    var bcw=document.getElementById('bcw-supplies-link');
+    if(!bcw){bcw=document.createElement('a');bcw.id='bcw-supplies-link';bcw.href='/bcw';}
+    bcw.className='mp-bcw-link';bcw.removeAttribute('style');bcw.textContent='Need supplies? Shop sleeves, toploaders & storage from BCW →';
+    nav.insertAdjacentElement('beforebegin',bcw);
     // Both shop renderers set the category programmatically (from ?cat=)
     // right after filling the options, which fires no change event -- so
     // re-read on any controls mutation as well as on real changes.
-    function sync(){var select=document.querySelector('#wo-live-shop .wo-store-control-field');nav.hidden=!isComicCategory(select&&select.value);}
+    function sync(){var category=currentCategory();nav.hidden=!/^comics?$/.test(category);bcw.hidden=!(category==='all'||category==='supplies');}
     document.addEventListener('change',function(event){if(event.target&&event.target.matches&&event.target.matches('.wo-store-control-field'))window.setTimeout(sync,0);},true);
     new MutationObserver(sync).observe(controls,{childList:true,subtree:true});
     sync();

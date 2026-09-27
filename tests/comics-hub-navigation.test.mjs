@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const ui = fs.readFileSync('wo-ui.js', 'utf8');
-const css = fs.readFileSync('site-polish.css', 'utf8');
 
 // --- Sitewide nav: polishNavigation() rebuilds the Cool Stuff menu from
 // COOL_LINKS on every page load (wiping whatever the Designer has), so a
@@ -31,13 +30,21 @@ assert.match(fs.readFileSync('preorders-loader.js', 'utf8'), /app\.id='mp-foc-ap
 assert.match(fs.readFileSync('backlist-loader.js', 'utf8'), /app\.id='mp-backlist-app'/);
 
 assert.ok(pages[0].includes("'/shop':{key:'shop'}"), 'sub-nav must also appear on /shop');
-assert.match(ui, /nav\.hidden=!isComicCategory\(/, 'on /shop the sub-nav must only show for the Comics category');
+assert.match(ui, /nav\.hidden=!\/\^comics\?\$\/\.test\(category\)/, 'on /shop the sub-nav must only show for the Comics category');
 assert.match(ui, /aria-current="page"/, 'the current section must be marked for assistive tech');
 assert.match(ui, /\nmountComicsHub\(\);/, 'mountComicsHub must actually be called');
 
-assert.match(css, /\.mp-comics-hub-links \{[^}]*grid-template-columns: repeat\(4/);
-assert.match(css, /@media \(max-width: 767px\) \{\s*\.mp-comics-hub \{/, 'sub-nav needs its own phone layout');
 
+// Styles must ship inside wo-ui.js: the site head pins an older
+// site-polish.css, and loadSitePolish() won't load a newer one over it --
+// that's exactly how the strip went live completely unstyled.
+assert.match(ui, /var COMICS_HUB_CSS=\[/);
+assert.match(ui, /style\.setAttribute\('data-mp-comics-hub-css',''\)/);
+assert.match(ui, /@media\(max-width:767px\)\{\.mp-comics-hub/, 'sub-nav needs its own compact phone layout');
+assert.doesNotMatch(fs.readFileSync('site-polish.css', 'utf8'), /mp-comics-hub/, 'hub styles must live in one place');
+// BCW: restyle/relocate the footer's big button (same id) instead of adding a second one.
+assert.match(ui, /document\.getElementById\('bcw-supplies-link'\)/);
+assert.match(ui, /bcw\.hidden=!\(category==='all'\|\|category==='supplies'\)/, 'BCW link only on All / Supplies');
 console.log('Comics sub-nav and Cool Stuff nav checks passed');
 
 // --- /shop: the strip must never become the filter bar's next sibling.
