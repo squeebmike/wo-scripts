@@ -2,15 +2,15 @@
   "live": false,
   "liveTitle": "We are live at The Mana Pocket.",
   "liveDescription": "Pulls, deals, collector talk, and whatever strange thing just came through the door.",
-  "liveUrl": "https://www.whatnot.com/user/walkoffsportscards",
+  "liveUrl": "https://www.whatnot.com/user/themanapocket",
   "embedUrl": "",
   "nextLive": {
     "kicker": "Next online show",
     "title": "The next live date is coming soon.",
     "when": "No Whatnot show is scheduled yet",
     "copy": "Follow The Mana Pocket on Whatnot to get the alert as soon as the next show is booked.",
-    "href": "https://www.whatnot.com/user/walkoffsportscards/shows",
-    "url": "https://www.whatnot.com/user/walkoffsportscards/shows",
+    "href": "https://www.whatnot.com/user/themanapocket/shows",
+    "url": "https://www.whatnot.com/user/themanapocket/shows",
     "cta": "Follow on Whatnot →"
   },
   "events": [

@@ -330,7 +330,7 @@ function buildBroadcastStage(hero){
   copy.appendChild(el('span','mp-live-status','Off air · The lights are out'));
   copy.appendChild(el('h2','mp-broadcast-title','The shop is dark. For now.'));
   copy.appendChild(el('p','mp-broadcast-text','When The Mana Pocket goes live, the show takes over this spot. Until then, the good stuff is waiting below.'));
-  var actions=el('div','mp-actions');actions.appendChild(link('See the schedule ↓','#pocket-calendar','mp-button'));actions.appendChild(link('Follow on Whatnot','https://www.whatnot.com/user/walkoffsportscards/shows','mp-button mp-button--ghost'));
+  var actions=el('div','mp-actions');actions.appendChild(link('See the schedule ↓','#pocket-calendar','mp-button'));actions.appendChild(link('Follow on Whatnot','https://www.whatnot.com/user/themanapocket/shows','mp-button mp-button--ghost'));
   copy.appendChild(actions);shell.appendChild(copy);stage.appendChild(media);stage.appendChild(shell);hero.before(stage);
   return stage;
 }
@@ -397,7 +397,7 @@ function renderBroadcast(stage,data){
     var liveCopy=el('div','mp-broadcast-copy');liveCopy.appendChild(el('span','mp-live-status mp-live-status--on','Live now'));
     liveCopy.appendChild(el('h2','mp-broadcast-title',data.liveTitle||'We are live at The Mana Pocket.'));
     if(data.liveDescription)liveCopy.appendChild(el('p','mp-broadcast-text',data.liveDescription));
-    var liveLink=link('Watch and shop live →',data.liveUrl||'https://www.whatnot.com/user/walkoffsportscards','mp-button');liveLink.target='_blank';liveLink.rel='noopener';liveCopy.appendChild(liveLink);
+    var liveLink=link('Watch and shop live →',data.liveUrl||'https://www.whatnot.com/user/themanapocket','mp-button');liveLink.target='_blank';liveLink.rel='noopener';liveCopy.appendChild(liveLink);
     shell.appendChild(viewer);shell.appendChild(liveCopy);
   }else if(inPerson){
     var eventCopy=el('div','mp-broadcast-copy');
@@ -428,7 +428,7 @@ function renderBroadcast(stage,data){
     nextShows.appendChild(nextShowRow('Next in person',nextInPerson,'No in-person date is scheduled yet.'));
     nextShows.appendChild(nextShowRow('Next online show',nextLive,'No online show is scheduled yet.'));
     copy.appendChild(nextShows);
-    var actions=el('div','mp-actions');actions.appendChild(link('See the schedule ↓','#pocket-calendar','mp-button'));actions.appendChild(link('Follow on Whatnot',nextLive&&(nextLive.href||nextLive.url)||'https://www.whatnot.com/user/walkoffsportscards/shows','mp-button mp-button--ghost'));copy.appendChild(actions);shell.appendChild(copy);
+    var actions=el('div','mp-actions');actions.appendChild(link('See the schedule ↓','#pocket-calendar','mp-button'));actions.appendChild(link('Follow on Whatnot',nextLive&&(nextLive.href||nextLive.url)||'https://www.whatnot.com/user/themanapocket/shows','mp-button mp-button--ghost'));copy.appendChild(actions);shell.appendChild(copy);
   }
 }
 
@@ -769,7 +769,7 @@ function renderPulled(section,items){
     card.appendChild(media);card.appendChild(body);
     grid.appendChild(card);
   });
-  var social=link('','https://whatnot.com/invite/walkoffsportscards','mp-feature mp-feature--social');
+  var social=link('','https://whatnot.com/invite/themanapocket','mp-feature mp-feature--social');
   var socialBody=el('div','mp-feature-body');
   socialBody.appendChild(el('span','mp-card-kicker','Live pulls'));
   socialBody.appendChild(el('h3','mp-feature-title','Watch the next one happen.'));
@@ -844,7 +844,7 @@ function updateStorefrontReveal(section,data){
     if(data.embedUrl){
       copy.appendChild(link('Back to the live player ↑','#pocket-live','mp-button mp-button--ghost'));
     }else{
-      var watchLink=link('Watch and shop live →',data.liveUrl||'https://www.whatnot.com/user/walkoffsportscards','mp-button');watchLink.target='_blank';watchLink.rel='noopener';copy.appendChild(watchLink);
+      var watchLink=link('Watch and shop live →',data.liveUrl||'https://www.whatnot.com/user/themanapocket','mp-button');watchLink.target='_blank';watchLink.rel='noopener';copy.appendChild(watchLink);
     }
   }else if(active&&!isOnlineEvent(active)){
     copy.appendChild(el('span','mp-live-status mp-live-status--on','Live in person now'));
