@@ -794,7 +794,7 @@ function polishNavigation(){
     {slug:'comic-new-releases',label:'Comic New Releases',href:'/comic-new-releases-the-mana-pocket',image:NAV_ART.comics,meta:'Every cover out this week'},
     {slug:'preorders',label:'Comic Preorders',href:'/preorders',image:NAV_ART.comics,meta:'Pick exact covers before FOC'},
     {slug:'books',label:'Book Backlist',href:'/books',image:BRAND_LOGO,meta:'Order any book in print'},
-    {slug:'articles',label:'Comic Articles',href:'/articles',image:NAV_ART.comics,meta:'What to read & preorder next'},
+    {slug:'articles',label:'Comic Articles',href:'https://www.themanapocket.com/articles',image:NAV_ART.comics,meta:'What to read & preorder next'},
     {slug:'pokemon-viewer',label:'Pok\u00e9mon Card Viewer',href:'/pokemon-new-releases',image:NAV_ART.pokemon,meta:'Scan the latest sets'},
     {slug:'mtg-viewer',label:'MTG Card Viewer',href:'/mtg-new-releases',image:NAV_ART.mtg,meta:'Browse cards by release'},
     {slug:'publishing',label:'Walk-Off Publishing',href:'/publishing',image:NAV_ART.publishing,meta:'Comics from behind the counter'},
@@ -1036,7 +1036,7 @@ var COMICS_HUB_LINKS=[
   {key:'preorders',href:'/preorders',label:'Preorders',meta:'Lock it in before FOC'},
   {key:'shop',href:'/shop?cat=comics',label:'In stock',meta:'On the shelf now'},
   {key:'backlist',href:'/books',label:'Backlist',meta:'Order anything in print'},
-  {key:'articles',href:'/articles',label:'Articles',meta:'What to read next'}
+  {key:'articles',href:'https://www.themanapocket.com/articles',label:'Articles',meta:'What to read next'}
 ];
 var COMICS_HUB_PAGES={
   '/comic-new-releases-the-mana-pocket':{key:'new-releases',header:'#mp-cnr-app header'},
