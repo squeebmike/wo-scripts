@@ -50,6 +50,11 @@ async function loadShelves(){
     state.shelves=(data.shelves||[]).filter(function(s){return s.titles&&s.titles.length;});
   }catch(_){ state.shelves=[]; }
   renderShelves();
+  if(state.showShelves&&!state.shelves.length){
+    state.showShelves=false;
+    renderShelves();
+    await runSearch();
+  }
 }
 function shelfRow(shelf){
   return '<div class="mp-bl-shelf"><h2 class="mp-bl-shelf-title">'+esc(shelf.label)+'</h2>'
@@ -237,6 +242,7 @@ async function runSearch(append){
 function renderResults(){
   var host=document.getElementById('mp-bl-results');
   if(!host)return;
+  if(state.showShelves){host.innerHTML='';return;}
   if(!state.results.length){
     host.innerHTML='<div class="mp-bl-empty">'+(state.q||state.publisher||state.format?'No titles match this search.':'No titles are published yet -- check back soon.')+'</div>';
     return;
