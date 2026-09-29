@@ -54,9 +54,9 @@ function coverCard(cover){
   var badge=badgeText?'<span class="mp-cnr-badge">'+badgeText+'</span>':'';
   var link=cover.linkHref?'<a class="mp-cnr-link" href="'+esc(cover.linkHref)+'">'+esc(linkLabel(cover))+'</a>':'<span class="mp-cnr-nolink">Not currently orderable</span>';
   return '<article class="mp-cnr-card">'
-    + (cover.coverImageUrl?'<img class="mp-cnr-cover" src="'+esc(cover.coverImageUrl)+'" alt="" loading="lazy">':'<div class="mp-cnr-cover mp-cnr-cover-placeholder"></div>')
+    + (cover.coverImageUrl?'<img class="mp-cnr-cover" src="'+esc(cover.coverImageUrl)+'" alt="'+esc(cover.title+' '+cover.variantLabel)+'" loading="lazy">':'<div class="mp-cnr-cover mp-cnr-cover-placeholder"></div>')
     + '<div class="mp-cnr-card-body">'
-    + '<h3 class="mp-cnr-card-title">'+esc(cover.seriesName)+(cover.issueNumber?' #'+esc(cover.issueNumber):'')+'</h3>'
+    + '<h3 class="mp-cnr-card-title"><a href="'+esc(cover.detailHref||('/preorder/'+encodeURIComponent(cover.id)))+'">'+esc(cover.seriesName)+(cover.issueNumber?' #'+esc(cover.issueNumber):'')+'</a></h3>'
     + '<div class="mp-cnr-card-variant">'+esc(cover.variantLabel)+badge+'</div>'
     + (cover.coverArtist?'<div class="mp-cnr-card-artist">Cover by '+esc(cover.coverArtist)+'</div>':'')
     + (cover.writer?'<div class="mp-cnr-card-writer">Written by '+esc(cover.writer)+'</div>':'')

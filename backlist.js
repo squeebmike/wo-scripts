@@ -84,6 +84,7 @@ function filterOptionsHtml(){
     + '<select id="mp-bl-filter-format"><option value="">All categories</option>'+formatOptions+'</select>';
 }
 
+function bookUrlFor(id){return 'https://www.themanapocket.com/book/'+encodeURIComponent(id);}
 function resultCard(title){
   var sku=title.skus[0];
   var inCart=state.cart.some(function(l){return l.id==='backlist:'+sku.id;});
@@ -91,13 +92,13 @@ function resultCard(title){
   return '<div class="mp-bl-card">'
     + '<div class="mp-bl-cover-wrap">'
     + '<button type="button" class="mp-bl-card-link" data-open-detail="'+esc(title.id)+'">'
-    + (title.coverImageUrl?'<img class="mp-bl-cover" src="'+esc(title.coverImageUrl)+'" alt="" loading="lazy">':'<div class="mp-bl-cover mp-bl-cover-placeholder"></div>')
+    + (title.coverImageUrl?'<img class="mp-bl-cover" src="'+esc(title.coverImageUrl)+'" alt="'+esc(title.title)+'" loading="lazy">':'<div class="mp-bl-cover mp-bl-cover-placeholder"></div>')
     + '</button>'
     + '<button type="button" class="mp-bl-save-btn'+(saved?' is-saved':'')+'" data-save data-sku-id="'+esc(sku.id)+'" data-title="'+esc(title.title)+'" data-cover="'+esc(title.coverImageUrl||'')+'" aria-label="'+(saved?'Remove from saved':'Save for later')+'">'+(saved?'★':'☆')+'</button>'
     + '</div>'
     + '<div class="mp-bl-card-body">'
     + (title.formatName?'<span class="mp-bl-card-format">'+esc(title.formatName)+'</span>':'')
-    + '<button type="button" class="mp-bl-card-link" data-open-detail="'+esc(title.id)+'"><div class="mp-bl-card-title">'+esc(title.title)+'</div></button>'
+    + '<a class="mp-bl-card-link" href="'+esc(bookUrlFor(title.id))+'"><div class="mp-bl-card-title">'+esc(title.title)+'</div></a>'
     + (title.publisher?'<div class="mp-bl-card-sub">'+esc(title.publisher)+'</div>':'')
     + '<div class="mp-bl-card-price">'+money(sku.priceCents)+'</div>'
     + '<div class="mp-bl-card-delivery">'+esc(sku.delivery.headline)+'</div>'
@@ -106,15 +107,7 @@ function resultCard(title){
     + '</div></div>';
 }
 
-// Full detail view for one title -- cover, publisher/writer, a synopsis, and
-// per-format price+delivery, same information density preorders.js's own
-// skuDetailHtml() gives comic collectors. Renders in place as a dialog
-// rather than navigating to /book/{id}: that page is real (SEO-facing, for
-// search engines and direct links) but themanapocket.com/book/* currently
-// 404s in production due to a Cloudflare routing/DNS issue outside this
-// repo's control -- calling /public/backlist/title/:id here hits the Worker
-// directly (same as every other backlist API call already does) and sidesteps
-// that entirely, so browsing isn't blocked on an infra fix landing first.
+// Open details in a modal; title anchors and share links also expose the canonical book page.
 function backlistDetailHtml(title,skus){
   var byline=[title.writer,title.publisher].filter(Boolean).join(' · ');
   var rows=skus.map(function(s){
@@ -160,12 +153,9 @@ async function openBacklistDetail(titleId){
     overlay.querySelector('.mp-bl-modal').innerHTML='<div class="mp-bl-error">'+esc(error.message)+'</div><button class="mp-bl-close" data-close>&times;</button>';
   }
 }
-// /books?q=<title> is a real, already-working page (browse mode plus the
-// ?q= deep-link this page reads on load) -- shared here instead of the
-// canonical but currently-broken /book/{id} URL so a shared link actually
-// opens something for whoever receives it, not another 404.
+// Share the server-rendered book page for item-specific previews and canonical signals.
 function shareBacklistTitle(title,button){
-  var url=location.origin+'/books?q='+encodeURIComponent(title);
+  var url=bookUrlFor(button.dataset.detailShare);
   if(navigator.share){navigator.share({title:title+' | The Mana Pocket',text:'Check out '+title+' at The Mana Pocket',url:url}).catch(function(){});return;}
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(function(){var original=button.textContent;button.textContent='Link copied ✓';setTimeout(function(){button.textContent=original;},1400);}).catch(function(){window.prompt('Copy this link:',url);});return;}
   window.prompt('Copy this link:',url);
