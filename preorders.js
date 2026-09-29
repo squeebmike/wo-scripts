@@ -33,15 +33,8 @@ function dateLabel(value,withTime){if(!value)return'TBA';var dateOnly=/^\d{4}-\d
 function unique(values){return Array.from(new Set(values.filter(Boolean))).sort(function(a,b){return a.localeCompare(b);});}
 function titleForFamily(family){return(family.seriesName||family.title)+(family.issueNumber?' #'+family.issueNumber:'');}
 function priceForSku(sku){return sku.waitlistOnly?(sku.priceRequired?'Price confirmed if secured':money(sku.priceCents)+' if secured'):(sku.priceRequired?'Price coming soon':money(sku.priceCents));}
-// Points at the Worker's server-rendered /preorder/{id} page, never directly
-// at /preorders?sku=... -- that query string only ever gets filled in by
-// client JS after the page has already loaded, so a link-preview scraper
-// (Facebook, iMessage, Discord...) that fetches it gets nothing but this
-// page's one generic, sitewide meta description and no image. /preorder/{id}
-// is real server-rendered HTML with this exact cover's own og:title/
-// og:description/og:image already in the response, and bounces a real
-// visitor straight back into this same deep-linked view (see handleDeepLink).
-function shareUrlFor(skuId){return API+'/preorder/'+encodeURIComponent(skuId);}
+// Share the public server-rendered cover page on the canonical production host.
+function shareUrlFor(skuId){return 'https://www.themanapocket.com/preorder/'+encodeURIComponent(skuId);}
 function shareSku(family,sku,button){
   var name=titleForFamily(family)+' · '+(sku.variantLabel||'Cover A'),url=shareUrlFor(sku.id);
   if(navigator.share){navigator.share({title:name+' | The Mana Pocket',text:'Preorder '+name+' at The Mana Pocket',url:url}).catch(function(){});return;}
@@ -210,7 +203,7 @@ function coverHtml(family,sku,cycleIsOpen){
   var price=sku.waitlistOnly?(sku.priceRequired?'Price confirmed if secured':money(sku.priceCents)+' if secured'):(sku.priceRequired?'Price coming soon':money(sku.priceCents));
   var actionAttr=sku.waitlistOnly?'data-waitlist="'+esc(sku.id)+'"':(sku.canPreorder?'data-add="'+esc(sku.id)+'"':'');
   var disabled=!cycleIsOpen||(!sku.waitlistOnly&&!sku.canPreorder);
-  return'<section class="mp-foc-cover" data-sku-card="'+esc(sku.id)+'"><button class="mp-foc-cover-image" data-lightbox="'+esc(sku.id)+'" aria-label="Enlarge cover">'+image+'</button><h3>'+esc(sku.variantLabel||'Cover A')+'</h3><div class="mp-foc-badges">'+(sku.isFoil?'<span class="mp-foc-badge">Foil</span>':'')+(sku.isIncentive?'<span class="mp-foc-badge ratio">'+esc(sku.orderRequirement||'Incentive')+'</span>':'')+'</div><div class="artist">'+esc(sku.coverArtist?'Cover by '+sku.coverArtist:'Cover artist not listed')+'</div><div class="price '+(sku.priceRequired||sku.waitlistOnly?'request':'')+'">'+price+'</div><div class="release">UPC '+esc(sku.upc)+'<br>Releases '+esc(dateLabel(sku.onSaleDate,false))+'</div>'+ratio+'<div class="actions"><button class="mp-foc-button" '+actionAttr+' '+(disabled?'disabled':'')+'>'+action+'</button><input class="mp-foc-qty" name="preorder_quantity" data-qty="'+esc(sku.id)+'" type="number" value="1" min="1" max="50" aria-label="Quantity for '+esc((family.seriesName||family.title)+' '+sku.variantLabel)+'" '+(!sku.waitlistOnly&&!sku.canPreorder?'disabled':'')+'></div></section>';
+  return'<section class="mp-foc-cover" data-sku-card="'+esc(sku.id)+'"><button class="mp-foc-cover-image" data-lightbox="'+esc(sku.id)+'" aria-label="Enlarge cover">'+image+'</button><h3><a href="'+esc(shareUrlFor(sku.id))+'">'+esc(sku.variantLabel||'Cover A')+'</a></h3><div class="mp-foc-badges">'+(sku.isFoil?'<span class="mp-foc-badge">Foil</span>':'')+(sku.isIncentive?'<span class="mp-foc-badge ratio">'+esc(sku.orderRequirement||'Incentive')+'</span>':'')+'</div><div class="artist">'+esc(sku.coverArtist?'Cover by '+sku.coverArtist:'Cover artist not listed')+'</div><div class="price '+(sku.priceRequired||sku.waitlistOnly?'request':'')+'">'+price+'</div><div class="release">UPC '+esc(sku.upc)+'<br>Releases '+esc(dateLabel(sku.onSaleDate,false))+'</div>'+ratio+'<div class="actions"><button class="mp-foc-button" '+actionAttr+' '+(disabled?'disabled':'')+'>'+action+'</button><input class="mp-foc-qty" name="preorder_quantity" data-qty="'+esc(sku.id)+'" type="number" value="1" min="1" max="50" aria-label="Quantity for '+esc((family.seriesName||family.title)+' '+sku.variantLabel)+'" '+(!sku.waitlistOnly&&!sku.canPreorder?'disabled':'')+'></div></section>';
 }
 
 function handleDeepLink(){if(state.deepLinkHandled)return;var params=new URLSearchParams(location.search),skuId=params.get('sku');if(!skuId)return;var match=findSku(skuId);if(!match)return;state.deepLinkHandled=true;state.filters.q=match.sku.upc||match.family.title;render();var card=document.querySelector('[data-sku-card="'+CSS.escape(skuId)+'"]');if(card)card.scrollIntoView({behavior:'smooth',block:'center'});if(params.get('add')==='1'&&match.sku.canPreorder){addPreorderLine(skuId,1);}else if(params.get('request')==='1'||match.sku.waitlistOnly){requestWaitlist(skuId,1);}else{openSkuDetail(skuId);}}

@@ -28,7 +28,7 @@ console.log('Shop preorder share button contract checks passed');
 // deadline, release date, publisher, creators, synopsis) the shop page's
 // modal already has -- a plain enlarged image wasn't enough to decide
 // whether to preorder without leaving to look the title up elsewhere ──
-assert.match(foc,/function shareUrlFor\(skuId\)\{return API\+'\/preorder\/'\+encodeURIComponent\(skuId\);\}/,'FOC page share must use the directly reachable Worker preview route');
+assert.ok(foc.includes("function shareUrlFor(skuId){return 'https://www.themanapocket.com/preorder/'+encodeURIComponent(skuId);}"), 'share must use the canonical production host');
 assert.match(foc,/function shareSku\(family,sku,button\)\{/,'missing shareSku on the FOC page');
 assert.match(foc,/function skuDetailHtml\(family,sku,cycle\)\{/,'missing the rich detail-modal renderer');
 assert.match(foc,/<b>Price<\/b>/,'FOC detail modal must show price');

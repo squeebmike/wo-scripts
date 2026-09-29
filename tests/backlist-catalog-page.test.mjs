@@ -122,7 +122,7 @@ assert.match(source, /detailBtn=e\.target\.closest\('\[data-open-detail\]'\)/, '
 // canonical but currently-broken /book/{id} URL, so a shared link actually
 // opens something instead of another 404.
 assert.match(source, /function shareBacklistTitle\(title,button\)\{/, 'missing the share handler');
-assert.match(source, /var url=location\.origin\+'\/books\?q='\+encodeURIComponent\(title\);/, 'share must point at a URL that actually works today');
+assert.ok(source.includes('var url=bookUrlFor(button.dataset.detailShare);'), 'share must use the real book detail page');
 assert.match(source, /navigator\.share/, 'share must use the real Web Share API');
 assert.match(source, /navigator\.clipboard/, 'share must fall back to copying the link');
 assert.match(source, /window\.prompt\('Copy this link:',url\)/, 'share must fall back to a prompt as a last resort, same as preorders.js');
