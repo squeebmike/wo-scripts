@@ -432,7 +432,7 @@ WO.applyTheme=function(team,colorway){
 };
 
 // MODAL
-var overlay,sheet,grid,cwRow;
+var overlay,sheet,grid,cwRow,themeReturnFocus;
 var LABELS={nfl:'NFL',mlb:'MLB',nba:'NBA',nhl:'NHL',pokemon:'Pokémon',mtg:'MTG'};
 function isPokemon(){return state.league==='pokemon';}
 function logoUrl(league,k,colorway){
@@ -445,6 +445,7 @@ function logoUrl(league,k,colorway){
     var kk=String(k).toUpperCase();
     return 'https://svgs.scryfall.io/card-symbols/'+(kk.length<=2?kk:kk.charAt(0))+'.svg';
   }
+  if(league==='nba')k=({hawks:'atl',celtics:'bos',nets:'bkn',hornets:'cha',bulls:'chi',cavaliers:'cle',mavericks:'dal',nuggets:'den',pistons:'det',warriors:'gs',rockets:'hou',pacers:'ind',clippers:'lac',lakers:'lal',grizzlies:'mem',heat:'mia',bucks:'mil',timberwolves:'min',pelicans:'no',knicks:'ny',thunder:'okc',magic:'orl',sixers:'phi',suns:'phx',blazers:'por',kings:'sac',spurs:'sa',raptors:'tor',jazz:'utah',wizards:'wsh'})[k]||k;
   return'https://a.espncdn.com/i/teamlogos/'+league+'/500/'+k+'.png';
 }
 function currentModeLabels(){
@@ -521,7 +522,7 @@ function renderGrid(){
   var m=mc();
   var teams=TEAMS[state.league]||[];
   teams.forEach(function(team){
-    var t=document.createElement('div');
+    var t=document.createElement('button');t.type='button';t.setAttribute('aria-label',team.n);
     t.className='wo-tile';t.dataset.k=String(team.k);t.dataset.lg=state.league;
     t.style.cssText='display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 4px 8px;border-radius:12px;cursor:pointer;border:1px solid '+m.bdr+';background:rgba(255,255,255,.035);transition:all .18s;';
     var img=document.createElement('img');
@@ -547,6 +548,8 @@ function buildModal(){
   overlay.style.cssText='position:fixed;inset:0;z-index:2147483647;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0);pointer-events:none;transition:background .3s;font-family:system-ui,-apple-system,sans-serif;';
   overlay.addEventListener('click',function(e){if(e.target===overlay)closeModal();});
   sheet=document.createElement('div');
+  sheet.setAttribute('role','dialog');sheet.setAttribute('aria-label','Choose your theme');sheet.setAttribute('aria-modal','true');sheet.inert=true;
+  sheet.addEventListener('keydown',function(e){if(e.key==='Escape'){e.stopPropagation();closeModal();return;}if(e.key!=='Tab')return;var focusable=Array.from(sheet.querySelectorAll('button,a[href]'));var first=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}});
   sheet.style.cssText='width:100%;max-width:720px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;border-radius:20px 20px 0 0;background:#13161c;box-shadow:0 -20px 80px rgba(0,0,0,.9);transform:translateY(105%);transition:transform .38s cubic-bezier(.32,.72,0,1);';
   var hdl=document.createElement('div');
   hdl.style.cssText='padding:12px 0 4px;display:flex;justify-content:center;cursor:pointer;flex-shrink:0;';
@@ -557,7 +560,7 @@ function buildModal(){
   var tb=document.createElement('div');
   var ttl=document.createElement('div');ttl.id='wo-ttl';ttl.textContent='Choose Your Theme';
   ttl.style.cssText='font-size:20px;font-weight:950;color:#fff;letter-spacing:-.02em;';
-  var sub=document.createElement('div');sub.id='wo-sub';sub.textContent='Teams, MTG, Pokémon, and shiny themes now use separate contrast-safe roles for text, cards, links, buttons, navigation, and footer states.';
+  var sub=document.createElement('div');sub.id='wo-sub';sub.textContent='Pick your team, Pokémon, or Magic colors. Switch between home and away to make the Pocket yours.';
   sub.style.cssText='font-size:12px;color:rgba(255,255,255,.65);margin-top:2px;';
   var signIn=document.createElement('a');signIn.href='/login?next='+encodeURIComponent(location.pathname+location.search);signIn.textContent='Have an account? Sign in →';
   signIn.style.cssText='display:inline-block;margin-top:8px;font-size:12px;font-weight:800;color:#69be28;text-decoration:none;';
@@ -581,8 +584,8 @@ function buildModal(){
   overlay.appendChild(sheet);document.body.appendChild(overlay);
   updateModeButtons();
 }
-function openModal(){buildModal();overlay.style.background='rgba(0,0,0,.76)';overlay.style.pointerEvents='auto';sheet.style.transform='translateY(0)';renderGrid();refreshUI();}
-function closeModal(){if(!overlay)return;overlay.style.background='rgba(0,0,0,0)';overlay.style.pointerEvents='none';sheet.style.transform='translateY(105%)';}
+function openModal(){buildModal();themeReturnFocus=document.activeElement;sheet.inert=false;overlay.style.background='rgba(0,0,0,.76)';overlay.style.pointerEvents='auto';sheet.style.transform='translateY(0)';renderGrid();refreshUI();document.getElementById('wo-done').focus();}
+function closeModal(){if(!overlay)return;overlay.style.background='rgba(0,0,0,0)';overlay.style.pointerEvents='none';sheet.style.transform='translateY(105%)';sheet.inert=true;if(themeReturnFocus&&themeReturnFocus.isConnected)themeReturnFocus.focus();}
 WO.openTheme=openModal;WO.closeTheme=closeModal;
 
 // The nav's theme button doubles as the account entry point (one button
@@ -618,7 +621,7 @@ function init(){
   document.querySelectorAll('[data-wo-theme],[data-theme-trigger],[data-wo-open]').forEach(function(el){
     el.addEventListener('click',onThemeTrigger);
   });
-  if(!applied)showThemeNudge();
+  // Theme is opened deliberately from My Pocket.
 }
 
 function showThemeNudge(){
@@ -793,7 +796,7 @@ function polishNavigation(){
   var COOL_LINKS=[
     {slug:'comic-new-releases',label:'Comic New Releases',href:'/comic-new-releases-the-mana-pocket',image:NAV_ART.comics,meta:'Every cover out this week'},
     {slug:'preorders',label:'Comic Preorders',href:'/preorders',image:NAV_ART.comics,meta:'Pick exact covers before FOC'},
-    {slug:'books',label:'Book Backlist',href:'/books',image:BRAND_LOGO,meta:'Order any book in print'},
+    {slug:'books',label:'Books & Backorders',href:'/books',image:BRAND_LOGO,meta:'Order any book in print'},
     {slug:'articles',label:'Comic Articles',href:'https://www.themanapocket.com/articles',image:NAV_ART.comics,meta:'What to read & preorder next'},
     {slug:'pokemon-viewer',label:'Pok\u00e9mon Card Viewer',href:'/pokemon-new-releases',image:NAV_ART.pokemon,meta:'Scan the latest sets'},
     {slug:'mtg-viewer',label:'MTG Card Viewer',href:'/mtg-new-releases',image:NAV_ART.mtg,meta:'Browse cards by release'},
@@ -850,11 +853,11 @@ function polishNavigation(){
   }
   function buildDesktopCool(list,items){
     if(!list)return;list.innerHTML='';list.classList.add('mp-counter-menu','mp-counter-menu--cool');list.id='mp-cool-counter-menu';
-    var header=document.createElement('div');header.className='mp-counter-head';header.innerHTML='<span>AT THE REGISTER</span><strong>The other good stuff</strong>';list.appendChild(header);
-    var grid=document.createElement('div');grid.className='mp-cool-grid';items.forEach(function(item){
+    var header=document.createElement('div');header.className='mp-counter-head';header.innerHTML='<strong>Comics, books & more</strong>';list.appendChild(header);
+    var grid=document.createElement('div');grid.className='mp-cool-grid';var comics=document.createElement('section');comics.className='mp-nav-group';comics.innerHTML='<h3>Comics &amp; Books</h3><a href="/comics/search">Search all comics →</a>';var explore=document.createElement('section');explore.className='mp-nav-group';explore.innerHTML='<h3>Explore</h3>';grid.appendChild(comics);grid.appendChild(explore);items.forEach(function(item){
       var link=document.createElement('a');link.className='mp-cool-object mp-cool-object--'+item.slug;link.href=item.href;
-      var scene=document.createElement('span');scene.className='mp-cool-scene';scene.setAttribute('aria-hidden','true');var image=document.createElement('img');image.alt='';image.src=item.image;image.loading='lazy';scene.appendChild(image);link.appendChild(scene);
-      var copy=document.createElement('span');copy.className='mp-counter-copy';var strong=document.createElement('strong');strong.textContent=item.label;copy.appendChild(strong);var meta=document.createElement('span');meta.textContent=item.meta;copy.appendChild(meta);link.appendChild(copy);grid.appendChild(link);
+      
+      var copy=document.createElement('span');copy.className='mp-counter-copy';var strong=document.createElement('strong');strong.textContent=item.label;copy.appendChild(strong);var meta=document.createElement('span');meta.textContent=item.meta;copy.appendChild(meta);link.appendChild(copy);(/comic-new-releases|preorders|books|articles/.test(item.slug)?comics:explore).appendChild(link);
     });list.appendChild(grid);
   }
   function buildMobileDrawer(nav,menu,coolItems,items){
@@ -864,8 +867,8 @@ function polishNavigation(){
     var cart=document.createElement('button');cart.type='button';cart.className='mp-mobile-cart-cta';cart.setAttribute('aria-label','View cart');cart.innerHTML='<span aria-hidden="true">\ud83d\uded2</span><strong>View cart</strong><b data-mp-mobile-cart-count>0</b>';drawer.appendChild(cart);
     var caseGrid=document.createElement('div');caseGrid.className='mp-mobile-case-grid';SHOP_LINKS.filter(function(item){return item.slug!=='all';}).forEach(function(item){caseGrid.appendChild(buildShopZone(item,items,true));});drawer.appendChild(caseGrid);
     var all=document.createElement('a');all.className='mp-mobile-view-all';all.href=SHOP_LINKS[0].href;all.textContent='View everything in the shop \u2192';drawer.appendChild(all);
-    var coolTitle=document.createElement('h2');coolTitle.textContent='Cool stuff at the register';drawer.appendChild(coolTitle);
-    var coolGrid=document.createElement('div');coolGrid.className='mp-mobile-cool-grid';coolItems.forEach(function(item){var link=document.createElement('a');link.href=item.href;var image=document.createElement('img');image.src=item.image;image.alt='';image.loading='lazy';link.appendChild(image);var text=document.createElement('span');text.textContent=item.label;link.appendChild(text);coolGrid.appendChild(link);});drawer.appendChild(coolGrid);
+    var coolTitle=document.createElement('h2');coolTitle.textContent='Comics, books & more';drawer.appendChild(coolTitle);
+    var coolGrid=document.createElement('div');coolGrid.className='mp-mobile-cool-grid';coolItems.forEach(function(item){var link=document.createElement('a');link.href=item.href;var text=document.createElement('span');text.textContent=item.label;link.appendChild(text);coolGrid.appendChild(link);});drawer.appendChild(coolGrid);
     menu.appendChild(drawer);
     var menuButton=nav.querySelector('.w-nav-button');function closeDrawer(){if(menuButton&&menuButton.classList.contains('w--open'))menuButton.click();document.body.classList.remove('mp-mobile-nav-open');}
     close.addEventListener('click',closeDrawer);cart.addEventListener('click',function(){closeDrawer();if(WO&&typeof WO.openCart==='function')WO.openCart();});drawer.addEventListener('click',function(event){if(event.target.closest('a'))closeDrawer();});
@@ -888,6 +891,7 @@ function polishNavigation(){
     else window.addEventListener('load',function(){setNavHeight(nav.offsetHeight);},{once:true});
     var brand=nav.querySelector('.w-nav-brand');if(brand){brand.innerHTML='';brand.setAttribute('aria-label','The Mana Pocket home');var brandImage=document.createElement('img');brandImage.className='mp-nav-brand-image';brandImage.src=BRAND_LOGO;brandImage.alt='The Mana Pocket';brand.appendChild(brandImage);}
     var dropdowns=Array.prototype.slice.call(nav.querySelectorAll('.navbar6_menu-dropdown,.w-dropdown'));var shopDropdown=dropdowns.find(function(dropdown){var toggle=dropdown.querySelector('.w-dropdown-toggle');return/shop/i.test(toggle&&toggle.textContent||'');});var coolDropdown=dropdowns.find(function(dropdown){var toggle=dropdown.querySelector('.w-dropdown-toggle');return/cool stuff/i.test(toggle&&toggle.textContent||'');});
+    if(coolDropdown){var toggle=coolDropdown.querySelector('.w-dropdown-toggle');if(toggle)Array.from(toggle.childNodes).forEach(function(n){if(n.nodeType===3&&/cool stuff/i.test(n.textContent))n.textContent='Explore';else if(n.nodeType===1&&/cool stuff/i.test(n.textContent)&&!n.classList.contains('w-icon-dropdown-toggle'))n.textContent='Explore';});}
     var coolItems=preserveRoutes(coolDropdown,COOL_LINKS);var shopItems=preserveRoutes(shopDropdown,SHOP_LINKS);SHOP_LINKS=shopItems;var shopList=shopDropdown&&shopDropdown.querySelector('.w-dropdown-list');var coolList=coolDropdown&&coolDropdown.querySelector('.w-dropdown-list');buildDesktopShop(shopList,[]);buildDesktopCool(coolList,coolItems);
     var menu=nav.querySelector('.w-nav-menu');if(menu)buildMobileDrawer(nav,menu,coolItems,[]);
     wireDropdown(shopDropdown,'shop');wireDropdown(coolDropdown,'cool');
@@ -1225,3 +1229,5 @@ disableLegacyFlatRateShipping();
 polishShopInventory();
 
 })();
+
+(function(){var style=document.createElement('style');style.textContent=`#mp-cool-counter-menu .mp-cool-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:24px!important}.mp-nav-group h3{font:800 16px/1.4 system-ui;margin:0 0 12px;color:var(--wo-text)}.mp-nav-group>a{display:block!important;min-height:0!important;padding:10px 14px!important;margin:6px 0!important;color:var(--wo-text)!important;text-decoration:none}.mp-nav-group .mp-counter-copy strong{font-size:16px!important}.mp-nav-group .mp-counter-copy span{font-size:12px!important}.mp-cool-object:before,.mp-cool-object:after{display:none!important}.mp-mobile-cool-grid{grid-template-columns:1fr!important}.mp-mobile-cool-grid a{min-height:44px}.mp-mobile-cool-grid img{display:none}#mp-category-nav{font:600 14px/1.4 system-ui!important;gap:8px!important;padding:12px 16px!important}#mp-category-nav a{color:var(--wo-text,#fff)!important;background:var(--wo-surface,#242630);border:1px solid var(--wo-border,#565660);border-radius:24px;padding:9px 14px;text-decoration:none}#mp-category-nav a:hover{border-color:var(--wo-accent)}@media(max-width:767px){#mp-category-nav{flex-wrap:nowrap!important;overflow-x:auto;white-space:nowrap;margin:0!important}#mp-category-nav a{flex:none;font-size:12px;padding:8px 12px}}`;document.head.appendChild(style);})();
