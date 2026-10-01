@@ -197,10 +197,11 @@ function renderPasswordRecovery(app){
 function renderAccountShell(app,section){
   app.innerHTML='<div class="mp-acct-shell">'+
     '<div class="mp-acct-eyebrow">The Mana Pocket</div><h1 class="mp-acct-title">My Pocket</h1>'+
-    '<nav class="mp-acct-tabs" role="navigation" aria-label="Account sections">'+SECTIONS.filter(function(s){return s.protected;}).map(function(s){return'<a href="'+s.path+'" class="'+(s.key===section.key?'active':'')+'">'+esc(s.label)+'</a>';}).join('')+'</nav>'+
+    '<nav class="mp-acct-tabs" role="navigation" aria-label="Account sections">'+SECTIONS.filter(function(s){return s.protected;}).map(function(s){return'<a href="'+s.path+'" class="'+(s.key===section.key?'active':'')+'">'+esc(s.label)+'</a>';}).join('')+'<button type="button" class="mp-acct-theme-tab" data-account-theme>Theme</button></nav>'+
     '<div id="mp-acct-panel" class="mp-acct-panel"><div class="mp-acct-loading">Loading…</div></div>'+
     '<div class="mp-acct-actions mp-acct-signout"><button class="mp-acct-button ghost" type="button" data-sign-out>Sign out</button></div>'+
   '</div>';
+  app.querySelector('[data-account-theme]').addEventListener('click',function(){if(window.WO&&window.WO.openTheme)window.WO.openTheme();});
   app.querySelector('[data-sign-out]').addEventListener('click',function(){setSession(null);location.href='/login';});
   loadSection(section.key);
 }
@@ -412,10 +413,7 @@ function renderProfile(){
   var host=panel();
   var email=state.session&&state.session.user&&state.session.user.email||'';
   var linkedPhone=state.cache.summary&&state.cache.summary.customer&&state.cache.summary.customer.phone;
-  host.innerHTML='<h3 class="mp-acct-subhead">Site theme</h3>'+
-    '<p class="mp-acct-intro">Pick a team, Pokémon, or MTG theme for the whole site.</p>'+
-    '<div class="mp-acct-actions"><button class="mp-acct-button ghost" type="button" data-open-theme>Change theme</button></div>'+
-    '<h3 class="mp-acct-subhead">Change email</h3>'+
+  host.innerHTML='<h3 class="mp-acct-subhead">Change email</h3>'+
     '<form class="mp-acct-auth" data-email-form><input name="email" type="email" autocomplete="email" required placeholder="New email" value="'+esc(email)+'"><div class="mp-acct-actions"><button class="mp-acct-button" type="submit">Update email</button></div><div data-email-status></div></form>'+
     '<h3 class="mp-acct-subhead">Change password</h3>'+
     '<form class="mp-acct-auth" data-password-form><input name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="New password · 8+ characters"><div class="mp-acct-actions"><button class="mp-acct-button" type="submit">Update password</button></div><div data-password-status></div></form>'+
