@@ -22,7 +22,10 @@ state.cart=loadJson(CART_KEY,[]);
 
 function token(){return state.session&&state.session.access_token||'';}
 function setSession(session){state.session=session&&session.access_token?session:null;if(state.session)saveJson(SESSION_KEY,state.session);else{try{localStorage.removeItem(SESSION_KEY);}catch(_){}}}
-function setCart(cart){state.cart=cart;saveJson(CART_KEY,cart);renderCart();}
+function setCart(cart){state.cart=cart;saveJson(CART_KEY,cart);renderCart();if(window.WO&&window.WO.refreshCart)window.WO.refreshCart();}
+function syncBookCart(){state.cart=loadJson(CART_KEY,[]);renderCart();renderResults();}
+window.addEventListener('mp-book-cart-changed',syncBookCart);
+window.addEventListener('storage',function(event){if(event.key===CART_KEY)syncBookCart();});
 
 function auth(path,body){return fetch(SUPABASE_URL+'/auth/v1/'+path,{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)}).then(async function(response){var data=await response.json().catch(function(){return{};});if(!response.ok)throw new Error(data.msg||data.message||data.error_description||'Account request failed.');return data;});}
 function api(path,options){options=options||{};var headers=Object.assign({'Content-Type':'application/json'},options.headers||{});if(options.auth!==false&&token())headers.Authorization='Bearer '+token();return fetch(API+path,Object.assign({},options,{headers:headers})).then(async function(response){var data=await response.json().catch(function(){return{};});if(!response.ok)throw new Error(data.error||'The request could not be completed.');return data;});}
@@ -275,6 +278,7 @@ function bindScrollLazyLoading(){
 }
 
 function addToCart(line){
+  state.cart=loadJson(CART_KEY,[]);
   var cart=state.cart.slice();
   var existing=cart.find(function(l){return l.id===line.id;});
   if(existing)existing.qty=Math.min(20,Number(existing.qty||1)+1);
@@ -350,6 +354,7 @@ async function loadStripe(){
 }
 
 function beginCheckout(){
+  state.cart=loadJson(CART_KEY,[]);
   if(!state.cart.length)return;
   requireSession(openCheckoutModal);
 }
