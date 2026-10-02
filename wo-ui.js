@@ -1231,3 +1231,14 @@ polishShopInventory();
 })();
 
 (function(){var style=document.createElement('style');style.textContent=`#mp-cool-counter-menu .mp-cool-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:24px!important}.mp-nav-group h3{font:800 16px/1.4 system-ui;margin:0 0 12px;color:var(--wo-text)}.mp-nav-group>a{display:block!important;min-height:0!important;padding:10px 14px!important;margin:6px 0!important;color:var(--wo-text)!important;text-decoration:none}.mp-nav-group .mp-counter-copy strong{font-size:16px!important}.mp-nav-group .mp-counter-copy span{font-size:12px!important}.mp-cool-object:before,.mp-cool-object:after{display:none!important}.mp-mobile-cool-grid{grid-template-columns:1fr!important}.mp-mobile-cool-grid a{min-height:44px}.mp-mobile-cool-grid img{display:none}#mp-category-nav{font:600 14px/1.4 system-ui!important;gap:8px!important;padding:12px 16px!important}#mp-category-nav a{color:var(--wo-text,#fff)!important;background:var(--wo-surface,#242630);border:1px solid var(--wo-border,#565660);border-radius:24px;padding:9px 14px;text-decoration:none}#mp-category-nav a:hover{border-color:var(--wo-accent)}@media(max-width:767px){#mp-category-nav{flex-wrap:nowrap!important;overflow-x:auto;white-space:nowrap;margin:0!important}#mp-category-nav a{flex:none;font-size:12px;padding:8px 12px}}`;document.head.appendChild(style);})();
+
+// Keep category destinations accessible without filling the phone's first screen.
+(function(){
+  function mount(){
+    var nav=document.getElementById('mp-category-nav');if(!nav||document.getElementById('mp-category-toggle'))return;
+    var toggle=document.createElement('button');toggle.id='mp-category-toggle';toggle.type='button';toggle.textContent='Browse departments';toggle.setAttribute('aria-controls','mp-category-nav');toggle.setAttribute('aria-expanded','false');
+    toggle.addEventListener('click',function(){var open=toggle.getAttribute('aria-expanded')!=='true';toggle.setAttribute('aria-expanded',String(open));nav.classList.toggle('mp-categories-open',open);});nav.before(toggle);
+    var css=document.createElement('style');css.textContent='#mp-category-toggle{display:none}@media(max-width:767px){#mp-category-toggle{display:block;width:calc(100% - 24px);margin:12px;padding:12px 16px;text-align:left;font:700 14px system-ui;color:var(--wo-text);background:var(--wo-surface);border:1px solid var(--wo-border);border-radius:10px}#mp-category-toggle:after{content:" +";float:right}#mp-category-toggle[aria-expanded=true]:after{content:" −"}#mp-category-nav{display:none!important}#mp-category-nav.mp-categories-open{display:flex!important;flex-wrap:wrap!important;white-space:normal;overflow:visible}#mp-category-nav a{white-space:normal}}';document.head.appendChild(css);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
+})();
