@@ -169,6 +169,9 @@ function filteredFamiliesFor(entry){
   var q=state.filters.q.toLowerCase();return entry.families.map(function(family){var variants=family.variants.filter(function(sku){var hay=[family.title,family.seriesName,family.writer,family.publisher,sku.variantLabel,sku.coverArtist,sku.description].join(' ').toLowerCase();return(!q||hay.indexOf(q)!==-1)&&(state.filters.publisher==='all'||family.publisher===state.filters.publisher)&&(state.filters.artist==='all'||sku.coverArtist===state.filters.artist)&&(state.filters.type==='all'||(family.comicType||'Comic')===state.filters.type)&&(state.filters.kind==='all'||(state.filters.kind==='first'&&family.isFirstIssue)||(state.filters.kind==='foil'&&sku.isFoil)||(state.filters.kind==='incentive'&&sku.isIncentive)||(state.filters.kind==='standard'&&!sku.isIncentive));});return Object.assign({},family,{variants:variants});}).filter(function(family){return family.variants.length;});
 }
 function render(){
+  // Rebuilding another week must not move the week the visitor is reading.
+  var visibleWeek=Array.from(document.querySelectorAll('[data-foc-week]')).find(function(week){return week.getBoundingClientRect().bottom>150;});
+  var anchor=visibleWeek&&{id:visibleWeek.id,top:visibleWeek.getBoundingClientRect().top};
   if(!state.cycles||!state.cycles.length){
     document.querySelector('[data-foc-dynamic]').innerHTML='<div class="mp-foc-empty"><h2>No FOC weeks are open right now.</h2><p>Check back once the next Monday order is imported.</p></div>';
     return;
@@ -181,6 +184,7 @@ function render(){
     '<section class="mp-foc-controls" aria-label="Filter comic preorders"><input id="mp-foc-search" name="preorder_search" aria-label="Search comic preorders" data-filter="q" type="search" placeholder="Search title, creator, character…" value="'+esc(state.filters.q)+'"><select id="mp-foc-publisher" name="preorder_publisher" aria-label="Filter by publisher" data-filter="publisher"><option value="all">All publishers</option>'+publishers.map(function(v){return'<option'+(state.filters.publisher===v?' selected':'')+'>'+esc(v)+'</option>';}).join('')+'</select>'+(types.length>1?'<select id="mp-foc-type" name="preorder_type" aria-label="Filter by item type" data-filter="type"><option value="all">All types</option>'+types.map(function(v){return'<option'+(state.filters.type===v?' selected':'')+'>'+esc(v)+'</option>';}).join('')+'</select>':'')+'<select id="mp-foc-artist" name="preorder_artist" aria-label="Filter by cover artist" data-filter="artist"><option value="all">All cover artists</option>'+artists.map(function(v){return'<option'+(state.filters.artist===v?' selected':'')+'>'+esc(v)+'</option>';}).join('')+'</select><select id="mp-foc-kind" name="preorder_kind" aria-label="Filter by cover type" data-filter="kind"><option value="all">All covers</option><option value="standard"'+(state.filters.kind==='standard'?' selected':'')+'>Standard covers</option><option value="foil"'+(state.filters.kind==='foil'?' selected':'')+'>Foil covers</option><option value="first"'+(state.filters.kind==='first'?' selected':'')+'>#1 issues</option><option value="incentive"'+(state.filters.kind==='incentive'?' selected':'')+'>Incentives</option></select><button class="mp-foc-button ghost" data-account>'+(token()?'My preorders':'Sign in')+'</button></section>'+
     state.cycles.map(function(entry,index){return weekSectionHtml(entry,index>0,index);}).join('');
   bind();
+  if(anchor){var replacement=document.getElementById(anchor.id);if(replacement)window.scrollBy({top:replacement.getBoundingClientRect().top-anchor.top,behavior:'instant'});}
   if(state.timer)clearInterval(state.timer);
   state.timer=setInterval(function(){
     document.querySelectorAll('[data-foc-countdown]').forEach(function(node){var cycle=cycleById(node.dataset.cycleId);if(cycle)node.innerHTML=countdownHtml(cycle);});
@@ -209,6 +213,14 @@ function coverHtml(family,sku,cycleIsOpen){
 function handleDeepLink(){if(state.deepLinkHandled)return;var params=new URLSearchParams(location.search),skuId=params.get('sku');if(!skuId)return;var match=findSku(skuId);if(!match)return;state.deepLinkHandled=true;state.filters.q=match.sku.upc||match.family.title;render();var card=document.querySelector('[data-sku-card="'+CSS.escape(skuId)+'"]');if(card)card.scrollIntoView({behavior:'smooth',block:'center'});if(params.get('add')==='1'&&match.sku.canPreorder){addPreorderLine(skuId,1);}else if(params.get('request')==='1'||match.sku.waitlistOnly){requestWaitlist(skuId,1);}else{openSkuDetail(skuId);}}
 
 function bind(){
+  document.querySelectorAll('.mp-foc-week-nav a').forEach(function(link){link.addEventListener('click',function(event){
+    event.preventDefault();
+    var id=link.getAttribute('href').slice(1),week=document.getElementById(id);
+    if(!week)return;
+    history.replaceState(history.state,'','#'+id);
+    week.scrollIntoView({behavior:'instant',block:'start'});
+    loadCycleCatalog(week.dataset.focWeek);
+  });});
   document.querySelectorAll('[data-filter]').forEach(function(control){control.addEventListener(control.tagName==='INPUT'?'input':'change',function(){
     state.filters[control.dataset.filter]=control.value;
     state.cycles.forEach(function(entry){
