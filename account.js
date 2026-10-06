@@ -21,13 +21,14 @@ var SECTIONS=[
   {path:'/account-orders',key:'orders',label:'Orders',protected:true},
   {path:'/account-preorders',key:'preorders',label:'Comic Preorders',protected:true},
   {path:'/account-consignments',key:'consignments',label:'Consignments',protected:true},
+  {path:'/account?section=alerts',key:'alerts',label:'My alerts',protected:true},
   {path:'/account-wishlist',key:'wishlist',label:'Wishlist',protected:true},
   {path:'/account-profile',key:'profile',label:'Account Settings',protected:true},
   {path:'/login',key:'login',label:'Sign In',protected:false},
   {path:'/signup',key:'signup',label:'Create Account',protected:false},
 ];
 function currentPath(){return(location.pathname.replace(/\/$/,'')||'/');}
-function currentSection(){return SECTIONS.find(function(s){return s.path===currentPath();})||null;}
+function currentSection(){if(currentPath()==='/account'&&new URLSearchParams(location.search).get('section')==='alerts')return SECTIONS.find(function(s){return s.key==='alerts';});return SECTIONS.find(function(s){return s.path===currentPath();})||null;}
 
 function readJson(key,fallback){try{return JSON.parse(localStorage.getItem(key)||'null')||fallback;}catch(_){return fallback;}}
 function saveJson(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch(_){}}
@@ -111,7 +112,7 @@ function mount(){
   if(footer)footer.parentNode.insertBefore(app,footer);else document.body.appendChild(app);
 
   if(section.protected&&!token()){
-    location.replace('/login?next='+encodeURIComponent(currentPath()));
+    location.replace('/login?next='+encodeURIComponent(currentPath()+location.search));
     return;
   }
   if(!section.protected&&token()&&(section.key==='login'||section.key==='signup')){
@@ -215,6 +216,36 @@ function loadSection(key){
   if(key==='consignments')return loadConsignments();
   if(key==='wishlist')return loadWishlist();
   if(key==='profile')return renderProfile();
+  if(key==='alerts')return loadBookAlerts();
+}
+
+async function loadBookAlerts(){
+  var host=panel(),offset=0;
+  host.innerHTML='<h2 class="mp-acct-subhead">My alerts</h2><p class="mp-acct-intro">Book updates requested with your verified account email. Each alert sends once. These are separate from the newsletter.</p><div data-alert-list class="mp-acct-list"></div><div data-alert-status role="status"></div><button class="mp-acct-button ghost" data-more-alerts hidden>Load more alerts</button><p><a href="/comics/search">Find another comic</a></p>';
+  var list=host.querySelector('[data-alert-list]'),out=host.querySelector('[data-alert-status]'),more=host.querySelector('[data-more-alerts]');
+  var events={preorder_open:'Preorders opening',preorder_cutoff:'Preorder cutoff reminder',in_stock:'Shop arrival or restock'};
+  var labels={active:'Watching',checking:'Checking availability',sending:'Delivery in progress',sent:'Sent',unsubscribed:'Stopped',failed:'Needs attention'};
+  async function load(){
+    more.disabled=true;out.innerHTML=statusHtml('Loading alerts…');
+    try{
+      var result=await api('/public/account/book-alerts?offset='+offset);
+      if(offset===0&&!result.alerts.length)list.innerHTML='<div class="mp-acct-empty">No book alerts for this email yet. Use Book alerts on a comic or book page to get started.</div>';
+      result.alerts.forEach(function(alert){
+        var card=document.createElement('article');card.className='mp-acct-order';
+        card.innerHTML='<h3>'+esc(alert.book)+'</h3><p>'+esc(events[alert.event]||alert.event)+'</p><span class="mp-acct-status-pill" data-alert-state>'+esc(labels[alert.status]||alert.status)+'</span>'+(alert.sent_at?'<p>Sent '+esc(dateLabel(alert.sent_at,true))+'</p>':'')+(['active','checking','sending'].indexOf(alert.status)>=0?'<p><button class="mp-acct-button ghost" data-cancel-alert>Stop this alert</button></p>':'');
+        var cancel=card.querySelector('[data-cancel-alert]');
+        if(cancel)cancel.addEventListener('click',async function(){
+          cancel.disabled=true;out.innerHTML='';
+          try{await api('/public/account/book-alerts',{method:'PATCH',body:JSON.stringify({id:alert.id})});card.querySelector('[data-alert-state]').textContent='Stopped';cancel.remove();out.innerHTML=statusHtml(alert.status==='sending'?'Stopped. An email already being delivered may still arrive.':'Alert stopped.','success');}
+          catch(error){out.innerHTML=statusHtml(error.message,'error');cancel.disabled=false;}
+        });
+        list.appendChild(card);
+      });
+      offset=result.nextOffset;more.hidden=offset===null;out.innerHTML='';
+    }catch(error){out.innerHTML=statusHtml(error.message,'error');more.hidden=false;more.textContent='Retry loading alerts';}
+    finally{more.disabled=false;}
+  }
+  more.addEventListener('click',load);await load();
 }
 
 async function loadOverview(){
