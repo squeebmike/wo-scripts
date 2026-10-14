@@ -515,23 +515,6 @@ function makeSection(className){
 }
 
 function buildDynamicSections(categoryMount){
-  var reading=makeSection('mp-reading');reading.section.id='from-the-comic-rack';
-  reading.shell.appendChild(sectionHead('From the comic rack','Worth a look.','Cover lineups, comic previews, and help finding the right supplies.','/articles','All comic articles →'));
-  var readingGrid=el('div','mp-reading-grid');
-  [
-    {kind:'Comic preview',title:'Absolute Batman #25: the twelve Lunar covers',copy:'The gatefold, the connecting set, the foils, and the artists behind them.',href:'/articles/absolute-batman-25-covers-presale'},
-    {kind:'Comic preview',title:'Marvel’s Midnight Universe gets weird',copy:'Spider monsters, vampires, and a Fantastic Four experiment that goes to hell. Meet the three series.',href:'/articles/marvel-midnight-universe-series-covers-preorders'},
-    {kind:'Collector guide',title:'Which comic bags and boards fit?',copy:'Current, Silver Age, and Golden Age sizes. Check the fit before you buy a stack.',href:'/comic-bags-boards-size-guide'},
-    {kind:'Collector guide',title:'What size toploader do I need?',copy:'Standard cards, thick cards, patch cards. Find the size that fits your collection.',href:'/toploader-size-guide'}
-  ].forEach(function(entry){
-    var card=link('',entry.href,'mp-reading-card');
-    card.appendChild(el('span','mp-section-kicker',entry.kind));
-    card.appendChild(el('h3','mp-reading-title',entry.title));
-    card.appendChild(el('p','mp-section-copy',entry.copy));
-    card.appendChild(el('span','mp-text-link','Read it →'));
-    readingGrid.appendChild(card);
-  });
-  reading.shell.appendChild(readingGrid);
   var fresh=makeSection('mp-fresh');fresh.section.id='fresh-in-the-pocket';
   fresh.shell.appendChild(sectionHead('New arrivals','Fresh in the pocket','The stuff that just showed up.','/shop','Shop all new arrivals →'));
   fresh.shell.appendChild(el('div','mp-loading','Checking the latest inventory…'));
@@ -562,7 +545,7 @@ function buildDynamicSections(categoryMount){
   happeningGrid.appendChild(el('div','mp-loading','Checking the calendar…'));
   happening.shell.appendChild(happeningGrid);
 
-  categoryMount.after(fresh.section,reading.section,editorial,pulled.section,caseSection.section,happening.section);
+  categoryMount.after(fresh.section,editorial,pulled.section,caseSection.section,happening.section);
   return{fresh:fresh,pulled:pulled,caseSection:caseSection,happening:happening};
 }
 
