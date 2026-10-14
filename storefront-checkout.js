@@ -27,6 +27,24 @@ var SESSION_KEY='mp-foc-session-v1';
 var points={balance:0,use:false};
 var MIN_CARD_CENTS=50;
 
+function checkoutEventData(){
+  var lines=mode==='preorder'?(preorderCtx&&preorderCtx.group?preorderCtx.group.lines:[]):regularLines();
+  var products=lines.map(function(line){return{item_id:String(line.skuId||line.id||''),item_name:String(line.name||'Comic preorder'),price:Number(line.price||0),quantity:Math.max(1,Number(line.qty||1))};});
+  return{currency:'USD',value:products.reduce(function(sum,item){return sum+item.price*item.quantity;},0),items:products};
+}
+function trackCheckoutEvent(name,params){try{if(typeof window.gtag==='function')window.gtag('event',name,params);else{window.dataLayer=window.dataLayer||[];window.dataLayer.push(Object.assign({event:name},params));}}catch(error){/* Analytics must never interrupt checkout. */}}
+var recordedPayments=new Set();
+function trackCheckoutPurchase(intent,runtime){
+  if(!intent||intent.status!=='succeeded'||!intent.id||recordedPayments.has(intent.id))return;
+  var key='mp-ga-purchase:'+intent.id;
+  try{if(sessionStorage.getItem(key))return;}catch(error){}
+  var details=Object.assign({},runtime.analytics||{currency:'USD',items:[]},{transaction_id:intent.id});
+  if(Number.isFinite(Number(runtime.amountCents)))details.value=Math.max(0,Number(runtime.amountCents)-Number(runtime.shippingCents||0))/100;
+  details.shipping=Number(runtime.shippingCents||0)/100;
+  trackCheckoutEvent('purchase',details);recordedPayments.add(intent.id);
+  try{sessionStorage.setItem(key,'1');}catch(error){}
+}
+
 function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,function(char){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char];});}
 function money(cents){return'$'+(Number(cents||0)/100).toFixed(2);}
 function cart(){try{var value=JSON.parse(localStorage.getItem(CART_KEY)||'[]');return Array.isArray(value)?value:[];}catch(error){return[];}}
@@ -281,6 +299,7 @@ function open(){
   if(rundrop.length){beginRundropCheckout(rundrop);return;}
   if(!regular.length){beginPreorderCheckout(preorder);return;}
   mode='regular';preorderCtx=null;
+  trackCheckoutEvent('begin_checkout',checkoutEventData());
   var modal=node();modal.innerHTML=panel();bind(modal);restoreDraft();quote={cents:null,loading:false,error:'',label:''};paymentRuntime=null;points={balance:0,use:false};showModal(modal);methodChanged();loadPoints();
 }
 function beginPreorderCheckout(lines){
@@ -299,6 +318,7 @@ function beginRundropCheckout(lines){
 // caller advances to the next cycle or finishes the queue.
 function openPreorderCheckout(group,index,total,onDone){
   mode='preorder';preorderCtx={group:group,index:index,total:total,onDone:onDone,rates:[],selectedRateId:null,ratesLoading:false,ratesError:''};
+  trackCheckoutEvent('begin_checkout',checkoutEventData());
   var modal=node();modal.innerHTML=panel();bind(modal);quote={cents:null,loading:false,error:'',label:''};paymentRuntime=null;points={balance:0,use:false};showModal(modal);methodChanged();loadPoints();
 }
 // My Pocket can resume a PaymentIntent that already belongs to an existing
@@ -358,7 +378,7 @@ async function checkout(){
     await mountPayment(data);
   }catch(error){setStatus(error.message,true);button.disabled=false;button.textContent='Try secure checkout again';}
 }
-async function mountPayment(data){var Stripe=await loadStripe();if(!Stripe)throw new Error('The secure payment form could not load.');var client=Stripe(data.publishableKey);var elements=client.elements({clientSecret:data.clientSecret,appearance:{theme:'night',variables:{colorPrimary:getComputedStyle(document.documentElement).getPropertyValue('--wo-accent').trim()||'#8bd450',borderRadius:'10px'}}});var content=node().querySelector('#mp-sfc-content');var shippingCents=data.shippingFeeCents||data.shippingCents;content.innerHTML='<div class="mp-sfc-summary"><div class="mp-sfc-row total"><span>'+(data.pointsRedeemed?'Card total':'Final total')+'</span><strong>'+money(data.amountCents)+'</strong></div>'+(data.pointsRedeemed?'<div class="mp-sfc-row"><span>Points applied ('+pointsLabel(data.pointsRedeemed)+')</span><span>−'+money(data.pointsRedeemed)+'</span></div>':'')+(shippingCents?'<div class="mp-sfc-row"><span>Live shipping</span><span>'+money(shippingCents)+'</span></div>':'<div class="mp-sfc-row"><span>Local pickup</span><span>FREE</span></div>')+'</div><div id="mp-sfc-payment"></div><div class="mp-sfc-status" data-pay-status aria-live="polite"></div><button class="mp-sfc-button" type="button" data-pay>Pay '+money(data.amountCents)+'</button><p class="mp-sfc-note">Secure payment powered by Stripe.</p>';elements.create('payment',{layout:'tabs'}).mount('#mp-sfc-payment');paymentRuntime={client:client,elements:elements,confirmation:data.confirmationNumber||data.orderNumber};content.querySelector('[data-pay]').addEventListener('click',confirmPayment);}
+async function mountPayment(data){var Stripe=await loadStripe();if(!Stripe)throw new Error('The secure payment form could not load.');var client=Stripe(data.publishableKey);var elements=client.elements({clientSecret:data.clientSecret,appearance:{theme:'night',variables:{colorPrimary:getComputedStyle(document.documentElement).getPropertyValue('--wo-accent').trim()||'#8bd450',borderRadius:'10px'}}});var content=node().querySelector('#mp-sfc-content');var shippingCents=data.shippingFeeCents||data.shippingCents;content.innerHTML='<div class="mp-sfc-summary"><div class="mp-sfc-row total"><span>'+(data.pointsRedeemed?'Card total':'Final total')+'</span><strong>'+money(data.amountCents)+'</strong></div>'+(data.pointsRedeemed?'<div class="mp-sfc-row"><span>Points applied ('+pointsLabel(data.pointsRedeemed)+')</span><span>−'+money(data.pointsRedeemed)+'</span></div>':'')+(shippingCents?'<div class="mp-sfc-row"><span>Live shipping</span><span>'+money(shippingCents)+'</span></div>':'<div class="mp-sfc-row"><span>Local pickup</span><span>FREE</span></div>')+'</div><div id="mp-sfc-payment"></div><div class="mp-sfc-status" data-pay-status aria-live="polite"></div><button class="mp-sfc-button" type="button" data-pay>Pay '+money(data.amountCents)+'</button><p class="mp-sfc-note">Secure payment powered by Stripe.</p>';elements.create('payment',{layout:'tabs'}).mount('#mp-sfc-payment');paymentRuntime={client:client,elements:elements,confirmation:data.confirmationNumber||data.orderNumber,analytics:checkoutEventData(),amountCents:data.amountCents,shippingCents:shippingCents||0};content.querySelector('[data-pay]').addEventListener('click',confirmPayment);}
 async function confirmPayment(){
   if(!paymentRuntime)return;
   var button=node().querySelector('[data-pay]'),out=node().querySelector('[data-pay-status]');
@@ -366,6 +386,12 @@ async function confirmPayment(){
   try{
     var result=await paymentRuntime.client.confirmPayment({elements:paymentRuntime.elements,redirect:'if_required'});
     if(result.error)throw new Error(result.error.message);
+    if(!result.paymentIntent||result.paymentIntent.status!=='succeeded'){
+      out.textContent='Your payment has not been confirmed yet. Check your order status before trying to pay again.';
+      button.textContent='Payment awaiting confirmation';
+      return;
+    }
+    trackCheckoutPurchase(result.paymentIntent,paymentRuntime);
     if(mode==='preorder'){
       // One FOC cycle just got paid -- there may be another cycle still
       // queued (a mixed-week cart), so this doesn't reload the page or

@@ -1,0 +1,46 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const source=fs.readFileSync(new URL('../storefront-checkout.js',import.meta.url),'utf8');
+const events=[],storage=new Map();
+const context={mode:'regular',preorderCtx:null,regularLines:()=>[{id:'book-a',name:'Book A',price:7,qty:2,customerEmail:'private@example.test'}],window:{gtag:(...args)=>events.push(args)},sessionStorage:{getItem:key=>storage.get(key),setItem:(key,value)=>storage.set(key,value)}};
+vm.createContext(context);
+vm.runInContext(source.slice(source.indexOf('function checkoutEventData('),source.indexOf('function esc(')),context);
+const clean=value=>JSON.parse(JSON.stringify(value));
+assert.deepEqual(clean(context.checkoutEventData()),{currency:'USD',value:14,items:[{item_id:'book-a',item_name:'Book A',price:7,quantity:2}]});
+context.mode='preorder';context.preorderCtx={group:{lines:[{skuId:'cover-b',name:'Cover B',price:5,qty:3}]}};
+assert.equal(context.checkoutEventData().value,15);
+assert.equal(context.checkoutEventData().items[0].item_id,'cover-b');
+const runtime={analytics:context.checkoutEventData(),amountCents:1800,shippingCents:400};
+for(const status of ['processing','requires_action','requires_payment_method','canceled'])context.trackCheckoutPurchase({id:'pi-pending',status},runtime);
+assert.equal(events.length,0,'an attempted or pending payment is not a purchase');
+context.trackCheckoutPurchase({id:'pi-paid',status:'succeeded'},runtime);
+context.trackCheckoutPurchase({id:'pi-paid',status:'succeeded'},runtime);
+assert.equal(events.length,1,'one payment must produce one purchase');
+assert.equal(events[0][1],'purchase');
+assert.equal(events[0][2].transaction_id,'pi-paid');
+assert.equal(events[0][2].value,14,'purchase value excludes shipping');
+assert.equal(events[0][2].shipping,4);
+assert.equal(events[0][2].items[0].quantity,3);
+context.preorderCtx=null;
+assert.deepEqual(clean(context.checkoutEventData().items),[],'resumed preorder payment must not report unrelated cart items');
+context.window.gtag=()=>{throw new Error('analytics blocked');};
+assert.doesNotThrow(()=>context.trackCheckoutPurchase({id:'pi-blocked',status:'succeeded'},runtime));
+assert.match(source,/trackCheckoutEvent\('begin_checkout',checkoutEventData\(\)\)/);
+assert.match(source,/trackCheckoutPurchase\(result.paymentIntent,paymentRuntime\)/);
+console.log('Checkout analytics: item quantities, cycle isolation, success-only purchase, deduplication, shipping and analytics failure checked');
+
+let cleared=0;
+const button={disabled:false,textContent:''},out={textContent:'',classList:{add(){}}},content={innerHTML:''};
+context.node=()=>({querySelector:selector=>selector==='[data-pay]'?button:selector==='[data-pay-status]'?out:selector==='#mp-sfc-content'?content:{addEventListener(){}}});
+context.preorderLines=()=>[];context.clearDraft=()=>{};context.esc=String;context.location={reload(){}};
+context.window.WO={setCart(){cleared++;}};context.mode='regular';
+vm.runInContext(source.slice(source.indexOf('async function confirmPayment('),source.indexOf('function install(')),context);
+for(const status of ['processing','requires_action','succeeded']){
+  context.paymentRuntime={...runtime,confirmation:'ORDER-TEST',elements:{},client:{confirmPayment:async()=>({paymentIntent:{id:'pi-'+status,status}})}};
+  content.innerHTML='';await context.confirmPayment();
+  assert.equal(content.innerHTML.includes('Order confirmed'),status==='succeeded');
+  if(status!=='succeeded')assert.equal(cleared,0,'pending payment must retain the unpaid cart');
+}
+assert.equal(cleared,1);
+console.log('Checkout confirmation: pending payments retain cart and only successful payment shows confirmation');
