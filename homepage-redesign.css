@@ -413,6 +413,14 @@ html.mp-home-boot body:not(.mp-home-redesign) .footer {
 
 .mp-text-link:hover { color: var(--mp-highlight) !important; }
 
+.mp-reading-grid { display: grid; gap: 18px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.mp-reading-card { display: flex; flex-direction: column; gap: 12px; padding: clamp(22px, 3vw, 36px); border: 1px solid var(--mp-line); border-radius: 18px; background: var(--mp-panel); color: var(--mp-copy) !important; text-decoration: none; }
+.mp-reading-card:hover, .mp-reading-card:focus-visible { border-color: var(--mp-accent); outline: 2px solid var(--mp-accent); outline-offset: 3px; }
+.mp-reading-title { color: var(--mp-copy) !important; font-size: clamp(26px, 3vw, 38px); line-height: 1.08; margin: 0; }
+.mp-reading-card .mp-section-copy { margin: 0 0 10px; }
+.mp-reading-card .mp-text-link { margin-top: auto; }
+@media (max-width: 600px) { .mp-reading-grid { grid-template-columns: 1fr; } }
+
 .mp-category-grid {
   display: grid;
   gap: 14px;
