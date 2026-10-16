@@ -6,6 +6,8 @@
   'use strict';
   var WORKER = 'https://still-resonance-4f87.swarnerauto.workers.dev';
   var PAGE = 120;
+  function slug(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
+  function exactStoreCopies(items, card, game) { return items.filter(function(i) { if(i.categorySlug !== game || i.isSealed || !(i.quantity > 0) || !(i.price > 0)) return false; if(i.scryfallId && card.scryfallId) return i.scryfallId === card.scryfallId; return !!i.tcgPlayerId && !!card.tcgPlayerId && String(i.tcgPlayerId) === String(card.tcgPlayerId); }); }
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]; }); }
   function money(n) { return n > 0 ? '$' + n.toFixed(2) : '\u2014'; }
@@ -27,7 +29,7 @@
       rarityOrder: POKEMON_RARITY,
       loadSets: async function () {
         var d = await getJson(WORKER + '/public/pokemon/sets');
-        return (d.data || []).map(function (s) { return { id: s.name || s.id, name: s.name || s.id, released: s.releaseDate || '', count: Number(s.cardCount || s.total || 0) }; })
+        return (d.data || []).map(function (s) { return { id: s.name || s.id, catalogId: s.id, name: s.name || s.id, released: s.releaseDate || '', count: Number(s.cardCount || s.total || 0) }; })
           .filter(function (s) { return s.id; })
           .sort(function (a, b) { return String(b.released).localeCompare(String(a.released)); });
       },
@@ -36,7 +38,7 @@
         return (d.data || []).map(function (c) {
           var p = c.prices || {};
           return {
-            name: c.name || c.cardName || '', number: c.cardNumber || c.number || '', rarity: c.rarity || '', artist: c.artist || '',
+            catalogId: c.id, tcgPlayerId: c.tcgPlayerId, name: c.name || c.cardName || '', number: c.cardNumber || c.number || '', rarity: c.rarity || '', artist: c.artist || '',
             image: c.imageCdnUrl400 || c.imageCdnUrl200 || c.imageUrl || '', large: c.imageCdnUrl800 || c.imageCdnUrl || c.imageCdnUrl400 || c.imageUrl || '',
             price: Number(p.market != null ? p.market : c.marketPrice || c.price || 0) || 0, low: Number(p.lowPrice != null ? p.lowPrice : c.lowPrice || 0) || 0, lowLabel: 'low',
             link: aff(c.tcgPlayerUrl || (c.tcgPlayerId ? 'https://www.tcgplayer.com/product/' + encodeURIComponent(c.tcgPlayerId) : '')), colors: [],
@@ -71,7 +73,7 @@
           var imgs = c.image_uris || face.image_uris || {};
           var tcg = c.purchase_uris && c.purchase_uris.tcgplayer;
           return {
-            name: c.name || '', number: c.collector_number || '', rarity: c.rarity || '', artist: c.artist || '',
+            scryfallId: c.id, tcgPlayerId: c.tcgplayer_id, name: c.name || '', number: c.collector_number || '', rarity: c.rarity || '', artist: c.artist || '',
             image: imgs.normal || imgs.small || '', large: imgs.large || imgs.normal || '',
             price: Number((c.prices || {}).usd || 0), low: Number((c.prices || {}).usd_foil || 0), lowLabel: 'foil',
             link: tcg ? aff(tcg) : (c.scryfall_uri || ''), colors: c.colors || face.colors || [], type: c.type_line || '',
@@ -85,7 +87,7 @@
     var g = GAMES[game];
     var prefs = store('sg-prefs-v1') || {};
     var st = { sets: [], set: null, cards: [], shown: [], limit: PAGE, view: prefs.view || 'grid', size: prefs.size || 'm', sort: prefs.sort || 'number', filtersOpen: false,
-      f: { q: '', artist: '', rarity: '', color: '', min: '', max: '' }, viewer: -1 };
+      inventory: [], inventoryStatus: 'loading', f: { q: '', artist: '', rarity: '', color: '', min: '', max: '' }, viewer: -1 };
 
     root.classList.add('sg');
     root.innerHTML =
@@ -100,6 +102,17 @@
     viewer.setAttribute('aria-modal', 'true');
     document.body.appendChild(viewer);
 
+    function catalogPath(card) {
+      if(game === 'mtg') return '/mtg/' + encodeURIComponent(st.set.id) + '/' + slug(card.name) + '-' + slug(card.number);
+      return '/pokemon/cards/' + encodeURIComponent(st.set.catalogId) + '/' + encodeURIComponent(card.tcgPlayerId || card.catalogId) + '/' + slug(card.name + '-' + card.number);
+    }
+    function storeCopies(card) { return exactStoreCopies(st.inventory, card, game); }
+    function inventoryLinks(card) {
+      var copies = storeCopies(card);
+      return '<div class="sg-store-copies"><h3>Available at The Mana Pocket</h3>' + (copies.length ? copies.map(function(i) { return '<a class="sg-v-buy" href="/item/' + encodeURIComponent(i.id) + '/' + slug(i.name) + '">' + esc(i.name) + ' - ' + money(Number(i.price)) + (i.condition ? ' - ' + esc(i.condition) : '') + '</a>'; }).join('') : '<p>' + (st.inventoryStatus === 'loading' ? 'Checking store copies...' : st.inventoryStatus === 'error' ? 'Store availability could not be checked. Please try the shop.' : 'No exact matching copies currently listed.') + '</p><a href="/category/' + game + '">Browse ' + esc(g.label) + ' inventory</a>') + '</div>';
+    }
+    getJson(WORKER + '/public/storefront?store_id=0f9dd4bc-42a7-487e-a972-2905d24513e9&category=' + game).then(function(data) { st.inventory = data.items || []; st.inventoryStatus = 'ready'; if(st.cards.length) render(); if(st.viewer >= 0) drawViewer(); }).catch(function() { st.inventoryStatus = 'error'; if(st.viewer >= 0) drawViewer(); });
+
     function savePrefs() { store('sg-prefs-v1', { view: st.view, size: st.size, sort: st.sort }); }
 
     function setOptions(list) {
@@ -112,7 +125,7 @@
     async function loadSets() {
       sel.innerHTML = '<option value="">Loading sets\u2026</option>';
       try {
-        var cacheKey = 'sg-sets-' + game + '-v1', cached = store(cacheKey);
+        var cacheKey = 'sg-sets-' + game + '-v2', cached = store(cacheKey);
         st.sets = cached && Date.now() - cached.at < 6 * 3600e3 && cached.sets.length ? cached.sets : await g.loadSets();
         if (!cached || cached.sets !== st.sets) store(cacheKey, { at: Date.now(), sets: st.sets });
         setOptions(st.sets);
@@ -166,7 +179,7 @@
       return '<button type="button" class="sg-tile" data-open="' + i + '"><span class="sg-art">' +
         (c.image ? '<img src="' + esc(c.image) + '" alt="' + esc(c.name) + '" loading="lazy" decoding="async">' : '<span>No image yet</span>') +
         '</span><span class="sg-tile-body"><span class="sg-name">' + esc(c.name) + '</span><span class="sg-sub">#' + esc(c.number) + (c.rarity ? ' \u00b7 ' + esc(c.rarity) : '') + '</span>' +
-        '<span class="sg-price">' + money(c.price) + '</span></span></button>';
+        '<span class="sg-price">' + money(c.price) + '</span>' + (storeCopies(c).length ? '<span class="sg-sub">Store copies available</span>' : '') + '</span></button>';
     }
     function row(c, i) {
       return '<button type="button" class="sg-row" data-open="' + i + '"><span class="sg-thumb">' + (c.image ? '<img src="' + esc(c.image) + '" alt="" loading="lazy" decoding="async">' : '') + '</span>' +
@@ -185,7 +198,7 @@
       var seg = function (attr, cur, opts) { return '<span class="sg-seg">' + opts.map(function (o) { return '<button type="button" ' + attr + '="' + o[0] + '" aria-pressed="' + (cur === o[0]) + '">' + o[1] + '</button>'; }).join('') + '</span>'; };
       var list = st.shown.slice(0, st.limit);
       body.innerHTML =
-        '<div class="sg-bar"><div class="sg-count"><b>' + st.shown.length + '</b> of ' + st.cards.length + ' cards \u00b7 ' + esc(st.set.name) + '</div>' +
+        '<p><a href="' + (game === 'mtg' ? '/mtg/' + encodeURIComponent(st.set.id) : '/pokemon/sets/' + encodeURIComponent(st.set.catalogId) + '/' + slug(st.set.name)) + '">Card checklist and store copies</a> - Reference prices shown below</p><div class="sg-bar"><div class="sg-count"><b>' + st.shown.length + '</b> of ' + st.cards.length + ' cards \u00b7 ' + esc(st.set.name) + '</div>' +
         '<select class="sg-sort" data-sort aria-label="Sort cards">' + sortOpt('number', 'Card number') + sortOpt('price-desc', 'Price: high to low') + sortOpt('price-asc', 'Price: low to high') +
           sortOpt('rarity', 'Rarity') + sortOpt('name', 'Name') + sortOpt('artist', 'Artist') + '</select>' +
         seg('data-view', st.view, [['grid', 'Grid'], ['list', 'List']]) +
@@ -218,8 +231,8 @@
           '<button type="button" class="sg-v-nav sg-v-prev" data-step="-1" aria-label="Previous card"' + (st.viewer ? '' : ' disabled') + '>\u2039</button>' +
           '<button type="button" class="sg-v-nav sg-v-next" data-step="1" aria-label="Next card"' + (next ? '' : ' disabled') + '>\u203a</button></div>' +
         '<div class="sg-v-info"><div class="sg-v-name">' + esc(c.name) + '</div><div class="sg-v-meta">#' + esc(c.number) + [c.rarity, c.artist].filter(Boolean).map(function (x) { return ' \u00b7 ' + esc(x); }).join('') + '</div>' +
-          '<div class="sg-v-prices"><span class="sg-price">' + money(c.price) + '</span>' + (c.low > 0 ? '<small>' + c.lowLabel + ' ' + money(c.low) + '</small>' : '') + '</div>' +
-          (c.link ? '<a class="sg-v-buy" href="' + esc(c.link) + '" target="_blank" rel="noopener sponsored">View on TCGplayer \u2197</a>' : '') + '</div>';
+          '<p>Reference market prices</p><div class="sg-v-prices"><span class="sg-price">' + money(c.price) + '</span>' + (c.low > 0 ? '<small>' + c.lowLabel + ' ' + money(c.low) + '</small>' : '') + '</div>' +
+          inventoryLinks(c) + '<p><a href="' + esc(catalogPath(c)) + '">Card details and checklist</a></p>' + (c.link ? '<a class="sg-v-buy" href="' + esc(c.link) + '" target="_blank" rel="noopener sponsored">View on TCGplayer \u2197</a>' : '') + '</div>';
       if (next && (next.large || next.image)) { var pre = new Image(); pre.src = next.large || next.image; }
     }
     var touch = null;

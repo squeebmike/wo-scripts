@@ -37,6 +37,8 @@ assert.match(foc,/<b>Release date<\/b>/,'FOC detail modal must show the release 
 assert.match(foc,/<b>Publisher<\/b>/,'FOC detail modal must show the publisher');
 assert.match(foc,/Synopsis/,'FOC detail modal must show the synopsis');
 assert.match(foc,/data-detail-share="'\+esc\(sku\.id\)\+'"/,'FOC detail modal must render a Share button');
+assert.ok(foc.includes('data-cover-share="\'+esc(sku.id)+\'"'),'each FOC cover card has its own Share action');
+assert.ok(foc.includes("shareSku(match.family,match.sku,button)"),'cover-card sharing uses the exact matched SKU');
 assert.doesNotMatch(foc,/mp-foc-lightbox/,'the old bare-image lightbox must be fully replaced, not left dangling alongside the new modal');
 assert.match(foc,/document\.querySelectorAll\('\[data-lightbox\]'\)\.forEach\(function\(button\)\{button\.addEventListener\('click',function\(\)\{openSkuDetail\(button\.dataset\.lightbox\);\}\);\}\);/,'clicking a cover must open the rich detail modal, not the old lightbox');
 

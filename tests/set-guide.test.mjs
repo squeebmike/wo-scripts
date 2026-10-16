@@ -17,3 +17,9 @@ assert.match(css, /\.sg button,\.sg-viewer button\{[^}]*min-height:0/, 'site-wid
 assert.match(css, /\.sg-grid\{display:grid;gap:10px;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/, 'two cards across on a phone');
 assert.match(css, /\.sg,\.sg-viewer\{--sg-bg/, 'the card viewer (outside .sg) gets the colors too');
 console.log('Set guide checks passed');
+assert.ok(js.includes('function exactStoreCopies('));
+assert.ok(js.includes("/public/storefront?store_id="));
+assert.ok(js.includes('Available at The Mana Pocket'));
+assert.ok(js.includes('Reference market prices'));
+assert.ok(js.includes('/pokemon/cards/'));
+assert.ok(js.includes('/item/'));
