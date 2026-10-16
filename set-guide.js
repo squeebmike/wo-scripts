@@ -232,7 +232,7 @@
           '<button type="button" class="sg-v-nav sg-v-next" data-step="1" aria-label="Next card"' + (next ? '' : ' disabled') + '>\u203a</button></div>' +
         '<div class="sg-v-info"><div class="sg-v-name">' + esc(c.name) + '</div><div class="sg-v-meta">#' + esc(c.number) + [c.rarity, c.artist].filter(Boolean).map(function (x) { return ' \u00b7 ' + esc(x); }).join('') + '</div>' +
           '<p>Reference market prices</p><div class="sg-v-prices"><span class="sg-price">' + money(c.price) + '</span>' + (c.low > 0 ? '<small>' + c.lowLabel + ' ' + money(c.low) + '</small>' : '') + '</div>' +
-          inventoryLinks(c) + '<p><a href="' + esc(catalogPath(c)) + '">Card details and checklist</a></p>' + (c.link ? '<a class="sg-v-buy" href="' + esc(c.link) + '" target="_blank" rel="noopener sponsored">View on TCGplayer \u2197</a>' : '') + '</div>';
+          inventoryLinks(c) + '<p><a href="' + esc(catalogPath(c)) + '">Card details and checklist</a></p>' + (c.link ? '<a class="sg-v-buy" href="' + esc(c.link) + '" target="_blank" rel="noopener sponsored">View on TCGplayer \u2197</a><p class="sg-affiliate-note">Affiliate link: The Mana Pocket may earn a commission if you buy through this link.</p>' : '') + '</div>';
       if (next && (next.large || next.image)) { var pre = new Image(); pre.src = next.large || next.image; }
     }
     var touch = null;
