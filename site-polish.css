@@ -30,7 +30,8 @@ body:has(#wo-live-shop) .shop-hero-title { font-family: Exo,system-ui,sans-serif
   #wo-live-shop .wo-store-controls-fields > * { min-width: 0 !important; width: 100%; box-sizing: border-box; }
   #wo-live-shop .wo-store-search-field { grid-column: 1 / -1; }
   #wo-live-shop .wo-store-controls-fields select { padding-inline: 8px !important; }
-  #wo-live-shop .wo-store-controls-fields[hidden] { display: none !important; }
+  #wo-live-shop .wo-store-controls-fields[hidden],
+  #wo-live-shop .wo-store-controls.is-collapsed .wo-store-controls-fields { display: none !important; }
 }
 #navbarID {
   border-bottom: 2px solid var(--wo-highlight) !important;
