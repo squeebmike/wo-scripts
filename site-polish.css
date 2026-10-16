@@ -17,6 +17,21 @@
 
 /* Shared cart and navigation */
 .mp-site-polish { overflow-x: clip; }
+
+/* Keep the inventory in reach on phones, with the existing full filter controls. */
+body:has(#wo-live-shop) .shop-hero-section,
+#wo-live-shop { font-family: Exo,system-ui,sans-serif; }
+body:has(#wo-live-shop) .shop-hero-title { font-family: Exo,system-ui,sans-serif; font-weight: 900; }
+@media (max-width: 600px) {
+  body:has(#wo-live-shop) .shop-hero-section { height: auto !important; min-height: 0 !important; padding: 16px !important; text-align: left; }
+  body:has(#wo-live-shop) .shop-hero-title { font-size: 34px !important; line-height: 1.05 !important; margin: 0 0 8px !important; }
+  body:has(#wo-live-shop) .shop-hero-section p { font: 14px/1.4 Exo,system-ui,sans-serif !important; margin: 0 !important; }
+  #wo-live-shop .wo-store-controls-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; width: 100%; }
+  #wo-live-shop .wo-store-controls-fields > * { min-width: 0 !important; width: 100%; box-sizing: border-box; }
+  #wo-live-shop .wo-store-search-field { grid-column: 1 / -1; }
+  #wo-live-shop .wo-store-controls-fields select { padding-inline: 8px !important; }
+  #wo-live-shop .wo-store-controls-fields[hidden] { display: none !important; }
+}
 #navbarID {
   border-bottom: 2px solid var(--wo-highlight) !important;
   outline: 0 !important;
