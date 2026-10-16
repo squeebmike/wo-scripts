@@ -1,5 +1,19 @@
 # SEO / Set-Browser Overhaul — Project Notes
 
+## Current production status — October 16, 2026
+
+The August notes below are historical. MTG routes and the Pokémon catalog are now live on the production domain; do not treat the older routing or plan questions as current blockers.
+
+- ArSca renders `/item/*`, paginated category pages, `/mtg/*`, `/pokemon`, `/pokemon/sets/*`, and `/pokemon/cards/*` in initial HTML. Supabase remains authoritative for sellable stock. Catalog reference prices are not store offers.
+- Both set viewers connect exact card IDs to public store inventory and show store prices/condition above TCGplayer. Their Webflow embeds load `set-guide.js@4305297`; the existing `k443Ov` affiliate referral and nearby commission disclosure are live. Affiliate approval/reporting has not been checked.
+- Published Pokémon Delta Reign and MTG Star Trek articles in the existing CMS collection. Visible article navigation now says Collector articles; requested author is Shawn Michael David Warner - The Mana Pocket.
+- Global head loads `preorders-loader.js@544b915`, with its matching SHA-384 integrity. Direct cover sharing has cancellation-aware fallback and success-only share events. After-FOC stock wording is corrected.
+- Global stylesheet now loads `site-polish.css@7a8ba26`. Shop-specific phone layout uses a compact heading and two-column filters; collapsed controls remain hidden.
+- Existing book alerts and successful-payment purchase analytics were preserved. Targeted tests cover alert ownership/cancellation, payment success/deduplication, and native/copy sharing failures. Analytics account receipt and broader saved-search/wantlist work are not verified as complete.
+- Indexable does not mean Google-indexed. Search Console's earlier inventory sitemap cohort still needs monitoring after the October fixes.
+
+Detailed production artifacts and screenshots: `../outputs/store-improvements-2026-10-16/` in the current local workspace.
+
 Started 2026-08-19. Goal: get MTG cards, Pokemon cards, comics, and every
 for-sale item actually indexed by Google. User wants this driven end-to-end;
 this file is the running log so any session (or person) can pick it up
