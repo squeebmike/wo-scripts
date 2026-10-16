@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const source=fs.readFileSync(new URL('../preorders.js',import.meta.url),'utf8');
+async function run(share,clipboard){
+  const calls=[],button={textContent:'Share this cover'};
+  const context={navigator:{share,clipboard},window:{prompt:(...args)=>calls.push(['prompt',...args])},titleForFamily:f=>f.title,trackPreorderEvent:(...args)=>calls.push(['event',...args]),setTimeout:()=>{}};
+  vm.createContext(context);
+  vm.runInContext(source.slice(source.indexOf('function shareUrlFor('),source.indexOf('function token(')),context);
+  await context.shareSku({title:'Batman #25'},{id:'cover-25',variantLabel:'Cover B'},button);
+  return {calls,button};
+}
+let urls=[];
+let result=await run(undefined,{writeText:async url=>urls.push(url)});
+assert.deepEqual(urls,['https://www.themanapocket.com/preorder/cover-25']);
+assert.equal(result.button.textContent,'Link copied ✓');
+assert.equal(result.calls[0][2].method,'copy_link');
+result=await run(async()=>{throw Object.assign(new Error('Canceled'),{name:'AbortError'});},{writeText:async()=>{throw new Error('Must not copy after cancellation');}});
+assert.equal(result.calls.length,0,'canceling native share does not copy or track a success');
+urls=[];
+result=await run(async()=>{throw new Error('Native share unavailable');},{writeText:async url=>urls.push(url)});
+assert.equal(urls.length,1,'native share failure falls back to the exact cover link');
+result=await run(()=>{throw new Error('Synchronous share failure');});
+assert.equal(result.calls[0][0],'prompt');
+result=await run(async()=>{});
+assert.equal(result.calls[0][2].method,'native');
+result=await run(undefined,{writeText:async()=>{throw new Error('Clipboard denied');}});
+assert.equal(result.calls[0][0],'prompt');
+assert.equal(result.calls.some(x=>x[0]==='event'),false,'a failed copy is not a successful share');
+console.log('Share success, cancellation, native failure and clipboard fallback checked');
