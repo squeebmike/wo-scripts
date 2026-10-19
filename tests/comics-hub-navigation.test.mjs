@@ -59,8 +59,8 @@ assert.match(shopPreorders, /inventoryGrid=controls&&host\.querySelector\('\.wo-
 assert.doesNotMatch(shopPreorders, /inventoryGrid=controls&&controls\.nextElementSibling/);
 console.log('Shop comics sub-nav placement checks passed');
 
-assert.ok(ui.includes("label:'Collector Articles'"));
-for(const href of ['/articles#articles-mtg','/articles#articles-pokemon','/baseball','/football','/secret-lair'])assert.ok(cool[0].includes("href:'"+href+"'"));
+assert.ok(ui.includes("label:'Pocket Guides'"));
+for(const href of ['/pocket-guides/mtg','/pocket-guides/pokemon','/pocket-guides/baseball','/pocket-guides/football','/pocket-guides/secret-lair'])assert.ok(cool[0].includes("href:'"+href+"'"));
 assert.ok(ui.includes("menu.toggleAttribute('data-mp-menu-open',open)"));
 assert.ok(ui.includes("menuButton.setAttribute('aria-expanded',String(open))"));
 console.log('Collector topic navigation and independent accessible mobile drawer state passed');
