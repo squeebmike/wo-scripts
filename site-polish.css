@@ -550,3 +550,10 @@ body.mp-chat-enabled #mp-floating-cart { bottom: calc(max(18px, env(safe-area-in
   .mp-counter-zone:hover .mp-counter-item,.mp-counter-zone:focus-visible .mp-counter-item,.mp-cool-object:hover,.mp-cool-object:focus-visible { transform: none !important; }
 }
 
+
+/* Own mobile drawer state works on native Webflow and Worker-rendered pages,
+   including pages where Webflow's overlay has not initialized. */
+@media(max-width:991px){
+ #navbarID .navbar6_menu[data-mp-menu-open]{display:block!important;position:fixed!important;inset:var(--nav-height,78px) 0 0!important;width:100%!important;height:calc(100dvh - var(--nav-height,78px))!important;max-height:none!important;overflow:auto!important;padding:0!important;background:var(--wo-bg,#17111f)!important;transform:none!important;z-index:10000!important}
+ body.mp-mobile-nav-open #navbarID{transform:none!important}
+}

@@ -766,7 +766,6 @@ function polishNavigationLegacy(){
       if(link.querySelector('.mp-nav-icon'))return;
       var label=link.textContent.trim();var image=/pokemon/i.test(label)?NAV_ART.pokemon:/mtg|magic/i.test(label)?NAV_ART.mtg:/publish/i.test(label)?NAV_ART.publishing:/comic/i.test(label)?NAV_ART.comics:BRAND_LOGO;decorate(link,label,image);
     });
-    if(!nav.dataset.mpScrollClose){
       nav.dataset.mpScrollClose='true';
       var lastScrollY=window.scrollY;
       window.addEventListener('scroll',function(){
@@ -875,9 +874,11 @@ function polishNavigation(){
     var coolTitle=document.createElement('h2');coolTitle.textContent='Collector guides & more';drawer.appendChild(coolTitle);
     var coolGrid=document.createElement('div');coolGrid.className='mp-mobile-cool-grid';coolItems.forEach(function(item){var link=document.createElement('a');link.href=item.href;var text=document.createElement('span');text.textContent=item.label;link.appendChild(text);coolGrid.appendChild(link);});drawer.appendChild(coolGrid);
     menu.appendChild(drawer);
-    var menuButton=nav.querySelector('.w-nav-button');function closeDrawer(){if(menuButton&&menuButton.classList.contains('w--open'))menuButton.click();document.body.classList.remove('mp-mobile-nav-open');}
+    var menuButton=nav.querySelector('.w-nav-button');
+    function setDrawer(open){menu.toggleAttribute('data-mp-menu-open',open);if(menuButton){menuButton.classList.toggle('w--open',open);menuButton.setAttribute('aria-expanded',String(open));}document.body.classList.toggle('mp-mobile-nav-open',open);if(open)nav.classList.remove('is-hidden');}
+    function closeDrawer(){setDrawer(false);}
     close.addEventListener('click',closeDrawer);cart.addEventListener('click',function(){closeDrawer();if(WO&&typeof WO.openCart==='function')WO.openCart();});drawer.addEventListener('click',function(event){if(event.target.closest('a'))closeDrawer();});
-    if(menuButton&&!menuButton.dataset.mpDrawerBound){menuButton.dataset.mpDrawerBound='true';menuButton.addEventListener('click',function(){requestAnimationFrame(function(){document.body.classList.toggle('mp-mobile-nav-open',menuButton.classList.contains('w--open'));});});}
+    if(menuButton&&!menuButton.dataset.mpDrawerBound){menuButton.dataset.mpDrawerBound='true';menuButton.addEventListener('click',function(event){if(innerWidth>991)return;event.preventDefault();event.stopImmediatePropagation();setDrawer(!menu.hasAttribute('data-mp-menu-open'));},true);window.addEventListener('resize',function(){if(innerWidth>991)closeDrawer();},{passive:true});}
     function syncCount(){var badge=document.getElementById('wo-cart-badge');var target=drawer.querySelector('[data-mp-mobile-cart-count]');if(target)target.textContent=Math.max(0,parseInt(badge&&badge.textContent,10)||0);}syncCount();var badge=document.getElementById('wo-cart-badge');if(badge)new MutationObserver(syncCount).observe(badge,{childList:true,subtree:true,characterData:true});
   }
   function wireDropdown(dropdown,index){
@@ -903,7 +904,6 @@ function polishNavigation(){
     var counterHydrated=false;function hydrateCounterInventory(){if(counterHydrated)return;counterHydrated=true;getManaPocketInventory().then(function(items){buildDesktopShop(shopList,items);buildDesktopCool(coolList,coolItems);if(menu)buildMobileDrawer(nav,menu,coolItems,items);}).catch(function(){});}nav.addEventListener('pointerenter',hydrateCounterInventory,{once:true,passive:true});nav.addEventListener('focusin',hydrateCounterInventory,{once:true});
     document.addEventListener('keydown',function(event){if(event.key!=='Escape')return;dropdowns.forEach(function(dropdown){var toggle=dropdown.querySelector('.w-dropdown-toggle');var list=dropdown.querySelector('.w-dropdown-list');dropdown.dataset.mpClickOpen='false';if(toggle&&list&&list.classList.contains('w--open')){list.classList.remove('w--open');toggle.classList.remove('w--open');toggle.setAttribute('aria-expanded','false');toggle.focus();}});var menuButton=nav.querySelector('.w-nav-button.w--open');if(menuButton)menuButton.click();document.body.classList.remove('mp-mobile-nav-open');});
     document.addEventListener('click',function(event){if(innerWidth<=991||nav.contains(event.target))return;dropdowns.forEach(function(dropdown){var toggle=dropdown.querySelector('.w-dropdown-toggle');var list=dropdown.querySelector('.w-dropdown-list');dropdown.dataset.mpClickOpen='false';if(toggle&&list){toggle.classList.remove('w--open');list.classList.remove('w--open');toggle.setAttribute('aria-expanded','false');}});});
-    if(!nav.dataset.mpScrollClose){nav.dataset.mpScrollClose='true';var lastScrollY=window.scrollY;window.addEventListener('scroll',function(){var nextScrollY=window.scrollY;var menuButton=nav.querySelector('.w-nav-button.w--open');if(innerWidth<=991&&menuButton&&Math.abs(nextScrollY-lastScrollY)>8){menuButton.click();document.body.classList.remove('mp-mobile-nav-open');if(nextScrollY>lastScrollY)requestAnimationFrame(function(){nav.classList.add('is-hidden');});}lastScrollY=nextScrollY;},{passive:true});}
   }
   if(document.body)mount();else document.addEventListener('DOMContentLoaded',mount,{once:true});
 }
