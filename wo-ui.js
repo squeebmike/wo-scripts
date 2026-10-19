@@ -797,7 +797,12 @@ function polishNavigation(){
     {slug:'comic-new-releases',label:'Comic New Releases',href:'/comic-new-releases-the-mana-pocket',image:NAV_ART.comics,meta:'Every cover out this week'},
     {slug:'preorders',label:'Comic Preorders',href:'/preorders',image:NAV_ART.comics,meta:'Pick exact covers before FOC'},
     {slug:'books',label:'Books & Backorders',href:'/books',image:BRAND_LOGO,meta:'Order any book in print'},
-    {slug:'articles',label:'Comic Articles',href:'https://www.themanapocket.com/articles',image:NAV_ART.comics,meta:'What to read & preorder next'},
+    {slug:'articles',label:'Collector Articles',href:'https://www.themanapocket.com/articles',image:NAV_ART.comics,meta:'MTG, Pokémon, sports & comics'},
+    {slug:'mtg-guides',label:'MTG Articles & Checklists',href:'/articles#articles-mtg',meta:'Set guides and releases'},
+    {slug:'pokemon-guides',label:'Pokémon Articles & Checklists',href:'/articles#articles-pokemon',meta:'Sets, cards and collecting'},
+    {slug:'baseball-guides',label:'Baseball Checklists',href:'/baseball',meta:'Topps and Bowman'},
+    {slug:'football-guides',label:'Football Checklists',href:'/football',meta:'Licensed Topps releases'},
+    {slug:'secret-lair-guides',label:'Secret Lair Drop Guides',href:'/secret-lair',meta:'Illustrated cards and shopping'},
     {slug:'pokemon-viewer',label:'Pok\u00e9mon Card Viewer',href:'/pokemon-new-releases',image:NAV_ART.pokemon,meta:'Scan the latest sets'},
     {slug:'mtg-viewer',label:'MTG Card Viewer',href:'/mtg-new-releases',image:NAV_ART.mtg,meta:'Browse cards by release'},
     {slug:'publishing',label:'Walk-Off Publishing',href:'/publishing',image:NAV_ART.publishing,meta:'Comics from behind the counter'},
@@ -853,11 +858,11 @@ function polishNavigation(){
   }
   function buildDesktopCool(list,items){
     if(!list)return;list.innerHTML='';list.classList.add('mp-counter-menu','mp-counter-menu--cool');list.id='mp-cool-counter-menu';
-    var header=document.createElement('div');header.className='mp-counter-head';header.innerHTML='<strong>Comics, books & more</strong>';list.appendChild(header);
-    var grid=document.createElement('div');grid.className='mp-cool-grid';var comics=document.createElement('section');comics.className='mp-nav-group';comics.innerHTML='<h3>Comics &amp; Books</h3><a href="/comics/search">Search all comics →</a>';var explore=document.createElement('section');explore.className='mp-nav-group';explore.innerHTML='<h3>Explore</h3>';grid.appendChild(comics);grid.appendChild(explore);items.forEach(function(item){
+    var header=document.createElement('div');header.className='mp-counter-head';header.innerHTML='<strong>Read, collect & explore</strong>';list.appendChild(header);
+    var grid=document.createElement('div');grid.className='mp-cool-grid';var comics=document.createElement('section');comics.className='mp-nav-group';comics.innerHTML='<h3>Comics &amp; Books</h3><a href="/comics/search">Search all comics →</a>';var explore=document.createElement('section');explore.className='mp-nav-group';explore.innerHTML='<h3>Explore</h3>';var guides=document.createElement('section');guides.className='mp-nav-group';guides.innerHTML='<h3>Articles &amp; Checklists</h3>';grid.appendChild(comics);grid.appendChild(guides);grid.appendChild(explore);items.forEach(function(item){
       var link=document.createElement('a');link.className='mp-cool-object mp-cool-object--'+item.slug;link.href=item.href;
       
-      var copy=document.createElement('span');copy.className='mp-counter-copy';var strong=document.createElement('strong');strong.textContent=item.label;copy.appendChild(strong);var meta=document.createElement('span');meta.textContent=item.meta;copy.appendChild(meta);link.appendChild(copy);(/comic-new-releases|preorders|books|articles/.test(item.slug)?comics:explore).appendChild(link);
+      var copy=document.createElement('span');copy.className='mp-counter-copy';var strong=document.createElement('strong');strong.textContent=item.label;copy.appendChild(strong);var meta=document.createElement('span');meta.textContent=item.meta;copy.appendChild(meta);link.appendChild(copy);(/comic-new-releases|preorders|books/.test(item.slug)?comics:/guides|articles/.test(item.slug)?guides:explore).appendChild(link);
     });list.appendChild(grid);
   }
   function buildMobileDrawer(nav,menu,coolItems,items){
@@ -867,7 +872,7 @@ function polishNavigation(){
     var cart=document.createElement('button');cart.type='button';cart.className='mp-mobile-cart-cta';cart.setAttribute('aria-label','View cart');cart.innerHTML='<span aria-hidden="true">\ud83d\uded2</span><strong>View cart</strong><b data-mp-mobile-cart-count>0</b>';drawer.appendChild(cart);
     var caseGrid=document.createElement('div');caseGrid.className='mp-mobile-case-grid';SHOP_LINKS.filter(function(item){return item.slug!=='all';}).forEach(function(item){caseGrid.appendChild(buildShopZone(item,items,true));});drawer.appendChild(caseGrid);
     var all=document.createElement('a');all.className='mp-mobile-view-all';all.href=SHOP_LINKS[0].href;all.textContent='View everything in the shop \u2192';drawer.appendChild(all);
-    var coolTitle=document.createElement('h2');coolTitle.textContent='Comics, books & more';drawer.appendChild(coolTitle);
+    var coolTitle=document.createElement('h2');coolTitle.textContent='Collector guides & more';drawer.appendChild(coolTitle);
     var coolGrid=document.createElement('div');coolGrid.className='mp-mobile-cool-grid';coolItems.forEach(function(item){var link=document.createElement('a');link.href=item.href;var text=document.createElement('span');text.textContent=item.label;link.appendChild(text);coolGrid.appendChild(link);});drawer.appendChild(coolGrid);
     menu.appendChild(drawer);
     var menuButton=nav.querySelector('.w-nav-button');function closeDrawer(){if(menuButton&&menuButton.classList.contains('w--open'))menuButton.click();document.body.classList.remove('mp-mobile-nav-open');}
@@ -1230,7 +1235,7 @@ polishShopInventory();
 
 })();
 
-(function(){var style=document.createElement('style');style.textContent=`#mp-cool-counter-menu .mp-cool-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:24px!important}.mp-nav-group h3{font:800 16px/1.4 system-ui;margin:0 0 12px;color:var(--wo-text)}.mp-nav-group>a{display:block!important;min-height:0!important;padding:10px 14px!important;margin:6px 0!important;color:var(--wo-text)!important;text-decoration:none}.mp-nav-group .mp-counter-copy strong{font-size:16px!important}.mp-nav-group .mp-counter-copy span{font-size:12px!important}.mp-cool-object:before,.mp-cool-object:after{display:none!important}.mp-mobile-cool-grid{grid-template-columns:1fr!important}.mp-mobile-cool-grid a{min-height:44px}.mp-mobile-cool-grid img{display:none}#mp-category-nav{font:600 14px/1.4 system-ui!important;gap:8px!important;padding:12px 16px!important}#mp-category-nav a{color:var(--wo-text,#fff)!important;background:var(--wo-surface,#242630);border:1px solid var(--wo-border,#565660);border-radius:24px;padding:9px 14px;text-decoration:none}#mp-category-nav a:hover{border-color:var(--wo-accent)}@media(max-width:767px){#mp-category-nav{flex-wrap:nowrap!important;overflow-x:auto;white-space:nowrap;margin:0!important}#mp-category-nav a{flex:none;font-size:12px;padding:8px 12px}}`;document.head.appendChild(style);})();
+(function(){var style=document.createElement('style');style.textContent=`#mp-cool-counter-menu .mp-cool-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:24px!important}.mp-nav-group h3{font:800 16px/1.4 system-ui;margin:0 0 12px;color:var(--wo-text)}.mp-nav-group>a{display:block!important;min-height:0!important;padding:10px 14px!important;margin:6px 0!important;color:var(--wo-text)!important;text-decoration:none}.mp-nav-group .mp-counter-copy strong{font-size:16px!important}.mp-nav-group .mp-counter-copy span{font-size:12px!important}.mp-cool-object:before,.mp-cool-object:after{display:none!important}.mp-mobile-cool-grid{grid-template-columns:1fr!important}.mp-mobile-cool-grid a{min-height:44px}.mp-mobile-cool-grid img{display:none}#mp-category-nav{font:600 14px/1.4 system-ui!important;gap:8px!important;padding:12px 16px!important}#mp-category-nav a{color:var(--wo-text,#fff)!important;background:var(--wo-surface,#242630);border:1px solid var(--wo-border,#565660);border-radius:24px;padding:9px 14px;text-decoration:none}#mp-category-nav a:hover{border-color:var(--wo-accent)}@media(max-width:767px){#mp-category-nav{flex-wrap:nowrap!important;overflow-x:auto;white-space:nowrap;margin:0!important}#mp-category-nav a{flex:none;font-size:12px;padding:8px 12px}}`;document.head.appendChild(style);})();
 
 // Keep category destinations accessible without filling the phone's first screen.
 (function(){
