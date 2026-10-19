@@ -766,6 +766,7 @@ function polishNavigationLegacy(){
       if(link.querySelector('.mp-nav-icon'))return;
       var label=link.textContent.trim();var image=/pokemon/i.test(label)?NAV_ART.pokemon:/mtg|magic/i.test(label)?NAV_ART.mtg:/publish/i.test(label)?NAV_ART.publishing:/comic/i.test(label)?NAV_ART.comics:BRAND_LOGO;decorate(link,label,image);
     });
+    if(!nav.dataset.mpScrollClose){
       nav.dataset.mpScrollClose='true';
       var lastScrollY=window.scrollY;
       window.addEventListener('scroll',function(){
