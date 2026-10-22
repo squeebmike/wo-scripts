@@ -198,7 +198,7 @@ function renderPasswordRecovery(app){
 function renderAccountShell(app,section){
   app.innerHTML='<div class="mp-acct-shell">'+
     '<div class="mp-acct-eyebrow">The Mana Pocket</div><h1 class="mp-acct-title">My Pocket</h1>'+
-    '<nav class="mp-acct-tabs" role="navigation" aria-label="Account sections">'+SECTIONS.filter(function(s){return s.protected;}).map(function(s){return'<a href="'+s.path+'" class="'+(s.key===section.key?'active':'')+'">'+esc(s.label)+'</a>';}).join('')+'<button type="button" class="mp-acct-theme-tab" data-account-theme>Theme</button></nav>'+
+    '<nav class="mp-acct-tabs" role="navigation" aria-label="Account sections">'+SECTIONS.filter(function(s){return s.protected;}).map(function(s){return'<a href="'+s.path+'" class="'+(s.key===section.key?'active':'')+'">'+esc(s.label)+'</a>';}).join('')+'<a href="/preorders/pull-list">Comic Pull List</a><button type="button" class="mp-acct-theme-tab" data-account-theme>Theme</button></nav>'+
     '<div id="mp-acct-panel" class="mp-acct-panel"><div class="mp-acct-loading">Loading…</div></div>'+
     '<div class="mp-acct-actions mp-acct-signout"><button class="mp-acct-button ghost" type="button" data-sign-out>Sign out</button></div>'+
   '</div>';

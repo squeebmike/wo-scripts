@@ -796,6 +796,7 @@ function polishNavigation(){
   var COOL_LINKS=[
     {slug:'comic-new-releases',label:'Comic New Releases',href:'/comic-new-releases-the-mana-pocket',image:NAV_ART.comics,meta:'Every cover out this week'},
     {slug:'preorders',label:'Comic Preorders',href:'/preorders',image:NAV_ART.comics,meta:'Pick exact covers before FOC'},
+    {slug:'pull-list',label:'Comic Pull List',href:'/preorders/pull-list',image:NAV_ART.comics,meta:'Regular cover · pay at pickup'},
     {slug:'books',label:'Books & Backorders',href:'/books',image:BRAND_LOGO,meta:'Order any book in print'},
     {slug:'articles',label:'Pocket Guides',href:'/pocket-guides',image:NAV_ART.comics,meta:'MTG, Pokémon, sports & comics'},
     {slug:'mtg-guides',label:'MTG Articles & Checklists',href:'/pocket-guides/mtg',meta:'Set guides and releases'},
@@ -1044,6 +1045,7 @@ function polishShopInventory(){
 var COMICS_HUB_LINKS=[
   {key:'new-releases',href:'/comic-new-releases-the-mana-pocket',label:'New this week',meta:'Covers, artists & ratios'},
   {key:'preorders',href:'/preorders',label:'Preorders',meta:'Lock it in before FOC'},
+  {key:'pull-list',href:'/preorders/pull-list',label:'Pull list',meta:'Reserve each new issue'},
   {key:'shop',href:'/shop?cat=comics',label:'In stock',meta:'On the shelf now'},
   {key:'backlist',href:'/books',label:'Backlist',meta:'Order anything in print'},
   {key:'articles',href:'https://www.themanapocket.com/articles',label:'Articles',meta:'What to read next'}
