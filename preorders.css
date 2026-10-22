@@ -49,3 +49,14 @@ body.mp-page-preorders{overflow-x:hidden;background:var(--wo-bg,#10121a);color:v
 @media(max-width:600px){.mp-foc-shell{padding:18px 8px 92px}.mp-foc-title{font-size:50px}.mp-foc-deadline{padding:12px}.mp-foc-countdown{width:100%}.mp-foc-countdown b{min-width:0;font-size:16px}.mp-foc-controls{position:relative;top:auto;grid-template-columns:1fr 1fr;padding:8px;margin:14px 0}.mp-foc-controls>*{min-width:0!important}.mp-foc-controls input:first-child,.mp-foc-controls .mp-foc-button{grid-column:1/-1}.mp-foc-variants{grid-template-columns:repeat(2,minmax(0,1fr))}.mp-foc-cover{padding:7px}.mp-foc-cover h3{font-size:11px}.mp-foc-cover .price{font-size:15px}.mp-foc-cover .actions{grid-template-columns:1fr}.mp-foc-qty{width:100%!important;height:38px}.mp-foc-button{font-size:9px;padding:8px 10px}.mp-foc-float{left:10px;bottom:max(10px,env(safe-area-inset-bottom));min-width:0;padding:9px 14px}.mp-foc-dialog{padding:16px 11px}.mp-foc-form-grid{grid-template-columns:1fr}.mp-foc-cart-line{grid-template-columns:58px minmax(0,1fr) auto}.mp-foc-cart-line img{width:58px;height:86px}}
 @media(max-width:600px){.mp-foc-nav{min-height:66px;padding:5px 8px}.mp-foc-brand img{width:76px;height:54px}.mp-foc-nav>div{gap:2px}.mp-foc-nav a,.mp-foc-nav button{padding:9px 8px;font-size:8px}}
 .mp-foc-cover .mp-foc-left{font:900 10px/1.3 ui-monospace,monospace;text-transform:uppercase;letter-spacing:.06em;color:var(--mp-accent);margin:-4px 0 10px}.mp-foc-cover .mp-foc-left.out{color:inherit;opacity:.55}
+
+/* Compact browsing controls: books come before an expanded filter form. */
+.mp-foc-week-picker{display:flex;align-items:center;gap:10px;margin:16px 0 10px}
+.mp-foc-week-picker label{font:700 14px/1.3 system-ui,sans-serif;white-space:nowrap}
+.mp-foc-week-picker select,.mp-foc-controls select,.mp-foc-controls input{font:400 16px/1.3 system-ui,sans-serif;min-width:0;min-height:44px;max-width:100%}
+.mp-foc-week-picker select{flex:1;border:1px solid var(--mp-line);border-radius:8px;padding:10px;background:var(--mp-case);color:var(--mp-ink)}
+.mp-foc-filter-panel{margin:10px 0 14px;border:1px solid var(--mp-line);border-radius:10px;padding:0 12px}
+.mp-foc-filter-panel summary{cursor:pointer;min-height:44px;align-content:center;font:700 15px/1.4 system-ui,sans-serif}
+.mp-foc-filter-panel .mp-foc-controls{position:static;margin:0 0 12px;box-shadow:none;backdrop-filter:none}
+.mp-foc-pull-link{display:inline-block;color:var(--mp-accent);font:700 14px/1.5 system-ui,sans-serif;margin:4px 0 8px}
+@media(max-width:600px){#mp-foc-app .mp-foc-title{font-size:32px;line-height:1.02;margin:8px 0}#mp-foc-app .mp-foc-intro{font:400 15px/1.4 system-ui,sans-serif;margin:8px 0}.mp-foc-shell{padding-top:14px}.mp-foc-deadline{margin-top:12px;padding:12px;gap:10px}.mp-foc-deadline strong{font-size:24px}.mp-foc-controls{grid-template-columns:1fr}.mp-foc-week-picker{margin-top:12px}}

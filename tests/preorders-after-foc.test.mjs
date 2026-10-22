@@ -38,7 +38,7 @@ assert.match(source, /familyHtml\(families,cycleSellMode\(cycle\)\)/);
 assert.match(source, /familyHtml\(families,cycleSellMode\(entry\.cycle\)\)/);
 // Week header, nav and countdown say what's going on.
 assert.match(source, /cycle\.afterFocOpen\?'FOC closed · limited copies left'/);
-assert.match(source, /entry\.cycle\.afterFocOpen\?'Limited copies · '/);
+assert.match(source, /entry\.cycle\.afterFocOpen\?'Limited copies'/);
 assert.match(source, /if\(!cycle\.isOpen&&cycle\.afterFocOpen\)return'<b>LIMITED<small>COPIES LEFT<\/small><\/b>';/);
 // Detail view: copies left instead of a passed deadline, sold out disabled.
 assert.match(source, /'<span><b>Copies left<\/b>'/);
