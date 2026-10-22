@@ -60,3 +60,5 @@ body.mp-page-preorders{overflow-x:hidden;background:var(--wo-bg,#10121a);color:v
 .mp-foc-filter-panel .mp-foc-controls{position:static;margin:0 0 12px;box-shadow:none;backdrop-filter:none}
 .mp-foc-pull-link{display:inline-block;color:var(--mp-accent);font:700 14px/1.5 system-ui,sans-serif;margin:4px 0 8px}
 @media(max-width:600px){#mp-foc-app .mp-foc-title{font-size:32px;line-height:1.02;margin:8px 0}#mp-foc-app .mp-foc-intro{font:400 15px/1.4 system-ui,sans-serif;margin:8px 0}.mp-foc-shell{padding-top:14px}.mp-foc-deadline{margin-top:12px;padding:12px;gap:10px}.mp-foc-deadline strong{font-size:24px}.mp-foc-controls{grid-template-columns:1fr}.mp-foc-week-picker{margin-top:12px}}
+
+@media(max-width:600px){#mp-foc-app .mp-foc-eyebrow{font-size:9px}.mp-foc-deadline span{font-size:10px;letter-spacing:0}.mp-foc-countdown b{min-width:42px;padding:7px;font-size:16px}.mp-foc-countdown{gap:4px}.mp-foc-pull-link{min-height:30px}}

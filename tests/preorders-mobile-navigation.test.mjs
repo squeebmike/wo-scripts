@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const source=fs.readFileSync('preorders.js','utf8');
+const code=source.slice(source.indexOf('function weekPickerHtml('),source.indexOf('function render(){'));
+const ctx={location:{hash:''},esc:v=>String(v).replaceAll('"','&quot;'),dateLabel:v=>v,cycleRank:c=>c.rank};vm.createContext(ctx);vm.runInContext(code,ctx);
+const entries=[{cycle:{id:'a',rank:0,foc_date:'2026-10-26'}},{cycle:{id:'b',rank:1,foc_date:'2026-10-19'}},{cycle:{id:'c',rank:2,foc_date:'2026-09-28'}}];
+let html=ctx.weekPickerHtml(entries);assert.match(html,/<optgroup label="Open for preorders">/);assert.match(html,/<optgroup label="Limited copies left">/);assert.match(html,/<optgroup label="Closed weeks">/);assert.equal((html.match(/<option /g)||[]).length,3);assert.match(html,/value="foc-week-a" selected/);
+ctx.location.hash='#foc-week-b';html=ctx.weekPickerHtml(entries);assert.match(html,/value="foc-week-b" selected/);assert.doesNotMatch(html,/value="foc-week-a" selected/);
+assert.match(source,/<details class="mp-foc-filter-panel"><summary>Filter covers/);
+console.log('Week picker groups statuses, preserves anchors, and filters start collapsed');
